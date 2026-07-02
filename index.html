@@ -303,38 +303,50 @@
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                    <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider block border-b pb-1.5"><i class="fa-solid fa-warehouse mr-1 text-slate-400"></i> Live Status Inventaris Master Laptop Gudang (Total Aset: <span id="stat-laptop-total">0</span> Unit)</span>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Tersedia (Ready)</span>
-                                <span id="stat-laptop-ready" class="text-xl font-black text-emerald-600 block mt-0.5">0</span>
-                            </div>
-                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
-                        </div>
-                        <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sedang Disewa</span>
-                                <span id="stat-laptop-rented" class="text-xl font-black text-amber-600 block mt-0.5">0</span>
-                            </div>
-                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-boxes-packing"></i></div>
-                        </div>
-                        <div class="bg-rose-50/50 p-3 border border-rose-100 rounded-xl flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Rusak / Maintenance</span>
-                                <span id="stat-laptop-broken" class="text-xl font-black text-rose-600 block mt-0.5">0</span>
-                            </div>
-                            <div class="text-rose-500 text-lg"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-                        </div>
-                        <div class="bg-slate-100 p-3 border border-slate-200 rounded-xl flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Sudah Terjual</span>
-                                <span id="stat-laptop-sold" class="text-xl font-black text-slate-700 block mt-0.5">0</span>
-                            </div>
-                            <div class="text-slate-400 text-lg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-                        </div>
-                    </div>
-                </div>
+    <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider block border-b pb-1.5"><i class="fa-solid fa-warehouse mr-1 text-slate-400"></i> Live Status Inventaris Master Laptop Gudang (Total Aset: <span id="stat-laptop-total">0</span> Unit)</span>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <!-- 1. Tersedia -->
+        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Tersedia (Ready)</span>
+                <span id="stat-laptop-ready" class="text-xl font-black text-emerald-600 block mt-0.5">0</span>
+            </div>
+            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
+        </div>
+        <!-- 2. Sedang Disewa -->
+        <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sedang Disewa</span>
+                <span id="stat-laptop-rented" class="text-xl font-black text-amber-600 block mt-0.5">0</span>
+            </div>
+            <div class="text-amber-500 text-lg"><i class="fa-solid fa-boxes-packing"></i></div>
+        </div>
+        <!-- 3. Rusak / Maintenance -->
+        <div class="bg-rose-50/50 p-3 border border-rose-100 rounded-xl flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Rusak / Maintenance</span>
+                <span id="stat-laptop-broken" class="text-xl font-black text-rose-600 block mt-0.5">0</span>
+            </div>
+            <div class="text-rose-500 text-lg"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+        </div>
+        <!-- 4. Sudah Terjual -->
+        <div class="bg-slate-100 p-3 border border-slate-200 rounded-xl flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Sudah Terjual</span>
+                <span id="stat-laptop-sold" class="text-xl font-black text-slate-700 block mt-0.5">0</span>
+            </div>
+            <div class="text-slate-400 text-lg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        </div>
+        <!-- 5. KOTAK BARU: Digunakan Staf -->
+        <div class="bg-indigo-50/50 p-3 border border-indigo-100 rounded-xl flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Digunakan Staf</span>
+                <span id="stat-laptop-staf" class="text-xl font-black text-indigo-600 block mt-0.5">0</span>
+            </div>
+            <div class="text-indigo-500 text-lg"><i class="fa-solid fa-user-tie"></i></div>
+        </div>
+    </div>
+</div>
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
                     <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider block border-b pb-1.5"><i class="fa-solid fa-desktop mr-1 text-slate-400"></i> Live Monitor Laptop Etalase / Display (Total Display: <span id="stat-display-total">0</span> Unit)</span>

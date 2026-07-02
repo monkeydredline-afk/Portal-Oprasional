@@ -1,4 +1,3 @@
-
 import { 
     db, ref, set, push, onValue, remove, update, get, query, orderByChild, equalTo,
     firebaseLogin, firebaseLogout, registerAuthUser 
@@ -248,18 +247,23 @@ window.openDashboardModal = function() {
         showToast("Anda tidak memiliki izin akses untuk melihat Dashboard Statistik.", "warning");
         return;
     }
-    document.getElementById('dashboard-modal').classList.remove('hidden');
+    const modal = document.getElementById('dashboard-modal');
+    if (modal) modal.classList.remove('hidden');
     calculateAndRenderStats();
 };
 
 window.closeDashboardModal = function() {
-    document.getElementById('dashboard-modal').classList.add('hidden');
+    const modal = document.getElementById('dashboard-modal');
+    if (modal) modal.classList.add('hidden');
 };
 
 window.resetDisplayFilters = function() {
-    document.getElementById('filter-display-cabang').value = '';
-    document.getElementById('filter-display-start').value = '';
-    document.getElementById('filter-display-end').value = '';
+    const filterBranch = document.getElementById('filter-display-cabang');
+    const filterStart = document.getElementById('filter-display-start');
+    const filterEnd = document.getElementById('filter-display-end');
+    if (filterBranch) filterBranch.value = '';
+    if (filterStart) filterStart.value = '';
+    if (filterEnd) filterEnd.value = '';
     calculateAndRenderStats();
 };
 
@@ -345,7 +349,7 @@ function purgeOldLogs() {
 }
 
 // =================================================================
-// UTILITY BACKUP DATABASE (JSON EXPORTER) [2]
+// UTILITY BACKUP DATABASE (JSON EXPORTER)
 // =================================================================
 window.backupDatabase = backupDatabase;
 function backupDatabase() {
@@ -404,7 +408,7 @@ window.sendWhatsAppNotify = function(no_wa, nama, unit, total, tipe_log) {
     
     let messageText = '';
     if (tipe_log === 'services') {
-        messageText = `Halo Kak *${nama}*,\n\nKami menginformasikan bahwa perangkat *${unit}* Anda yang diservis di *Teknisi Portal* sudah selesai dikerjakan dan siap diambil.\n\nTotal Biaya: *Rp ${Number(total).toLocaleString('id-ID')}*\n\nTerima kasih atas kepercayaannya!`;
+        messageText = `Halo Kak *${nama}*,\n\nKami menginformasikan bahwa perangkat *${unit}* Anda yang diservis di *Teknisi Portal* sudah selesai dikerjakan dan siap diambil.\n\nTotal Biaya: *Rp ${Number(total).toLocaleString('id-ID')}*\n\nTeria kasih atas kepercayaannya!`;
     } else if (tipe_log === 'penyewaan') {
         messageText = `Halo Kak *${nama}*,\n\nKami menginformasikan bahwa masa penyewaan unit laptop *${unit}* Anda akan/telah jatuh tempo.\n\nTotal Biaya Sewa: *Rp ${Number(total).toLocaleString('id-ID')}*\n\nMohon segera melakukan konfirmasi pengembalian atau perpanjangan unit ke toko. Terima kasih!`;
     }
@@ -414,7 +418,7 @@ window.sendWhatsAppNotify = function(no_wa, nama, unit, total, tipe_log) {
 };
 
 // =================================================================
-// DETEKSI ANIMASI PEMUATAN TABEL (LOADING SPINNER) [1]
+// DETEKSI ANIMASI PEMUATAN TABEL (LOADING SPINNER)
 // =================================================================
 function showTableLoading(message = "Mengambil Data...") {
     const tbody = document.getElementById('table-body');
@@ -493,19 +497,6 @@ function calculateAndRenderStats() {
     const dataLaptop = globalDataCloud['list_laptop'] || [];
     const dataDisplayRaw = globalDataCloud['laptop_display'] || [];
 
-    let pendingServices = dataServices.filter(s => s.status === 'Antrean' || s.status === 'Proses').length;
-    
-    let totalOmsetSewa = 0;
-    dataPenyewaan.forEach(p => { totalOmsetSewa += (Number(p.total_biaya) || 0); });
-    
-    let activeCctv = dataCctv.filter(c => c.status === 'Survei' || c.status === 'Pengerjaan').length;
-    
-    let totalLaptopAset = dataLaptop.length;
-    let lapReady = dataLaptop.filter(l => l.status === 'Tersedia').length;
-    let lapSewa = dataLaptop.filter(l => l.status === 'Disewa').length;
-    let lapRusak = dataLaptop.filter(l => l.status === 'Maintenance').length;
-    let lapTerjual = dataLaptop.filter(l => l.status === 'Terjual').length;
-
     const filterDisplayCabang = document.getElementById('filter-display-cabang');
     const filterGudangCabang = document.getElementById('filter-gudang-cabang');
 
@@ -517,15 +508,53 @@ function calculateAndRenderStats() {
         if (filterGudangCabang) filterGudangCabang.style.display = '';
     }
 
-    const branchVal = window.userBranch || (filterDisplayCabang ? filterDisplayCabang.value : '');
-    const startVal = document.getElementById('filter-display-start').value;
-    const endVal = document.getElementById('filter-display-end').value;
+    // MEMISAHKAN FILTER CABANG ANTARA GUDANG DAN DISPLAY
+    const displayBranchVal = window.userBranch || (filterDisplayCabang ? filterDisplayCabang.value : '');
+    const gudangBranchVal = window.userBranch || (filterGudangCabang ? filterGudangCabang.value : '');
     
-    let filteredDisplay = dataDisplayRaw;
+    const startValEl = document.getElementById('filter-display-start');
+    const endValEl = document.getElementById('filter-display-end');
+    const startVal = startValEl ? startValEl.value : '';
+    const endVal = endValEl ? endValEl.value : '';
 
-    if (branchVal) {
-        filteredDisplay = filteredDisplay.filter(item => item.cabang === branchVal);
+    // SINKRONISASI DATA LAYANAN, PENYEWAAN & CCTV
+    let filteredServices = dataServices;
+    let filteredPenyewaan = dataPenyewaan;
+    let filteredCctv = dataCctv;
+
+    // Default mengikuti filter utama (gudang/display)
+    const generalBranchVal = window.userBranch || displayBranchVal || gudangBranchVal;
+    if (generalBranchVal) {
+        filteredServices = filteredServices.filter(item => item.cabang === generalBranchVal);
+        filteredPenyewaan = filteredPenyewaan.filter(item => item.cabang === generalBranchVal);
+        filteredCctv = filteredCctv.filter(item => item.cabang === generalBranchVal);
     }
+
+    // SINKRONISASI DATA GUDANG LAPTOP BERDASARKAN FILTER GUDANG
+    let filteredLaptop = dataLaptop;
+    if (gudangBranchVal) {
+        filteredLaptop = filteredLaptop.filter(item => item.cabang === gudangBranchVal);
+    }
+
+    // SINKRONISASI DATA DISPLAY BERDASARKAN FILTER DISPLAY
+    let filteredDisplay = dataDisplayRaw;
+    if (displayBranchVal) {
+        filteredDisplay = filteredDisplay.filter(item => item.cabang === displayBranchVal);
+    }
+
+    let pendingServices = filteredServices.filter(s => s.status === 'Antrean' || s.status === 'Proses').length;
+    
+    let totalOmsetSewa = 0;
+    filteredPenyewaan.forEach(p => { totalOmsetSewa += (Number(p.total_biaya) || 0); });
+    
+    let activeCctv = filteredCctv.filter(c => c.status === 'Survei' || c.status === 'Pengerjaan').length;
+    
+    let totalLaptopAset = filteredLaptop.length;
+    let lapReady = filteredLaptop.filter(l => l.status === 'Tersedia').length;
+    let lapSewa = filteredLaptop.filter(l => l.status === 'Disewa').length;
+    let lapRusak = filteredLaptop.filter(l => l.status === 'Maintenance').length;
+    let lapTerjual = filteredLaptop.filter(l => l.status === 'Terjual').length;
+    let lapStaf = filteredLaptop.filter(l => l.status === 'Staf').length; 
 
     if (startVal && endVal) {
         const startDate = new Date(startVal);
@@ -545,66 +574,110 @@ function calculateAndRenderStats() {
     let dispSold = filteredDisplay.filter(d => d.status === 'Terjual').length;
     let dispOff = filteredDisplay.filter(d => d.status === 'Gudang').length;
 
-    document.getElementById('stat-services-pending').innerText = pendingServices;
-    document.getElementById('stat-rent-omset').innerText = totalOmsetSewa.toLocaleString('id-ID');
-    document.getElementById('stat-cctv-active').innerText = activeCctv;
-    
-    document.getElementById('stat-laptop-total').innerText = totalLaptopAset;
-    document.getElementById('stat-laptop-ready').innerText = lapReady;
-    document.getElementById('stat-laptop-rented').innerText = lapSewa;
-    document.getElementById('stat-laptop-broken').innerText = lapRusak;
-    document.getElementById('stat-laptop-sold').innerText = lapTerjual;
+    const setInnerText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val;
+    };
 
-    document.getElementById('stat-display-total').innerText = totalDisplay;
-    document.getElementById('stat-display-ready').innerText = dispReady;
-    document.getElementById('stat-display-sold').innerText = dispSold;
-    document.getElementById('stat-display-off').innerText = dispOff;
+    setInnerText('stat-services-pending', pendingServices);
+    setInnerText('stat-rent-omset', totalOmsetSewa.toLocaleString('id-ID'));
+    setInnerText('stat-cctv-active', activeCctv);
+    setInnerText('stat-laptop-total', totalLaptopAset);
+    setInnerText('stat-laptop-ready', lapReady);
+    setInnerText('stat-laptop-rented', lapSewa);
+    setInnerText('stat-laptop-broken', lapRusak);
+    setInnerText('stat-laptop-sold', lapTerjual);
+    setInnerText('stat-laptop-staf', lapStaf);
+    setInnerText('stat-display-total', totalDisplay);
+    setInnerText('stat-display-ready', dispReady);
+    setInnerText('stat-display-sold', dispSold);
+    setInnerText('stat-display-off', dispOff);
 
-    const gudangBranchVal = window.userBranch || (filterGudangCabang ? filterGudangCabang.value : '');
-    let filteredLaptopWarehouse = dataLaptop;
+    // =================================================================
+    // DETAIL DISTRIBUSI ASET GUDANG BERDASARKAN STATUS
+    // =================================================================
+    let warehouseReady = {};
+    let warehouseSewa = {};
+    let warehouseMaintenance = {};
+    let warehouseStaf = {};
+    let warehouseTerjual = {};
 
-    if (gudangBranchVal) {
-        filteredLaptopWarehouse = filteredLaptopWarehouse.filter(lap => lap.cabang === gudangBranchVal);
-    }
+    let totalWhReady = 0, totalWhSewa = 0, totalWhMaintenance = 0, totalWhStaf = 0, totalWhTerjual = 0;
 
-    let modelCounts = {};
-    filteredLaptopWarehouse.forEach(lap => {
+    filteredLaptop.forEach(lap => {
         let merkText = (lap.merk || '').trim();
         let tipeText = (lap.tipe || '').trim();
         let fullModelName = `${merkText} ${tipeText}`.trim();
-        
         if(!fullModelName || fullModelName === "- -") fullModelName = "Model Tidak Diketahui";
-        modelCounts[fullModelName] = (modelCounts[fullModelName] || 0) + 1;
+        
+        let statusWh = lap.status || 'Tersedia';
+
+        if (statusWh === 'Tersedia') {
+            warehouseReady[fullModelName] = (warehouseReady[fullModelName] || 0) + 1;
+            totalWhReady++;
+        } else if (statusWh === 'Disewa') {
+            warehouseSewa[fullModelName] = (warehouseSewa[fullModelName] || 0) + 1;
+            totalWhSewa++;
+        } else if (statusWh === 'Maintenance') {
+            warehouseMaintenance[fullModelName] = (warehouseMaintenance[fullModelName] || 0) + 1;
+            totalWhMaintenance++;
+        } else if (statusWh === 'Staf') {
+            warehouseStaf[fullModelName] = (warehouseStaf[fullModelName] || 0) + 1;
+            totalWhStaf++;
+        } else if (statusWh === 'Terjual') {
+            warehouseTerjual[fullModelName] = (warehouseTerjual[fullModelName] || 0) + 1;
+            totalWhTerjual++;
+        }
     });
 
-    let sortedModels = Object.keys(modelCounts).sort();
+    function renderGroupTable(title, dataObj, totalGroup, iconStr, textColor, bgColor) {
+        let keys = Object.keys(dataObj).sort();
+        if(keys.length === 0) return '';
+        
+        let html = `
+            <tr class="${bgColor} border-y border-slate-200">
+                <td colspan="2" class="px-2 py-1.5 font-bold ${textColor} text-[10px] uppercase tracking-wider">${iconStr} ${title} (Sub-Total: ${totalGroup})</td>
+            </tr>
+        `;
+        keys.forEach(model => {
+            html += `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-2 py-1 font-medium text-slate-700 pl-4">▸ ${model}</td>
+                    <td class="px-2 py-1 text-right font-bold text-slate-900">${dataObj[model]}</td>
+                </tr>
+            `;
+        });
+        return html;
+    }
+
     const modelsTbody = document.getElementById('dashboard-laptop-models-tbody');
     if (modelsTbody) {
         modelsTbody.innerHTML = '';
-        if(sortedModels.length === 0) {
+        if(filteredLaptop.length === 0) {
             modelsTbody.innerHTML = `<tr><td colspan="2" class="px-2 py-3 text-center text-gray-400 italic">Tidak ada unit laptop pada cabang ini</td></tr>`;
         } else {
-            let totalGudangRow = 0;
-            sortedModels.forEach(modelName => {
-                let totalUnitPerModel = modelCounts[modelName];
-                totalGudangRow += totalUnitPerModel;
-                modelsTbody.innerHTML += `
-                    <tr class="hover:bg-slate-100 transition">
-                        <td class="px-2 py-1.5 font-medium text-slate-700">${modelName}</td>
-                        <td class="px-2 py-1.5 text-right font-bold text-slate-900">${totalUnitPerModel}</td>
-                    </tr>
-                `;
-            });
+            let finalHtml = '';
             
-            modelsTbody.innerHTML += `
+            finalHtml += renderGroupTable('Tersedia di Gudang', warehouseReady, totalWhReady, '<i class="fa-solid fa-circle-check"></i>', 'text-emerald-700', 'bg-emerald-50/50');
+            finalHtml += renderGroupTable('Sedang Disewa', warehouseSewa, totalWhSewa, '<i class="fa-solid fa-boxes-packing"></i>', 'text-amber-700', 'bg-amber-50/50');
+            finalHtml += renderGroupTable('Maintenance / Bermasalah', warehouseMaintenance, totalWhMaintenance, '<i class="fa-solid fa-screwdriver-wrench"></i>', 'text-rose-700', 'bg-rose-50/50');
+            finalHtml += renderGroupTable('Digunakan Staf', warehouseStaf, totalWhStaf, '<i class="fa-solid fa-user-tie"></i>', 'text-indigo-700', 'bg-indigo-50/50');
+            finalHtml += renderGroupTable('Sudah Terjual', warehouseTerjual, totalWhTerjual, '<i class="fa-solid fa-hand-holding-dollar"></i>', 'text-slate-700', 'bg-slate-100');
+            
+            finalHtml += `
                 <tr class="bg-slate-100 font-bold text-slate-800 border-t-2 border-slate-200">
                     <td class="px-2 py-2 text-right text-xs">TOTAL KESELURUHAN</td>
-                    <td class="px-2 py-2 text-right text-sm">${totalGudangRow}</td>
+                    <td class="px-2 py-2 text-right text-sm">${filteredLaptop.length}</td>
                 </tr>
             `;
+            
+            modelsTbody.innerHTML = finalHtml;
         }
     }
 
+    // =================================================================
+    // DETAIL DISTRIBUSI ASET DISPLAY (ETALASE)
+    // =================================================================
     let displayCountsReady = {};
     let displayCountsTerjual = {};
     let displayCountsGudang = {};
@@ -631,26 +704,6 @@ function calculateAndRenderStats() {
         }
     });
 
-    function renderDisplayGroup(title, dataObj, totalGroup, iconStr, textColor, bgColor) {
-        let keys = Object.keys(dataObj).sort();
-        if(keys.length === 0) return '';
-        
-        let html = `
-            <tr class="${bgColor} border-y border-slate-200">
-                <td colspan="2" class="px-2 py-1.5 font-bold ${textColor} text-[10px] uppercase tracking-wider">${iconStr} ${title} (Sub-Total: ${totalGroup})</td>
-            </tr>
-        `;
-        keys.forEach(model => {
-            html += `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="px-2 py-1 font-medium text-slate-700 pl-4">▸ ${model}</td>
-                    <td class="px-2 py-1 text-right font-bold text-slate-900">${dataObj[model]}</td>
-                </tr>
-            `;
-        });
-        return html;
-    }
-
     const displayModelsTbody = document.getElementById('dashboard-display-models-tbody');
     if (displayModelsTbody) {
         displayModelsTbody.innerHTML = '';
@@ -659,9 +712,9 @@ function calculateAndRenderStats() {
         } else {
             let finalHtml = '';
             
-            finalHtml += renderDisplayGroup('Ready di Etalase', displayCountsReady, totalReady, '<i class="fa-solid fa-store"></i>', 'text-cyan-700', 'bg-cyan-50/50');
-            finalHtml += renderDisplayGroup('Sudah Terjual', displayCountsTerjual, totalTerjual, '<i class="fa-solid fa-money-bill-wave"></i>', 'text-emerald-700', 'bg-emerald-50/50');
-            finalHtml += renderDisplayGroup('Ditarik ke Gudang (Off)', displayCountsGudang, totalGudang, '<i class="fa-solid fa-arrow-rotate-left"></i>', 'text-amber-700', 'bg-amber-50/50');
+            finalHtml += renderGroupTable('Ready di Etalase', displayCountsReady, totalReady, '<i class="fa-solid fa-store"></i>', 'text-cyan-700', 'bg-cyan-50/50');
+            finalHtml += renderGroupTable('Sudah Terjual', displayCountsTerjual, totalTerjual, '<i class="fa-solid fa-money-bill-wave"></i>', 'text-emerald-700', 'bg-emerald-50/50');
+            finalHtml += renderGroupTable('Ditarik ke Gudang (Off)', displayCountsGudang, totalGudang, '<i class="fa-solid fa-arrow-rotate-left"></i>', 'text-amber-700', 'bg-amber-50/50');
             
             finalHtml += `
                 <tr class="bg-slate-100 font-bold text-slate-800 border-t-2 border-slate-200">
@@ -674,67 +727,79 @@ function calculateAndRenderStats() {
         }
     }
 
-    let sAntrean = dataServices.filter(s => s.status === 'Antrean').length;
-    let sProses = dataServices.filter(s => s.status === 'Proses').length;
-    let sSelesai = dataServices.filter(s => s.status === 'Selesai').length;
+    let sAntrean = filteredServices.filter(s => s.status === 'Antrean').length;
+    let sProses = filteredServices.filter(s => s.status === 'Proses').length;
+    let sSelesai = filteredServices.filter(s => s.status === 'Selesai').length;
 
-    let cSurvei = dataCctv.filter(c => c.status === 'Survei').length;
-    let cKerja = dataCctv.filter(c => c.status === 'Pengerjaan').length;
-    let cSelesai = dataCctv.filter(c => c.status === 'Selesai' || c.status === 'Selesai / Serah Terima').length;
+    let cSurvei = filteredCctv.filter(c => c.status === 'Survei').length;
+    let cKerja = filteredCctv.filter(c => c.status === 'Pengerjaan').length;
+    let cSelesai = filteredCctv.filter(c => c.status === 'Selesai' || c.status === 'Selesai / Serah Terima').length;
 
-    const ctxWorkload = document.getElementById('chartWorkload').getContext('2d');
-    if (chartWorkloadInstance !== null) chartWorkloadInstance.destroy();
-    
-    chartWorkloadInstance = new Chart(ctxWorkload, {
-        type: 'bar',
-        data: {
-            labels: ['Tahap Awal', 'Berjalan', 'Selesai'],
-            datasets: [
-                {
-                    label: 'Services',
-                    data: [sAntrean, sProses, sSelesai],
-                    backgroundColor: 'rgba(236, 72, 153, 0.85)',
-                    borderRadius: 4
-                },
-                {
-                    label: 'CCTV',
-                    data: [cSurvei, cKerja, cSelesai],
-                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
-                    borderRadius: 4
+    const workloadCanvas = document.getElementById('chartWorkload');
+    if (workloadCanvas) {
+        const ctxWorkload = workloadCanvas.getContext('2d');
+        if (chartWorkloadInstance !== null) chartWorkloadInstance.destroy();
+        
+        chartWorkloadInstance = new Chart(ctxWorkload, {
+            type: 'bar',
+            data: {
+                labels: ['Tahap Awal', 'Berjalan', 'Selesai'],
+                datasets: [
+                    {
+                        label: 'Services',
+                        data: [sAntrean, sProses, sSelesai],
+                        backgroundColor: 'rgba(236, 72, 153, 0.85)',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'CCTV',
+                        data: [cSurvei, cKerja, cSelesai],
+                        backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1, color: '#64748b' } }
                 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1, color: '#64748b' } }
             }
-        }
-    });
+        });
+    }
 
-    const ctxLaptop = document.getElementById('chartLaptopStock').getContext('2d');
-    if (chartLaptopStockInstance !== null) chartLaptopStockInstance.destroy();
+    const laptopStockCanvas = document.getElementById('chartLaptopStock');
+    if (laptopStockCanvas) {
+        const ctxLaptop = laptopStockCanvas.getContext('2d');
+        if (chartLaptopStockInstance !== null) chartLaptopStockInstance.destroy();
 
-    chartLaptopStockInstance = new Chart(ctxLaptop, {
-        type: 'doughnut',
-        data: {
-            labels: ['Tersedia ('+lapReady+')', 'Disewa ('+lapSewa+')', 'Maintenance ('+lapRusak+')', 'Terjual ('+lapTerjual+')'],
-            datasets: [{
-                data: [lapReady, lapSewa, lapRusak, lapTerjual],
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#64748b'],
-                borderWidth: 2,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+        chartLaptopStockInstance = new Chart(ctxLaptop, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    'Tersedia ('+lapReady+')', 
+                    'Disewa ('+lapSewa+')', 
+                    'Maintenance ('+lapRusak+')', 
+                    'Staf ('+lapStaf+')', 
+                    'Terjual ('+lapTerjual+')'
+                ],
+                datasets: [{
+                    data: [lapReady, lapSewa, lapRusak, lapStaf, lapTerjual],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#64748b'],
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                }
             }
-        }
-    });
+        });
+    }
 }
 
 // Daftarkan fungsi calculateAndRenderStats secara eksplisit ke window global
@@ -781,6 +846,7 @@ function updateDynamicDatalists() {
 
     function fillList(id, dataSet) {
         let container = document.getElementById('datalist-container');
+        if (!container) return;
         let listEl = document.getElementById(id);
         if (!listEl) {
             listEl = document.createElement('datalist');
@@ -846,6 +912,7 @@ window.autoFillSpecsByTipe = function(event) {
     
     if(found) {
         const form = document.getElementById('operational-form');
+        if (!form) return;
         
         const merkInput = form.querySelector('[name="merk"]');
         if(merkInput && !merkInput.value) merkInput.value = found.merk || '';
@@ -873,12 +940,11 @@ function switchTab(tabName) {
         const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'list_office', 'user_management', 'activity_logs'];
         const firstAllowed = tabsOrder.find(t => isPermitted(perms[t]));
 
-    if (!firstAllowed) {
-        return;
-    }
+        if (!firstAllowed) {
+            return;
+        }
 
-tabName = firstAllowed;
-        if (!foundTab) return; 
+        tabName = firstAllowed;
     }
 
     if (window.innerWidth < 768) {
@@ -890,8 +956,8 @@ tabName = firstAllowed;
 
     currentTab = tabName;
     if (!isPermitted(perms[currentTab])) {
-    return;
-}
+        return;
+    }
     sessionStorage.setItem('activeTab', tabName);
     
     selectedLaptopKeys = []; 
@@ -920,9 +986,14 @@ tabName = firstAllowed;
         activity_logs: "Kosongkan Log Aktivitas"
     };
     
-    document.getElementById('page-title').innerText = titles[tabName];
-    document.getElementById('form-fields').innerHTML = fieldsTemplate[tabName];
-    document.getElementById('search-bar').value = ''; 
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) pageTitle.innerText = titles[tabName];
+
+    const formFields = document.getElementById('form-fields');
+    if (formFields) formFields.innerHTML = fieldsTemplate[tabName];
+
+    const searchBar = document.getElementById('search-bar');
+    if (searchBar) searchBar.value = ''; 
 
     const formCard = document.getElementById('form-container-card');
     if (formCard) {
@@ -1002,7 +1073,6 @@ tabName = firstAllowed;
         }
     });
 
-    // PERBAIKAN SINTAKS KRITIS: Menghubungkan fungsi ke window global dengan aman
     window.renderTableHeader = renderTableHeader;
     renderTableHeader();
     
@@ -1010,13 +1080,11 @@ tabName = firstAllowed;
     showTableLoading("Mengambil & Menyinkronkan Data Cloud...");
     
     setTimeout(() => {
-
-    isTabLoadingState = false;
-
-    if (isPermitted(perms[currentTab])) {
-        renderTable();
-    }
-},350);
+        isTabLoadingState = false;
+        if (isPermitted(perms[currentTab])) {
+            renderTable();
+        }
+    }, 350);
 }
 
 window.renderTableHeader = renderTableHeader;
@@ -1166,7 +1234,8 @@ window.importSpreadsheet = function(e) {
 
                 let newItemData = {
                     id: currentMaxId,
-                    tanggal: getVal(['tanggal', 'tanggal_input', 'tanggal_masuk', 'tgl', 'date'], tglInput)
+                    tanggal: getVal(['tanggal', 'tanggal_input', 'tanggal_masuk', 'tgl', 'date'], tglInput),
+                    cabang: getVal(['cabang', 'cabang_toko'], window.currentUser.branch || 'Head Office') // SINKRONISASI CABANG IMPOR EXCEL
                 };
 
                 if (currentTab === 'list_laptop') {
@@ -1197,6 +1266,7 @@ window.importSpreadsheet = function(e) {
 
                 } else if (currentTab === 'services') {
                     newItemData.pelanggan = getVal(['pelanggan', 'nama_pelanggan', 'nama'], '-');
+                    newItemData.no_wa = getVal(['no_wa', 'whatsapp', 'telp'], '-');
                     newItemData.perangkat = getVal(['perangkat', 'device', 'unit'], '-');
                     newItemData.kerusakan = getVal(['kerusakan', 'gejala', 'keluhan'], '-');
                     newItemData.biaya = getVal(['biaya', 'estimasi_biaya', 'harga'], 0);
@@ -1204,10 +1274,11 @@ window.importSpreadsheet = function(e) {
 
                 } else if (currentTab === 'penyewaan') {
                     newItemData.penyewa = getVal(['penyewa', 'nama_penyewa', 'nama'], '-');
+                    newItemData.no_wa = getVal(['no_wa', 'whatsapp', 'telp'], '-');
                     newItemData.tgl_mulai = getVal(['tgl_mulai', 'mulai_sewa', 'tgl_sewa'], tglInput);
                     newItemData.tgl_selesai = getVal(['tgl_selesai', 'selesai_sewa', 'tgl_kembali'], tglInput);
                     newItemData.total_biaya = getVal(['total_biaya', 'biaya_sewa', 'harga'], 0);
-                    newDataItem.status = getVal(['status', 'status_pembayaran'], 'Belum Bayar');
+                    newItemData.status = getVal(['status', 'status_pembayaran'], 'Belum Bayar');
                     newItemData.unit = getVal(['unit', 'unit_laptop', 'laptop'], '-');
 
                 } else if (currentTab === 'cctv') {
@@ -1227,7 +1298,6 @@ window.importSpreadsheet = function(e) {
                     newItemData.name = getVal(['name', 'device', 'nama_pc'], '-');
                     newItemData.workspace_expired = getVal(['workspace_expired', 'masa_aktif', 'masa', 'expired', 'durasi'], '-');
                     newItemData.status = getVal(['status', 'status_lisensi'], 'Aktif');
-                    
                 }
 
                 const newPostPushRef = push(targetNodeRef);
@@ -1303,13 +1373,16 @@ function renderTable() {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     }
 
-    const searchQuery = document.getElementById('search-bar').value.toLowerCase();
-    const filterStatusValue = document.getElementById('status-filter').value;
+    const searchBar = document.getElementById('search-bar');
+    const searchQuery = searchBar ? searchBar.value.toLowerCase() : '';
+    const statusFilter = document.getElementById('status-filter');
+    const filterStatusValue = statusFilter ? statusFilter.value : '';
     
     let branchFilterValue = window.userBranch || '';
     if(!branchFilterValue) {
         const branchFilterEl = document.getElementById('branch-filter');
-        if(branchFilterEl && document.getElementById('branch-filter-container').style.display !== 'none') {
+        const container = document.getElementById('branch-filter-container');
+        if(branchFilterEl && container && container.style.display !== 'none') {
             branchFilterValue = branchFilterEl.value;
         }
     }
@@ -1336,7 +1409,8 @@ function renderTable() {
 
     if(totalData === 0) {
         tbody.innerHTML = `<tr><td colspan="${tableHeaders[currentTab].length}" class="px-4 py-8 text-center text-gray-400 bg-gray-50 font-medium"><i class="fa-solid fa-folder-open text-xl block mb-2"></i>Tidak ada data yang sesuai filter</td></tr>`;
-        document.getElementById('pagination-controls').classList.add('hidden');
+        const paginationControls = document.getElementById('pagination-controls');
+        if (paginationControls) paginationControls.classList.add('hidden');
         return;
     }
 
@@ -1416,7 +1490,6 @@ function renderTable() {
                 let badgeColor = "bg-amber-100 text-amber-800";
                 let displayVal = val;
                 
-                // [BARU] Otomatis mengubah display status menjadi "Tidak Aktif" jika tanggal Masa Aktif telah terlewati (kedaluwarsa)
                 if (currentTab === 'list_office') {
                     const expiredStr = item.workspace_expired || item.masa_aktif || '';
                     const expiredDate = parseFlexibleDate(expiredStr);
@@ -1470,7 +1543,6 @@ function renderTable() {
             } else if (key === 'sn') {
                 rowHtml += `<td class="px-4 py-3 font-mono font-medium text-cyan-700">${val}</td>`;
             } else if (key === 'office' && currentTab === 'list_office') {
-                // Deteksi tipe_akun untuk membuat badge visual pembeda (Kini ditambahkan tipe "Personal")
                 const tipeAkun = item.tipe_akun || 'Anggota';
                 let badgeHtml = '';
                 if (tipeAkun === 'Utama') {
@@ -1531,14 +1603,19 @@ function renderTable() {
     });
 
     const paginationControls = document.getElementById('pagination-controls');
-    if (totalData > itemsPerPage) {
-        paginationControls.classList.remove('hidden');
-        document.getElementById('pagination-info').innerText = `Menampilkan data ke-${startIndex + 1} s/d ${Math.min(endIndex, totalData)} (Total ${totalData} Data)`;
-        
-        document.getElementById('btn-prev-page').disabled = (currentPage === 1);
-        document.getElementById('btn-next-page').disabled = (currentPage === totalPages);
-    } else {
-        paginationControls.classList.add('hidden');
+    if (paginationControls) {
+        if (totalData > itemsPerPage) {
+            paginationControls.classList.remove('hidden');
+            const infoEl = document.getElementById('pagination-info');
+            if (infoEl) infoEl.innerText = `Menampilkan data ke-${startIndex + 1} s/d ${Math.min(endIndex, totalData)} (Total ${totalData} Data)`;
+            
+            const btnPrev = document.getElementById('btn-prev-page');
+            const btnNext = document.getElementById('btn-next-page');
+            if (btnPrev) btnPrev.disabled = (currentPage === 1);
+            if (btnNext) btnNext.disabled = (currentPage === totalPages);
+        } else {
+            paginationControls.classList.add('hidden');
+        }
     }
 }
 
@@ -1554,8 +1631,11 @@ function openEditModal(firebaseKey) {
     const targetItem = currentDataList.find(item => item._firebaseKey === firebaseKey);
     if(!targetItem) return;
 
-    document.getElementById('edit-firebase-key').value = firebaseKey;
+    const keyInput = document.getElementById('edit-firebase-key');
+    if (keyInput) keyInput.value = firebaseKey;
+    
     const fieldsContainer = document.getElementById('edit-modal-fields');
+    if (!fieldsContainer) return;
     fieldsContainer.innerHTML = '';
 
     if (currentTab === 'services') {
@@ -1651,7 +1731,6 @@ function openEditModal(firebaseKey) {
             
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Pemulihan</label><input type="text" id="edit-pemulihan" value="${targetItem.pemulihan || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             
-            <!-- BARU: SELEKTOR TIPE AKUN DI MODAL EDIT (KINI DITAMBAHKAN PILIHAN PERSONAL) -->
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Tipe Akun</label>
                 <select id="edit-tipe_akun" class="w-full border p-2 text-sm rounded-lg">
@@ -1667,7 +1746,10 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Aktif" ${targetItem.status === 'Aktif' ? 'selected' : ''}>Aktif</option><option value="Tidak Aktif" ${targetItem.status === 'Tidak Aktif' ? 'selected' : ''}>Tidak Aktif</option><option value="Permanen" ${targetItem.status === 'Permanen' ? 'selected' : ''}>Permanen</option></select></div>
         `;
     } else if (currentTab === 'user_management') {
-        const perms = targetItem.permissions || {};
+        const currentDataList = globalDataCloud['user_management'] || [];
+        const foundItem = currentDataList.find(item => item._firebaseKey === firebaseKey);
+        const perms = foundItem?.permissions || {};
+        
         fieldsContainer.innerHTML = `
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Lengkap</label><input type="text" id="edit-user-name" value="${targetItem.name || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Email</label><input type="email" id="edit-user-email" value="${targetItem.email || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -1766,12 +1848,14 @@ function openEditModal(firebaseKey) {
         }
     }
 
-    document.getElementById('edit-modal').classList.remove('hidden');
+    const editModal = document.getElementById('edit-modal');
+    if (editModal) editModal.classList.remove('hidden');
 }
 
 window.closeEditModal = closeEditModal;
 function closeEditModal() {
-    document.getElementById('edit-modal').classList.add('hidden');
+    const editModal = document.getElementById('edit-modal');
+    if (editModal) editModal.classList.add('hidden');
 }
 
 window.handleUpdateSubmit = handleUpdateSubmit;
@@ -1791,6 +1875,9 @@ function handleUpdateSubmit(e) {
         btnUpdate.disabled = true;
     }
 
+    const currentDataList = globalDataCloud[currentTab] || [];
+    const targetItem = currentDataList.find(item => item._firebaseKey === firebaseKey);
+
     if (currentTab === 'services') {
         updatedData.pelanggan = document.getElementById('edit-pelanggan').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
@@ -1798,6 +1885,7 @@ function handleUpdateSubmit(e) {
         updatedData.biaya = document.getElementById('edit-biaya').value;
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.kerusakan = document.getElementById('edit-kerusakan').value;
+        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; // PROTEKSI EDIT CABANG
         itemDescription = `${updatedData.pelanggan} (${updatedData.perangkat})`;
     } else if (currentTab === 'cctv') {
         updatedData.klien = document.getElementById('edit-klien').value;
@@ -1805,6 +1893,7 @@ function handleUpdateSubmit(e) {
         updatedData.jumlah_cctv = document.getElementById('edit-jumlah_cctv').value;
         updatedData.progres = document.getElementById('edit-progres').value;
         updatedData.status = document.getElementById('edit-status').value;
+        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; // PROTEKSI EDIT CABANG
         itemDescription = `${updatedData.klien} - ${updatedData.lokasi}`;
     } else if (currentTab === 'list_laptop') {
         let editTgl = document.getElementById('edit-tanggal').value;
@@ -1856,6 +1945,7 @@ function handleUpdateSubmit(e) {
         updatedData.tgl_selesai = tglSelesaiVal;
         updatedData.total_biaya = document.getElementById('edit-total_biaya').value;
         updatedData.status = newStatus;
+        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; // PROTEKSI EDIT CABANG
 
         if (!window.editSelectedLaptopKeys || window.editSelectedLaptopKeys.length === 0) {
             alert("Silakan centang minimal 1 unit laptop!");
@@ -1916,15 +2006,13 @@ function handleUpdateSubmit(e) {
         updatedData.tipe_akun = document.getElementById('edit-tipe_akun').value; 
         updatedData.office = document.getElementById('edit-office').value;
         updatedData.name = document.getElementById('edit-name').value;
-        updatedData.workspace_expired = document.getElementById('edit-masa_aktif').value;
+        updatedData.workspace_expired = document.getElementById('edit-workspace_expired') || document.getElementById('edit-masa_aktif').value;
         updatedData.status = document.getElementById('edit-status').value;
+        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; // PROTEKSI EDIT CABANG
         itemDescription = `User: ${updatedData.nama_user} - Akun: ${updatedData.akun}`;
     } else if (currentTab === 'user_management') {
-        // 1. Cari data terlebih dahulu menggunakan variabel baru (foundItem)
         const currentDataList = globalDataCloud['user_management'] || [];
         const foundItem = currentDataList.find(item => item._firebaseKey === firebaseKey);
-        
-        // 2. Baca permissions dari data yang sudah ditemukan
         const perms = foundItem?.permissions || {};
         
         updatedData.name = document.getElementById('edit-user-name')?.value || '';
@@ -1965,7 +2053,6 @@ function handleUpdateSubmit(e) {
         .catch((error) => {
             showToast("Gagal memperbarui data: " + error.message, "error");
         })
-        // PERBAIKAN: Ditambahkan kembali blok .finally() agar tombol Edit tidak stuck loading
         .finally(() => {
             if (btnUpdate) {
                 btnUpdate.innerHTML = originalText;
@@ -2103,6 +2190,10 @@ function handleSubmit(e) {
     const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
     const newDataItem = { id: nextId };
 
+    // PENYELARASAN FIELD CABANG OPERATOR UNTUK SEMUA TRANSAKSI BARU (REAL-TIME SINKRONISASI)
+    const userBranch = window.currentUser.branch || 'Head Office';
+    newDataItem.cabang = userBranch;
+
     let inputTgl = formData.get('tanggal');
     if (inputTgl && inputTgl.includes('-')) {
         const parts = inputTgl.split('-');
@@ -2151,7 +2242,7 @@ function handleSubmit(e) {
         const vga = formData.get('spec_vga');
         const screen = formData.get('spec_screen');
 
-        newDataItem.cabang = formData.get('cabang');
+        newDataItem.cabang = formData.get('cabang') || userBranch;
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
         newDataItem.sn = formData.get('sn');
@@ -2167,7 +2258,7 @@ function handleSubmit(e) {
         const vga = formData.get('spec_vga');
         const screen = formData.get('spec_screen');
 
-        newDataItem.cabang = formData.get('cabang');
+        newDataItem.cabang = formData.get('cabang') || userBranch;
         newDataItem.teknisi = formData.get('teknisi');
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
@@ -2200,7 +2291,7 @@ function handleSubmit(e) {
         newDataItem.tipe_akun = formData.get('tipe_akun') || 'Anggota'; 
         newDataItem.office = formData.get('office');
         newDataItem.name = formData.get('name');
-        newDataItem.workspace_expired = formData.get('masa_aktif');
+        newDataItem.workspace_expired = formData.get('workspace_expired') || formData.get('masa_aktif');
         newDataItem.status = formData.get('status');
         logDetail = `User: ${newDataItem.nama_user} - Akun Office: ${newDataItem.akun}`;
     }
@@ -2234,7 +2325,6 @@ function handleSubmit(e) {
         .catch((error) => {
             showToast("Gagal menyimpan data: " + error.message, "error");
         })
-        // PERBAIKAN: Ditambahkan kembali blok .finally() agar tombol Simpan tidak stuck loading
         .finally(() => {
             if (btnSubmit) {
                 btnSubmit.innerHTML = originalText;
@@ -2365,7 +2455,7 @@ function showToast(message, type = "success") {
 }
 
 // =================================================================
-// OBSERVER REAL-TIME KONEKTIVITAS JARINGAN CLOUD (.info/connected) [2]
+// OBSERVER REAL-TIME KONEKTIVITAS JARINGAN CLOUD (.info/connected)
 // =================================================================
 function startNetworkMonitoring() {
     const connectedRef = ref(db, ".info/connected");
@@ -2397,17 +2487,15 @@ onAuthStateChanged(auth, async (user) => {
 
     startNetworkMonitoring();
 
-    // Bersihkan listener profil lama jika ada saat terjadi perubahan auth state untuk mencegah bentrok data
     if (userProfileListener) {
         userProfileListener();
         userProfileListener = null;
     }
 
     if (user) {
-        loginSection.classList.add('hidden');
-        mainAppSection.classList.remove('hidden');
+        if (loginSection) loginSection.classList.add('hidden');
+        if (mainAppSection) mainAppSection.classList.remove('hidden');
         
-        // Melakukan penulisan email operator ke elemen teks di dropdown
         const emailSpan = document.getElementById('user-logged-email');
         if (emailSpan) {
             emailSpan.innerText = user.email;
@@ -2418,7 +2506,6 @@ onAuthStateChanged(auth, async (user) => {
         
         const userRef = ref(db, `user_management/${user.uid}`);
         
-        // SINKRONISASI REAKTIF: Gunakan onValue() agar otomatis memuat ulang menu seketika token sinkron
         userProfileListener = onValue(userRef, (snapshot) => {
             if (snapshot.exists()) {
                 const profile = snapshot.val();
@@ -2429,7 +2516,6 @@ onAuthStateChanged(auth, async (user) => {
                     window.currentUser.permissions = profile.permissions;
                 } 
             } else {
-                // Jika akun di luar user_management, hanya superadmin@wanasatria.com yang mendapat hak akses absolut bypass
                 if (user.email === 'superadmin@wanasatria.com') {
                     window.currentUser.role = 'admin';
                     window.currentUser.branch = 'Head Office';
@@ -2440,7 +2526,6 @@ onAuthStateChanged(auth, async (user) => {
                         export_excel: true, import_excel: true, edit_data: true, delete_data: true
                     };
                 } else {
-                    // Semua akun selain superadmin@wanasatria.com jika tidak terdaftar di database akan dikunci di hak terbatas
                     window.currentUser.role = 'teknisi';
                     window.currentUser.branch = 'Head Office';
                     window.currentUser.permissions = {
@@ -2455,7 +2540,6 @@ onAuthStateChanged(auth, async (user) => {
             initApp();
         }, (error) => {
             console.error("Gagal sinkronisasi data peran real-time:", error);
-            // Default pengaman jika diblokir sementara
             window.currentUser.role = 'teknisi';
             window.currentUser.branch = 'Head Office';
             window.currentUser.permissions = {
@@ -2467,29 +2551,25 @@ onAuthStateChanged(auth, async (user) => {
             initApp();
         });
     } else {
-        loginSection.classList.remove('hidden');
-        mainAppSection.classList.add('hidden');
+        if (loginSection) loginSection.classList.remove('hidden');
+        if (mainAppSection) mainAppSection.classList.add('hidden');
         
-        // RE-ENABLE & RESET TOMBOL LOGIN SAAT LOGOUT
         const btnText = document.getElementById('btn-login-text');
         if (btnText) {
             btnText.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Verifikasi & Masuk`;
             btnText.disabled = false;
         }
 
-        // Kosongkan input email & sandi login agar siap untuk operator baru
         const loginEmail = document.getElementById('login-email');
         const loginPass = document.getElementById('login-password');
         if (loginEmail) loginEmail.value = '';
         if (loginPass) loginPass.value = '';
 
-        // Hentikan semua listener real-time agar tidak bentrok dengan aturan keamanan akun baru
         activeFirebaseListeners.forEach(unsubscribe => {
             if (typeof unsubscribe === 'function') unsubscribe();
         });
         activeFirebaseListeners = [];
 
-        // Kosongkan data lokal di memori
         globalDataCloud = {
             services: [],
             penyewaan: [],
@@ -2511,8 +2591,8 @@ onAuthStateChanged(auth, async (user) => {
         };
     }
 });
+
 function initApp() {
-    // 1. PENCEGAHAN PENUMPUKAN LISTENER (LEAK): Bersihkan listener lama setiap kali diinisialisasi ulang
     activeFirebaseListeners.forEach(unsubscribe => {
         if (typeof unsubscribe === 'function') unsubscribe();
     });
@@ -2520,12 +2600,12 @@ function initApp() {
 
     const d = new Date();
     const opsiHari = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('current-date').innerText = d.toLocaleDateString('id-ID', opsiHari);
+    const dateEl = document.getElementById('current-date');
+    if (dateEl) dateEl.innerText = d.toLocaleDateString('id-ID', opsiHari);
 
     const perms = window.currentUser.permissions || {};
     const savedTab = sessionStorage.getItem('activeTab');
     
-    // Atur visibilitas menu berdasarkan izin
     const firstAllowedTab = applyRoleBasedAccess();
 
     let defaultTab = savedTab;
@@ -2534,14 +2614,12 @@ function initApp() {
     }
 
     switchTab(defaultTab);
-
     syncHamburgerIcon();
 
     const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'list_office','user_management', 'activity_logs'];
     allnodes.forEach(node => {
         if (!db) return;
         
-        // 2. PENCEGAHAN ERROR: Jangan daftarkan listener real-time jika user tidak punya izin akses menu ini
         if (node !== 'user_management' && !isPermitted(perms[node])) {
             return; 
         }
@@ -2549,7 +2627,6 @@ function initApp() {
             return;
         }
 
-        // SINKRONISASI ATURAN FIREBASE: Lakukan query terbatas cabang jika user aktif bukan admin
         let nodeRef;
         const branch = window.currentUser.branch;
         const role = window.currentUser.role;
@@ -2579,7 +2656,8 @@ function initApp() {
             if (node === 'list_laptop' && currentTab === 'penyewaan') {
                 populateLaptopCheckboxes();
             }
-            if (!document.getElementById('dashboard-modal').classList.contains('hidden')) {
+            const dashModal = document.getElementById('dashboard-modal');
+            if (dashModal && !dashModal.classList.contains('hidden')) {
                 calculateAndRenderStats();
             }
         }, (error) => {
