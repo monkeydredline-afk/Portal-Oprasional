@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Data Operasional (Online Real-time)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link class="connection-css" rel="stylesheet" href="css/style.css">
+    
+    <!-- Impor Controller Utama sebagai ES Module -->
+    <script type="module" src="js/app.js"></script>
+</head>
+<body class="bg-gray-100 font-sans antialiased text-gray-800">
+
+    <div id="login-section" class="flex items-center justify-center min-h-screen bg-slate-950 p-4">
+        <div class="bg-white rounded-2xl shadow-xl border p-8 max-w-sm w-full space-y-6">
+            <div class="text-center">
+                <div class="inline-flex bg-cyan-100 text-cyan-600 p-4 rounded-full mb-3">
+                    <i class="fa-solid fa-screwdriver-wrench text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Teknisi Portal Login</h2>
+                <p class="text-sm text-gray-500 mt-1">Masukkan akun operasional toko untuk masuk</p>
+            </div>
+            
+            <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email Toko / User</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-envelope absolute left-3 top-3 text-gray-400"></i>
+                        <input type="email" id="login-email" required placeholder="nama@toko.com" class="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-3 text-gray-400"></i>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-9 pr-10 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <button type="button" onclick="window.togglePassword('login-password', 'login-eye')" class="absolute right-3 top-2.5 text-gray-400 hover:text-cyan-600 focus:outline-none transition">
+                            <i id="login-eye" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" 
+                id="btn-login-text" 
+                class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2.5 rounded-lg transition text-sm shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-right-to-bracket"></i> Verifikasi & Masuk
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-app-section" class="flex h-screen overflow-hidden hidden relative">
+        
+        <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar()"></div>
+
+        <div id="sidebar" class="absolute md:static inset-y-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-all duration-300 ease-in-out w-64 bg-slate-900 text-white flex flex-col justify-between h-full shadow-2xl md:shadow-none">
+            <div class="p-5 flex-1 overflow-y-auto">
+                <h1 class="text-xl font-bold tracking-wider text-cyan-400 mb-8">
+                    <i class="fa-solid fa-screwdriver-wrench mr-2"></i>Teknisi Portal
+                </h1>
+                <nav class="space-y-2">
+                    <button id="btn-services" onclick="switchTab('services')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-laptop-medical w-6 text-center"></i> <span>Log Services</span>
+                    </button>
+                    <button id="btn-penyewaan" onclick="switchTab('penyewaan')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-boxes-packing w-6 text-center"></i> <span>Penyewaan</span>
+                    </button>
+                    <button id="btn-cctv" onclick="switchTab('cctv')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-video w-6 text-center"></i> <span>Proyek CCTV</span>
+                    </button>
+                    <button id="btn-list_laptop" onclick="switchTab('list_laptop')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-laptop w-6 text-center"></i> <span>Laptop Penyewaan</span>
+                    </button>
+                    <button id="btn-laptop_display" onclick="switchTab('laptop_display')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-desktop w-6 text-center"></i> <span>Laptop Display</span>
+                    </button>
+                    <button id="btn-list_office" onclick="switchTab('list_office')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-brands fa-microsoft w-6 text-center"></i> <span>List Akun Office</span>
+                    </button>
+                    <button id="btn-user_management" onclick="switchTab('user_management')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-users-gear w-6 text-center"></i> <span>User Management</span>
+                    </button>
+                    <button id="btn-activity_logs" onclick="switchTab('activity_logs')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-clock-rotate-left w-6 text-center"></i> <span>Riwayat Aktivitas</span>
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- Footer Sidebar Hanya Menampilkan Info Versi -->
+            <div class="p-4 border-t border-slate-800 text-center">
+                <div class="text-[10px] text-slate-500 tracking-wide">
+                    V2.1 Cloud Operational System
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col h-screen overflow-y-auto bg-gray-100">
+
+            <header class="bg-white border-b p-4 flex justify-between items-center px-4 md:px-6 sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="text-slate-600 hover:text-cyan-600 focus:outline-none p-1 transition">
+                        <i id="hamburger-icon" class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <h2 id="page-title" class="text-lg md:text-xl font-bold text-slate-800 truncate max-w-[170px] sm:max-w-xs md:max-w-full">Menghubungkan ke Cloud...</h2>
+                </div>
+                
+                <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <!-- INDIKATOR KONEKTIVITAS JARINGAN CLOUD REAL-TIME -->
+                    <div id="connection-status" class="text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium whitespace-nowrap">
+                        <span id="connection-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+                        <span id="connection-text" class="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Memeriksa...</span>
+                    </div>
+
+                    <!-- TOMBOL BARU ADMIN UTILITY: BACKUP DATABASE JSON -->
+                    <button id="btn-backup-db" onclick="window.backupDatabase()" class="text-xs bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-full font-semibold shadow-sm transition flex items-center gap-2 hidden">
+                        <i class="fa-solid fa-database"></i>
+                        <span class="hidden sm:inline">Backup Database</span>
+                    </button>
+
+                    <button id="btn-dashboard" onclick="openDashboardModal()" class="text-sm bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-3.5 py-1.5 rounded-full font-semibold shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span class="hidden sm:inline">Dashboard Statistik</span>
+                    </button>
+
+                    <div class="text-sm bg-slate-100 px-3 py-1.5 rounded-full text-slate-600 font-medium whitespace-nowrap">
+                        <i class="fa-regular fa-calendar mr-1"></i> <span id="current-date"></span>
+                    </div>
+
+                    <!-- TOMBOL LOGO AKUN & DROPDOWN POPUP INTERAKTIF -->
+                    <div class="relative inline-block text-left border-l pl-3 border-slate-200">
+                        <button id="user-menu-button" onclick="window.toggleUserDropdown(event)" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-700 hover:bg-cyan-50 hover:text-cyan-600 border border-slate-200 hover:border-cyan-200 focus:outline-none transition shadow-sm" title="Menu Akun Operator">
+                            <i class="fa-solid fa-circle-user text-xl"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 focus:outline-none z-50 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <div class="px-4 py-3 text-xs">
+                                <p class="text-slate-400 font-medium">Masuk Sebagai</p>
+                                <p class="text-slate-800 font-bold truncate mt-1" id="user-logged-email">Memuat akun...</p>
+                            </div>
+                            <div class="py-1.5">
+                                <div class="px-4 py-1 text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+                                    <span>Sesi Operasional Aktif</span>
+                                </div>
+                            </div>
+                            <div class="py-1">
+                                <button onclick="window.firebaseLogout()" class="w-full text-left px-4 py-2.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold transition flex items-center gap-2">
+                                    <i class="fa-solid fa-power-off"></i> Keluar / Logout Akun
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </header>
+
+            <main class="p-6 max-w-5xl w-full mx-auto space-y-6">
+                
+                <div id="form-container-card" class="bg-white rounded-xl shadow-sm border p-6">
+                    <div class="flex navigator justify-between items-center mb-4 pb-3 border-b border-gray-100 flex-wrap gap-3">
+                        <h3 class="text-lg font-semibold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-pen-to-square text-cyan-600"></i> Form Input Data
+                        </h3>
+                        
+                        <div class="flex items-center gap-2 ml-auto flex-wrap">
+                            <div id="import-excel-container" class="flex items-center gap-2 flex-wrap">
+                                <!-- TOMBOL BARU UTILITY: PURGE LOGS > 30 HARI -->
+                                <button id="btn-purge-logs" onclick="purgeOldLogs()" class="bg-rose-700 hover:bg-rose-800 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition text-sm flex items-center gap-2 hidden">
+                                    <i class="fa-solid fa-broom"></i> <span>Bersihkan Log > 30 HARI</span>
+                                </button>
+
+                                <!-- PINDAHAN: TOMBOL KOSONGKAN LIST (SINKRON DENGAN TAB AKTIF) -->
+                                <button id="btn-clear-data" onclick="clearCurrentListData()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition text-sm flex items-center gap-2 shadow-sm">
+                                    <i class="fa-solid fa-dumpster-fire"></i> <span id="clear-btn-text">Kosongkan List Ini</span>
+                                </button>
+
+                                <button id="btn-export-excel" onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition text-sm flex items-center gap-2">
+                                    <i class="fa-solid fa-file-export"></i> <span>Export Excel</span>
+                                </button>
+
+                                <label id="btn-import-excel" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition text-sm flex items-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-file-excel"></i> <span>Import Excel</span>
+                                    <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" onchange="importSpreadsheet(event)" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="operational-form" onsubmit="handleSubmit(event)">
+                        <div id="form-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                        
+                        <div class="mt-6 flex justify-end">
+                            <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition flex items-center space-x-2">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> <span>Simpan Real-time</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border p-6 overflow-hidden">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+                        <h3 class="text-lg font-semibold text-slate-700 flex items-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-list-check text-cyan-600"></i> Data Terinput (Cloud)
+                        </h3>
+                        <div class="flex items-center gap-2 w-full lg:w-auto flex-1 lg:flex-none justify-end flex-wrap">
+                            <div class="relative w-full sm:w-40">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+                                <!-- OPTIMASI BARU: Event oninput memicu debounce anti-lag -->
+                                <input type="text" id="search-bar" oninput="resetPaginationAndRenderWithDebounce()" placeholder="Cari data..." class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            </div>
+                            
+                            <div class="w-full sm:w-44" id="branch-filter-container">
+                                <select id="branch-filter" onchange="resetPaginationAndRender()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                    <option value="">Semua Cabang</option>
+                                    <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                    <option value="Perintis">Perintis</option>
+                                </select>
+                            </div>
+
+                            <div class="w-full sm:w-40">
+                                <select id="status-filter" onchange="resetPaginationAndRender()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                    <option value="">Semua Status</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-t-lg">
+                        <table class="w-full text-left border-collapse">
+                            <thead id="table-head" class="bg-slate-50 text-slate-600 text-sm font-semibold uppercase tracking-wider border-b">
+                            </thead>
+                            <!-- ANIMASI PEMUATAN AWAL (INITIAL LOADING STATE) -->
+                            <tbody id="table-body" class="divide-y text-sm text-gray-700 bg-white">
+                                <tr>
+                                    <td class="px-4 py-12 text-center text-slate-500 bg-slate-50/50">
+                                        <div class="flex flex-col items-center justify-center space-y-3">
+                                            <i class="fa-solid fa-cloud-arrow-down animate-bounce text-3xl text-cyan-600"></i>
+                                            <span class="text-sm font-semibold tracking-wide animate-pulse">Menghubungkan ke Cloud...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="pagination-controls" class="flex flex-col sm:flex-row justify-between items-center p-3 border border-t-0 bg-slate-50 rounded-b-lg hidden gap-3">
+                        <span id="pagination-info" class="text-xs font-semibold text-slate-500">Menampilkan 0 data</span>
+                        <div class="flex space-x-2">
+                            <button id="btn-prev-page" onclick="prevPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition shadow-sm"><i class="fa-solid fa-chevron-left mr-1"></i> Prev</button>
+                            <button id="btn-next-page" onclick="nextPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition shadow-sm">Next <i class="fa-solid fa-chevron-right mr-1"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="toast" class="hidden fixed bottom-5 right-5 bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3 transition duration-300 z-50">
+                    <i class="fa-solid fa-circle-check text-xl"></i>
+                    <span>Data berhasil disimpan online di Database Cloud!</span>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div id="dashboard-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
+                <h3 class="font-bold text-lg flex items-center gap-2 tracking-wide">
+                    <i class="fa-solid fa-chart-pie text-cyan-400"></i> Ringkasan Eksekutif & Statistik Operasional Portal
+                </h3>
+                <button onclick="closeDashboardModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </header>
+            
+            <div class="p-6 bg-slate-50 overflow-y-auto max-h-[85vh] space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Antrean Servis (Toko)</span>
+                            <span id="stat-services-pending" class="text-2xl font-black text-cyan-600 mt-1 block">0</span>
+                        </div>
+                        <div class="bg-cyan-50 text-cyan-500 p-3 rounded-xl text-xl"><i class="fa-solid fa-laptop-medical"></i></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Omset Unit Penyewaan</span>
+                            <span id="stat-rent-omset" class="text-xl font-black text-emerald-600 mt-1 block">0</span>
+                        </div>
+                        <div class="bg-emerald-50 text-emerald-500 p-3 rounded-xl text-xl"><i class="fa-solid fa-sack-dollar"></i></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Proyek CCTV Hackers</span>
+                            <span id="stat-cctv-active" class="text-2xl font-black text-blue-600 mt-1 block">0</span>
+                        </div>
+                        <div class="bg-blue-50 text-blue-500 p-3 rounded-xl text-xl"><i class="fa-solid fa-video"></i></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider block border-b pb-1.5"><i class="fa-solid fa-warehouse mr-1 text-slate-400"></i> Live Status Inventaris Master Laptop Gudang (Total Aset: <span id="stat-laptop-total">0</span> Unit)</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Tersedia (Ready)</span>
+                                <span id="stat-laptop-ready" class="text-xl font-black text-emerald-600 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
+                        </div>
+                        <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sedang Disewa</span>
+                                <span id="stat-laptop-rented" class="text-xl font-black text-amber-600 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-boxes-packing"></i></div>
+                        </div>
+                        <div class="bg-rose-50/50 p-3 border border-rose-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Rusak / Maintenance</span>
+                                <span id="stat-laptop-broken" class="text-xl font-black text-rose-600 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-rose-500 text-lg"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                        </div>
+                        <div class="bg-slate-100 p-3 border border-slate-200 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Sudah Terjual</span>
+                                <span id="stat-laptop-sold" class="text-xl font-black text-slate-700 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-slate-400 text-lg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider block border-b pb-1.5"><i class="fa-solid fa-desktop mr-1 text-slate-400"></i> Live Monitor Laptop Etalase / Display (Total Display: <span id="stat-display-total">0</span> Unit)</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div class="bg-cyan-50/50 p-3 border border-cyan-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-cyan-700 uppercase tracking-wider block">Ready di Etalase</span>
+                                <span id="stat-display-ready" class="text-xl font-black text-cyan-600 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-cyan-500 text-lg"><i class="fa-solid fa-store"></i></div>
+                        </div>
+                        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Terjual / Laku</span>
+                                <span id="stat-display-sold" class="text-xl font-black text-emerald-600 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-money-bill-wave"></i></div>
+                        </div>
+                        <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between col-span-2 sm:col-span-1">
+                            <div>
+                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Ditarik Gudang (Off)</span>
+                                <span id="stat-display-off" class="text-xl font-black text-amber-600 block mt-0.5">0</span>
+                            </div>
+                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white border rounded-xl shadow-sm p-4 flex flex-col">
+                        <h4 class="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide"><i class="fa-solid fa-business-time text-cyan-600 mr-1"></i> Progres Servis & CCTV</h4>
+                        <div class="relative flex-1" style="min-height: 250px;">
+                            <canvas id="chartWorkload"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white border rounded-xl shadow-sm p-4 flex flex-col">
+                        <h4 class="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide"><i class="fa-solid fa-boxes-stacked text-cyan-600 mr-1"></i> Status Ketersediaan Unit Gudang</h4>
+                        <div class="relative flex-1" style="min-height: 250px;">
+                            <canvas id="chartLaptopStock"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white border rounded-xl shadow-sm p-4 flex flex-col">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b pb-2">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
+                                <i class="fa-solid fa-list-ol text-cyan-600 mr-1"></i> Detail Distribusi Aset Gudang
+                            </h4>
+                            <div class="flex items-center gap-1 text-[11px]">
+                                <select id="filter-gudang-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                    <option value="">Semua Cabang</option>
+                                    <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                    <option value="Perintis">Perintis</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 overflow-y-auto custom-table-scrollbar max-h-[210px] pr-1">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-50 text-slate-600 sticky top-0 font-bold border-b">
+                                    <tr>
+                                        <th class="px-2 py-1.5">Nama Model / Unit</th>
+                                        <th class="px-2 py-1.5 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-laptop-models-tbody" class="divide-y text-slate-700">
+                                    <tr><td colspan="2" class="px-2 py-4 text-center text-gray-400 italic">Memproses data gudang...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border rounded-xl shadow-sm p-4 flex flex-col">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b pb-2">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
+                                <i class="fa-solid fa-store text-cyan-600"></i> Detail Distribusi Aset Display (Etalase)
+                            </h4>
+                            <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
+                                <select id="filter-display-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                    <option value="">Semua Cabang</option>
+                                    <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                    <option value="Perintis">Perintis</option>
+                                </select>
+                                <input type="date" id="filter-display-start" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                <span class="text-gray-400">s/d</span>
+                                <input type="date" id="filter-display-end" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                <button onclick="window.resetDisplayFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold transition" title="Reset Filter Semua Data">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 overflow-y-auto custom-table-scrollbar max-h-[210px] pr-1">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-50 text-slate-600 sticky top-0 font-bold border-b">
+                                    <tr>
+                                        <th class="px-2 py-1.5">Nama Model / Unit</th>
+                                        <th class="px-2 py-1.5 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-display-models-tbody" class="divide-y text-slate-700">
+                                    <tr><td colspan="2" class="px-2 py-4 text-center text-gray-400 italic">Memproses data etalase...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl border max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <header class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-cyan-400"></i> Edit Data Real-time
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </header>
+            <form id="edit-form" onsubmit="handleUpdateSubmit(event)" class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+                <input type="hidden" id="edit-firebase-key">
+                <div id="edit-modal-fields" class="grid grid-cols-1 gap-4"></div>
+                <div class="flex justify-end space-x-3 pt-4 border-t sticky bottom-0 bg-white">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium transition">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Perbarui Online
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="datalist-container"></div>
+</body>
+</html>
