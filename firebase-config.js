@@ -32,8 +32,6 @@ try {
 }
 
 export { db, auth, secondaryAuth, firebaseInitError };
-
-// Mengekspor fungsi bantuan Firebase ke modul lain
 export { ref, set, push, onValue, remove, update, get, query, orderByChild, equalTo };
 
 export const firebaseLogin = (email, password) => {
@@ -54,7 +52,6 @@ export const registerAuthUser = async (email, password) => {
     if (!secondaryAuth) {
         throw firebaseInitError || new Error("Firebase Auth belum siap.");
     }
-
     const userCredential = await createSecondaryUser(secondaryAuth, email, password);
     const uid = userCredential.user.uid;
     await signOutSecondary(secondaryAuth);

@@ -17,12 +17,12 @@ export const fieldsTemplate = {
             <input type="number" name="biaya" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan</label>
-            <textarea name="kerusakan" rows="2" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
+            <textarea name="kerusakan" rows="2" placeholder="Tuliskan rincian keluhan unit beserta charger, tas, mouse, dll." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"></textarea>
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Antrean">Antrean</option>
                 <option value="Proses">Proses Pengecekan</option>
                 <option value="Selesai">Selesai</option>
@@ -62,7 +62,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Belum Bayar">Belum Bayar</option>
                 <option value="DP 50%">DP 50%</option>
                 <option value="Lunas">Lunas</option>
@@ -88,7 +88,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Proyek</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Survei">Tahap Survei</option>
                 <option value="Pengerjaan">Sedang Dikerjakan</option>
                 <option value="Selesai">Selesai / Serah Terima</option>
@@ -122,7 +122,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Ketersediaan</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Tersedia">Ready / Tersedia</option>
                 <option value="Disewa">Sedang Disewa</option>
                 <option value="Maintenance">Perbaikan / Rusak</option>
@@ -192,7 +192,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Pajangan</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Ready">Ready di Etalase</option>
                 <option value="Terjual">Sudah Terjual</option>
                 <option value="Gudang">Ditarik ke Gudang (Off)</option>
@@ -229,6 +229,58 @@ export const fieldsTemplate = {
             <input type="text" name="catatan" placeholder="Contoh: Posisi Rak Atas Depan" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
     `,
+    inventaris: `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Input</label>
+            <input type="date" name="tanggal" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Barang / Part</label>
+            <input type="text" name="nama_barang" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+            <input type="text" name="kategori" list="list-kategori-inventaris" placeholder="Contoh: Alat Kerja / Sparepart Laptop" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <datalist id="list-kategori-inventaris"></datalist>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Stok Fisik</label>
+            <input type="number" name="stok" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Satuan</label>
+            <select id="inventaris-satuan-select" name="satuan" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="">Pilih satuan</option>
+                <option value="Pcs">Pcs</option>
+                <option value="Unit">Unit</option>
+                <option value="Meter">Meter</option>
+                <option value="Box">Box</option>
+                <option value="Pack">Pack</option>
+                <option value="Set">Set</option>
+                <option value="Lembar">Lembar</option>
+                <option value="Roll">Roll</option>
+                <option value="Buah">Buah</option>
+                <option value="Liter">Liter</option>
+                <option value="Kg">Kg</option>
+                <option value="Dus">Dus</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi Penyimpanan (Rak)</label>
+            <input type="text" name="lokasi_rak" placeholder="Opsional" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kondisi</label>
+            <select name="kondisi" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="Baik">Baik / Layak</option>
+                <option value="Rusak">Rusak / Tidak Layak</option>
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
+            <input type="text" name="catatan" placeholder="Contoh: Pembelian baru / Mutasi" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+    `,
     list_office: `
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Invite</label>
@@ -255,7 +307,6 @@ export const fieldsTemplate = {
             <label class="block text-sm font-medium text-gray-700 mb-1">Info Pemulihan</label>
             <input type="text" name="pemulihan" placeholder="Nomor HP / Email Pemulihan" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
-        <!-- DIPERBAIKI: SELEKTOR TIPE AKUN SEKARANG ADA PILIHAN PERSONAL -->
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Akun Office</label>
             <select name="tipe_akun" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
@@ -266,7 +317,22 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Office</label>
-            <input type="text" name="office" placeholder="M365 Family / Personal" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select id="select-office" name="office" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="">Pilih Jenis Office</option>
+                <option value="365 Family">365 Family</option>
+                <option value="365 Personal">365 Personal</option>
+                <option value="Home & Student 2016">Home & Student 2016</option>
+                <option value="Home & Student 2019">Home & Student 2019</option>
+                <option value="Home & Student 2021">Home & Student 2021</option>
+                <option value="Home 2024">Home 2024</option>
+            </select>
+        </div>
+        <div id="server-link-container" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kaitkan ke Server Utama</label>
+            <select id="server-utama-select" name="server_utama" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="">Memuat daftar server...</option>
+            </select>
+            <p class="text-xs text-gray-400 mt-1">Pilihan server menampilkan sisa slot 365 Family; server penuh akan dinonaktifkan.</p>
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Name (Device / Identitas)</label>
@@ -278,7 +344,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Lisensi</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Aktif">Aktif</option>
                 <option value="Tidak Aktif">Tidak Aktif</option>
                 <option value="Permanen">Permanen</option>
@@ -309,10 +375,19 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Wilayah Cabang (Branch)</label>
-            <select id="user-branch" name="branch" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <select id="user-branch" name="branch" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Head Office">Head Office (Semua)</option>
                 <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
                 <option value="Perintis">Perintis</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Posisi Struktural (Alur Visual)</label>
+            <select id="user-role" name="role" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white" required>
+                <option value="Sales Counter">Sales Counter</option>
+                <option value="Teknisi">Teknisi (Sembunyikan Form)</option>
+                <option value="Customer Service">Customer Service</option>
+                <option value="Admin">Admin</option>
             </select>
         </div>
         <div class="md:col-span-2 border-t pt-3 mt-2">
@@ -342,6 +417,10 @@ export const fieldsTemplate = {
                     <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                         <input type="checkbox" name="perm_laptop_display" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
                         <span>Laptop Display</span>
+                    </label>
+                    <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                        <input type="checkbox" name="perm_inventaris" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
+                        <span>Inventaris Suku Cadang & Alat</span>
                     </label>
                     <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                         <input type="checkbox" name="perm_list_office" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
@@ -388,23 +467,25 @@ export const fieldsTemplate = {
 };
 
 export const tableHeaders = {
-    services: ['ID', 'Tanggal', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Kerusakan', 'Biaya', 'Status', 'Aksi'],
-    penyewaan: ['ID', 'Tanggal', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tgl Mulai', 'Tgl Selesai', 'Total Biaya', 'Status', 'Aksi'],
+    services: ['ID', 'Tanggal', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Biaya', 'Status', 'Aksi'],
+    penyewaan: ['ID', 'Tanggal', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
-    list_office: ['ID', 'Tgl Invite', 'Nama User', 'Akun', 'Password', 'Pemulihan', 'Office', 'Name', 'Masa Aktif', 'Status', 'Aksi'],
+    inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang / Part', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
+    list_office: ['ID', 'Tgl Invite', 'Nama User', 'Akun', 'Server Utama', 'Password', 'Pemulihan', 'Office', 'Name', 'Masa Aktif', 'Status', 'Aksi'],
     user_management: ['ID', 'Nama Lengkap', 'Email Akun', 'Sandi Terdaftar', 'Hak Akses Menu', 'Cabang / Branch', 'Aksi'],
     activity_logs: ['Waktu Log', 'Operator (User)', 'Aksi', 'Modul', 'Detail Aktivitas', 'Aksi']
 };
 
 export const dataKeysMapping = {
-    services: ['id', 'tanggal', 'pelanggan', 'no_wa', 'perangkat', 'kerusakan', 'biaya', 'status'],
-    penyewaan: ['id', 'tanggal', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'tgl_selesai', 'total_biaya', 'status'],
+    services: ['id', 'tanggal', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'biaya', 'status'],
+    penyewaan: ['id', 'tanggal', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['id', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
-    list_office: ['id', 'tanggal', 'nama_user', 'akun', 'password', 'pemulihan', 'office', 'name', 'workspace_expired', 'status'],
+    inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
+    list_office: ['id', 'tanggal', 'nama_user', 'akun', 'server_utama', 'password', 'pemulihan', 'office', 'name', 'workspace_expired', 'status'],
     user_management: ['id', 'name', 'email', 'password', 'permissions', 'branch'],
     activity_logs: ['tanggal_jam', 'user', 'action', 'menu_display', 'details']
 };
@@ -415,6 +496,7 @@ export const filterOptionsTemplate = {
     cctv: ['Survei', 'Pengerjaan', 'Selesai'],
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],
     laptop_display: ['Ready', 'Terjual', 'Gudang'],
+    inventaris: ['Baik', 'Rusak'],
     list_office: ['Aktif', 'Tidak Aktif', 'Permanen'],
     user_management: ['Head Office', 'Monumen Emmy Saelan', 'Perintis'],
     activity_logs: ['Tambah', 'Ubah', 'Hapus', 'Kosongkan', 'Impor']
