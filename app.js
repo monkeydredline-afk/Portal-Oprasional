@@ -239,6 +239,69 @@ window.toggleUtilityDropdown = function(event) {
     }
 };
 
+/* ==========================================================================
+   FUNGSI POPOVER & FILTER DATA TERPADU (OPSI 2)
+   ========================================================================== */
+
+// 1. Membuka atau menutup panel popover filter
+window.toggleFilterPanel = function(event) {
+    if (event) event.stopPropagation();
+    const panel = document.getElementById('filter-popover-panel');
+    if (panel) {
+        panel.classList.toggle('hidden');
+    }
+};
+
+// 2. Menghitung dan memperbarui lencana indikator filter aktif harian
+window.updateFilterBadgeCount = function() {
+    const branchEl = document.getElementById('branch-filter');
+    const statusEl = document.getElementById('status-filter');
+    const serverEl = document.getElementById('server-filter');
+    const badge = document.getElementById('filter-active-count');
+    if (!badge) return;
+
+    let activeCount = 0;
+
+    // Hitung filter cabang jika terlihat/aktif
+    const branchContainer = document.getElementById('branch-filter-container');
+    if (branchContainer && !branchContainer.classList.contains('hidden')) {
+        if (branchEl && branchEl.value) activeCount++;
+    }
+
+    // Hitung filter status jika dipilih
+    if (statusEl && statusEl.value) activeCount++;
+
+    // Hitung filter server utama jika terlihat/aktif
+    const serverContainer = document.getElementById('server-filter-container');
+    if (serverContainer && !serverContainer.classList.contains('hidden')) {
+        if (serverEl && serverEl.value) activeCount++;
+    }
+
+    // Perbarui lencana visual
+    if (activeCount > 0) {
+        badge.innerText = activeCount;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+};
+
+// 3. Mengatur ulang (reset) semua pilihan filter kembali ke kondisi awal
+window.resetAllFilters = function() {
+    const branchEl = document.getElementById('branch-filter');
+    const statusEl = document.getElementById('status-filter');
+    const serverEl = document.getElementById('server-filter');
+
+    if (branchEl) branchEl.value = '';
+    if (statusEl) statusEl.value = '';
+    if (serverEl) serverEl.value = '';
+    
+    currentServerFilter = ''; // Reset variabel global pencarian server
+
+    window.updateFilterBadgeCount();
+    resetPaginationAndRender();
+};
+
 window.addEventListener('click', function(e) {
     const userDropdown = document.getElementById('user-dropdown-menu');
     const userButton = document.getElementById('user-menu-button');
@@ -253,6 +316,15 @@ window.addEventListener('click', function(e) {
     if (utilityDropdown && !utilityDropdown.classList.contains('hidden')) {
         if (!utilityDropdown.contains(e.target) && (!utilityButton || !utilityButton.contains(e.target))) {
             utilityDropdown.classList.add('hidden');
+        }
+    }
+
+    // Menutup popover filter secara halus saat klik di luar area panel saring
+    const filterPanel = document.getElementById('filter-popover-panel');
+    const filterBtn = document.getElementById('filter-trigger-btn');
+    if (filterPanel && !filterPanel.classList.contains('hidden')) {
+        if (!filterPanel.contains(e.target) && (!filterBtn || !filterBtn.contains(e.target))) {
+            filterPanel.classList.add('hidden');
         }
     }
 });
@@ -1362,29 +1434,34 @@ function switchTab(tabName) {
         });
     }
 
+    // 1. Tampilkan/Sembunyikan filter cabang di dalam popover
     const branchContainer = document.getElementById('branch-filter-container');
     if (branchContainer) {
-        if((tabName === 'list_laptop' || tabName === 'laptop_display' || tabName === 'inventaris') && !window.userBranch) {
-            branchContainer.style.display = 'block';
+        if ((tabName === 'list_laptop' || tabName === 'laptop_display' || tabName === 'inventaris') && !window.userBranch) {
+            branchContainer.classList.remove('hidden');
         } else {
-            branchContainer.style.display = 'none';
+            branchContainer.classList.add('hidden');
         }
     }
 
+    // 2. Tampilkan/Sembunyikan filter server utama di dalam popover
     const serverFilterContainer = document.getElementById('server-filter-container');
     if (tabName === 'list_office') {
         if (serverFilterContainer) {
-            serverFilterContainer.style.display = '';
+            serverFilterContainer.classList.remove('hidden');
             refreshServerFilterOptions();
         } else {
             setTimeout(() => { try { refreshServerFilterOptions(); } catch(e){} }, 60);
         }
     } else {
         if (serverFilterContainer) {
-            serverFilterContainer.style.display = 'none';
+            serverFilterContainer.classList.add('hidden');
             currentServerFilter = '';
         }
     }
+
+    // 3. Perbarui angka lencana filter aktif setiap kali berpindah tab
+    setTimeout(() => { if (typeof window.updateFilterBadgeCount === 'function') window.updateFilterBadgeCount(); }, 80);
 
     renderSubTabs();
 
@@ -1440,36 +1517,9 @@ function switchTab(tabName) {
 
 function renderSubTabs() {
     const container = document.getElementById('subtab-filters-container');
-    if (!container) return;
-
-    if (currentTab !== 'laptop_display' && currentTab !== 'penyewaan') {
+    if (container) {
         container.classList.add('hidden');
-        return;
     }
-
-    container.classList.remove('hidden');
-    let html = '';
-
-    const createPill = (label, value) => {
-        const isActive = (currentSubTab === value);
-        return `
-            <button onclick="window.setSubTabFilter('${value}')" class="px-3 py-1 rounded-full text-xs font-semibold border transition duration-150 ${isActive ? 'bg-slate-800 text-cyan-400 border-slate-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'}">
-                ${label}
-            </button>
-        `;
-    };
-
-    if (currentTab === 'laptop_display') {
-        // opsional
-    } else if (currentTab === 'penyewaan') {
-        html += createPill('Semua Transaksi', '');
-        html += createPill('Belum Bayar', 'Belum Bayar');
-        html += createPill('DP 50%', 'DP 50%');
-        html += createPill('Lunas / Selesai', 'Lunas');
-        html += createPill('Jatuh Tempo (Terlambat)', 'Terlambat');
-    }
-
-    container.innerHTML = html;
 }
 
 window.setSubTabFilter = function(val) {
@@ -2208,10 +2258,11 @@ function renderTable() {
     const serverFilterValue = currentServerFilter || '';
     
     let branchFilterValue = window.userBranch || '';
-    if(!branchFilterValue) {
+    if (!branchFilterValue) {
         const branchFilterEl = document.getElementById('branch-filter');
-        const container = document.getElementById('branch-filter-container');
-        if(branchFilterEl && container && container.style.display !== 'none') {
+        const branchContainer = document.getElementById('branch-filter-container'); // Pastikan baris ini ada
+        
+        if (branchFilterEl && branchContainer && !branchContainer.classList.contains('hidden')) {
             branchFilterValue = branchFilterEl.value;
         }
     }
@@ -3304,18 +3355,32 @@ function handleSubmit(e) {
         newDataItem.kode_barang = generateInventarisSku(newDataItem.kategori, inputTgl);
         logDetail = `Barang: ${newDataItem.nama_barang} (Stok: ${newDataItem.stok} ${newDataItem.satuan}) di Rak ${newDataItem.lokasi_rak}`;
     } else if (currentTab === 'services') {
-        const activeName = window.currentUser.name || window.currentUser.email.split('@')[0];
-        const rawKeluhan = formData.get('kerusakan') || '';
+    const activeName = window.currentUser.name || window.currentUser.email.split('@')[0];
+    
+    // Menentukan penamaan peran/role secara rapi untuk ditampilkan pada baris Penerima
+    let roleDisplay = 'Sales Counter';
+    if (window.currentUser.role === 'admin') {
+        roleDisplay = 'Admin';
+    } else if (window.currentUser.role === 'teknisi') {
+        roleDisplay = 'Teknisi';
+    } else if (window.currentUser.role) {
+        // Mengubah format role database (misal: 'sales_counter') menjadi berhuruf besar (misal: 'Sales Counter')
+        roleDisplay = window.currentUser.role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+    
+    const rawKeluhan = formData.get('kerusakan') || '';
 
-        newDataItem.pelanggan = formData.get('pelanggan');
-        newDataItem.no_wa = formData.get('no_wa');
-        newDataItem.perangkat = formData.get('perangkat');
-        newDataItem.biaya = formData.get('biaya');
-        newDataItem.status = formData.get('status');
-        newDataItem.teknisi = 'Belum Ditentukan';
-        newDataItem.tindakan_teknisi = '';
-        newDataItem.kerusakan = `Penerima: ${activeName} | ${rawKeluhan}`;
-        logDetail = `Pelanggan: ${newDataItem.pelanggan} - Perangkat: ${newDataItem.perangkat}`;
+    newDataItem.pelanggan = formData.get('pelanggan');
+    newDataItem.no_wa = formData.get('no_wa');
+    newDataItem.perangkat = formData.get('perangkat');
+    newDataItem.biaya = formData.get('biaya');
+    newDataItem.status = formData.get('status');
+    newDataItem.teknisi = 'Belum Ditentukan';
+    newDataItem.tindakan_teknisi = '';
+    
+    // Menyusun teks Penerima diikuti baris kelengkapan & keluhan yang diketik sales counter
+    newDataItem.kerusakan = `Penerima: ${activeName} (${roleDisplay})\n${rawKeluhan}`;
+    logDetail = `Pelanggan: ${newDataItem.pelanggan} - Unit: ${newDataItem.perangkat}`;
     } else if (currentTab === 'cctv') {
         newDataItem.klien = formData.get('klien');
         newDataItem.lokasi = formData.get('lokasi'); 
@@ -3728,11 +3793,11 @@ function initApp() {
         const isAdmin = (email === 'superadmin@wanasatria.com' || role === 'admin');
         const hasBranchRestriction = (branch && branch !== 'Head Office' && email !== 'superadmin@wanasatria.com');
 
-        if (node !== 'user_management' && !isAdmin && hasBranchRestriction) {
-            nodeRef = query(ref(db, node), orderByChild('cabang'), equalTo(branch));
-        } else {
-            nodeRef = ref(db, node);
-        }
+        if (node !== 'user_management' && node !== 'list_office' && !isAdmin && hasBranchRestriction) {
+    nodeRef = query(ref(db, node), orderByChild('cabang'), equalTo(branch));
+} else {
+    nodeRef = ref(db, node);
+}
 
         const unsubscribe = onValue(nodeRef, (snapshot) => {
             const value = snapshot.val();
@@ -3790,35 +3855,24 @@ function refreshServerOptions() {
 }
 
 function refreshServerFilterOptions() {
-    const containerId = 'server-filter-container';
-    let container = document.getElementById(containerId);
-    if (!container) {
-        const branchContainer = document.getElementById('branch-filter-container');
-        if (!branchContainer) return;
-        container = document.createElement('div');
-        container.id = containerId;
-        container.className = 'w-full sm:w-48';
-        branchContainer.parentNode.insertBefore(container, branchContainer.nextSibling);
-    }
+    const serverSelect = document.getElementById('server-filter');
+    if (!serverSelect) return;
 
     const master = globalDataCloud['list_office'] || [];
     const utamaAccounts = master.filter(i => (i.tipe_akun || '').toString().toLowerCase() === 'utama');
 
-    let html = `<select id="server-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none"><option value="">Semua Server</option>`;
+    let html = '<option value="">Semua Server</option>';
     utamaAccounts.forEach(utama => {
         const email = utama.akun || '';
         const anggotaCount = master.filter(it => (it.server_utama || '') === email).length;
         html += `<option value="${escapeHtml(email)}">${escapeHtml(email)} (${anggotaCount} anggota)</option>`;
     });
-    html += `</select>`;
-    container.innerHTML = html;
+    serverSelect.innerHTML = html;
 
-    const sel = document.getElementById('server-filter');
-    if (sel) {
-        sel.value = currentServerFilter || '';
-        sel.onchange = () => {
-            currentServerFilter = sel.value || '';
-            resetPaginationAndRender();
-        };
-    }
+    serverSelect.value = currentServerFilter || '';
+    serverSelect.onchange = () => {
+        currentServerFilter = serverSelect.value || '';
+        resetPaginationAndRender();
+        window.updateFilterBadgeCount();
+    };
 }

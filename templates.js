@@ -17,9 +17,9 @@ export const fieldsTemplate = {
             <input type="number" name="biaya" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
-            <textarea name="kerusakan" rows="2" placeholder="Tuliskan rincian keluhan unit beserta charger, tas, mouse, dll." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"></textarea>
-        </div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
+    <textarea name="kerusakan" rows="4" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">Detail Unit: &#10;kelengkapan: &#10;keluhan: </textarea>
+</div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
