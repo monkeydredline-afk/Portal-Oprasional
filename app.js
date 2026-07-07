@@ -444,6 +444,19 @@ function switchTab(tabName) {
     if (formFields) formFields.innerHTML = fieldsTemplate[tabName];
     refreshInventarisFieldOptions();
 
+    // Logika Pengaturan Cabang Dinamis (Terkunci & Tersembunyi untuk Staf, Dropdown Terbuka untuk Admin/Superadmin)
+    const cabangContainer = document.getElementById('cabang-input-container');
+    if (cabangContainer) {
+        const selectCabang = cabangContainer.querySelector('select[name="cabang"]');
+        if (window.userBranch) {
+            if (selectCabang) selectCabang.value = window.userBranch;
+            cabangContainer.classList.add('hidden');
+        } else {
+            cabangContainer.classList.remove('hidden');
+            if (selectCabang) selectCabang.value = 'Head Office';
+        }
+    }
+
     if (tabName === 'list_office') {
         const tipeSelect = document.querySelector('#form-fields select[name="tipe_akun"]');
         const serverContainer = document.getElementById('server-link-container');
@@ -477,7 +490,9 @@ function switchTab(tabName) {
                         officeSelect.disabled = true;
                     }
                 } else {
-                    if (officeSelect) officeSelect.disabled = false;
+                    if (officeSelect) {
+                        officeSelect.disabled = false;
+                    }
                 }
             });
         }
@@ -490,14 +505,18 @@ function switchTab(tabName) {
     if (searchBar) searchBar.value = ''; 
 
     const formCard = document.getElementById('form-container-card');
-    if (formCard) {
-        
-        if (structuralPosition === 'teknisi' || tabName === 'activity_logs') {
-            formCard.style.display = 'none';
-        } else {
-            formCard.style.display = 'block';
-        }
+if (formCard) {
+    const structuralPosition = String(window.currentUser.role || '').toLowerCase();
+    
+    // Form disembunyikan HANYA pada:
+    // 1. Tab 'activity_logs' (karena tab log memang tidak memerlukan input form).
+    // 2. Tab 'services' (Log Services) KHUSUS untuk pengguna dengan role 'teknisi'.
+    if (tabName === 'activity_logs' || (structuralPosition === 'teknisi' && tabName === 'services')) {
+        formCard.style.display = 'none';
+    } else {
+        formCard.style.display = 'block';
     }
+}
 
     const dateInput = document.querySelector('#form-fields input[name="tanggal"]');
     if (dateInput) {
@@ -942,7 +961,7 @@ window.buildInventarisCategoryOptions = buildInventarisCategoryOptions;
 window.buildInventarisUnitOptions = buildInventarisUnitOptions;
 window.generateInventarisSku = generateInventarisSku;
 window.refreshInventarisFieldOptions = refreshInventarisFieldOptions;
-// Tambahkan fungsi ini ke dalam app.js agar form login dapat memproses autentikasi Firebase
+
 window.handleLoginSubmit = function(event) {
     event.preventDefault();
     

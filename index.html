@@ -93,7 +93,7 @@
             
             <div class="p-4 border-t border-slate-800 text-center">
                 <div class="text-[10px] text-slate-500 tracking-wide">
-                    V2.1 Cloud Operational System
+                    V4.1 Cloud Operational System
                 </div>
             </div>
         </div>
@@ -308,7 +308,7 @@
         </div>
     </div>
 
-<!-- DASHBOARD STATISTIK MODAL (REVISI SEPARASI ASET & ELIMINASI PREFIKS) -->
+<!-- DASHBOARD STATISTIK MODAL (MENGADOPSI STRUKTUR COHESIVE HORIZONTAL GRID) -->
     <div id="dashboard-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
@@ -321,31 +321,157 @@
             </header>
             
             <div class="p-6 bg-slate-50 overflow-y-auto max-h-[85vh] space-y-8">
-                <!-- LAYANAN PELANGGAN & PROYEK (SERVICES & CCTV) -->
-                <div class="space-y-4">
-                    <h4 class="text-xs font-extrabold text-slate-600 uppercase tracking-wider border-b pb-1.5 flex items-center gap-2">
-                        <i class="fa-solid fa-laptop-medical text-cyan-600"></i> Layanan Pelanggan & Proyek (Services & CCTV)
-                    </h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Antrean Servis Toko</span>
-                                <span id="stat-services-pending" class="text-2xl font-black text-cyan-600 mt-1 block">0</span>
-                            </div>
-                            <div class="bg-cyan-50 text-cyan-500 p-3 rounded-xl text-xl"><i class="fa-solid fa-laptop-medical"></i></div>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Proyek CCTV Aktif</span>
-                                <span id="stat-cctv-active" class="text-2xl font-black text-blue-600 mt-1 block">0</span>
-                            </div>
-                            <div class="bg-blue-50 text-blue-500 p-3 rounded-xl text-xl"><i class="fa-solid fa-video"></i></div>
+                
+                <!-- SEKSI 1: MONITORING ANTREAD SERVIS TOKO (SEPARASI VERTIKAL MAJU) -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTREAD SERVIS TOKO</span>
+                        <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
+                            <select id="filter-services-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                <option value="">Semua Cabang</option>
+                                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                <option value="Perintis">Perintis</option>
+                            </select>
+                            <input type="date" id="filter-services-start" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                            <span class="text-gray-400">s/d</span>
+                            <input type="date" id="filter-services-end" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                            <button onclick="window.resetServicesFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold transition" title="Reset Filter Servis">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col">
-                        <h4 class="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide"><i class="fa-solid fa-business-time text-cyan-600 mr-1"></i> Progres Kerja Servis & CCTV</h4>
-                        <div class="relative flex-1" style="min-height: 250px;">
-                            <canvas id="chartWorkload"></canvas>
+                    
+                    <!-- 3 Kartu Statistik Horizontal di atas Grafik & Tabel -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Antrean Baru</span>
+                                <span id="stat-services-pending-only" class="text-xl font-black text-amber-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        </div>
+                        <div class="bg-blue-50/50 p-3 border border-blue-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Sedang Diproses</span>
+                                <span id="stat-services-processing" class="text-xl font-black text-blue-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-blue-500 text-lg"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                        </div>
+                        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Servis Selesai</span>
+                                <span id="stat-services-completed" class="text-xl font-black text-emerald-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Inner Card Side-by-Side: Grafik Kiri, Tabel Kanan -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-start gap-4">
+                        <div class="flex justify-between items-center border-b pb-2 mb-1">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-store mr-1 text-cyan-500"></i> Detail Distribusi & Antrean Servis Aktif</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Sisi Kiri: Doughnut Chart -->
+                            <div id="services-charts-container" class="relative flex flex-col justify-center items-center h-[210px] border-r border-slate-100/50 pr-2">
+                                <canvas id="chartServicesProgress"></canvas>
+                            </div>
+                            <!-- Sisi Kanan: Tabel Detail Aktif (Scrollable) -->
+                            <div class="overflow-x-auto relative max-h-[210px] overflow-y-auto custom-table-scrollbar">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead class="sticky top-0 bg-white z-10 border-b border-slate-200 pb-2 shadow-sm">
+                                        <tr class="text-slate-500 font-bold uppercase">
+                                            <th class="py-1 px-1.5">No. Referensi</th>
+                                            <th class="py-1 px-1.5">Pelanggan</th>
+                                            <th class="py-1 px-1.5">Perangkat</th>
+                                            <th class="py-1 px-1.5">Teknisi PJ</th>
+                                            <th class="py-1 px-1.5">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-services-details" class="divide-y divide-slate-100 text-slate-700">
+                                        <tr>
+                                            <td colspan="5" class="py-3 text-center text-slate-400 italic">Memproses detail servis...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEKSI 2: MONITORING INSTALASI PROYEK CCTV (SEPARASI VERTIKAL MAJU) -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-video mr-1.5 text-blue-500"></i> LIVE MONITOR PROYEK INSTALASI CCTV</span>
+                        <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
+                            <select id="filter-cctv-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                <option value="">Semua Cabang</option>
+                                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                <option value="Perintis">Perintis</option>
+                            </select>
+                            <input type="date" id="filter-cctv-start" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                            <span class="text-gray-400">s/d</span>
+                            <input type="date" id="filter-cctv-end" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                            <button onclick="window.resetCctvFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold transition" title="Reset Filter CCTV">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 3 Kartu Statistik Horizontal di atas Grafik & Tabel -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-purple-50/50 p-3 border border-purple-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Tahap Survei</span>
+                                <span id="stat-cctv-survey" class="text-xl font-black text-purple-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-purple-500 text-lg"><i class="fa-solid fa-map-location-dot"></i></div>
+                        </div>
+                        <div class="bg-cyan-50/50 p-3 border border-cyan-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-cyan-700 uppercase tracking-wider block">Sedang Dikerjakan</span>
+                                <span id="stat-cctv-working" class="text-xl font-black text-cyan-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-cyan-500 text-lg"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                        </div>
+                        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Proyek Selesai</span>
+                                <span id="stat-cctv-completed" class="text-xl font-black text-emerald-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Inner Card Side-by-Side: Grafik Kiri, Tabel Kanan -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-start gap-4">
+                        <div class="flex justify-between items-center border-b pb-2 mb-1">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-video mr-1 text-blue-500"></i> Detail Jalannya Proyek Instalasi CCTV</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Sisi Kiri: Doughnut Chart -->
+                            <div id="cctv-charts-container" class="relative flex flex-col justify-center items-center h-[210px] border-r border-slate-100/50 pr-2">
+                                <canvas id="chartCctvProgress"></canvas>
+                            </div>
+                            <!-- Sisi Kanan: Tabel Detail Aktif (Scrollable) -->
+                            <div class="overflow-x-auto relative max-h-[210px] overflow-y-auto custom-table-scrollbar">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead class="sticky top-0 bg-white z-10 border-b border-slate-200 pb-2 shadow-sm">
+                                        <tr class="text-slate-500 font-bold uppercase">
+                                            <th class="py-1 px-1.5">Klien / Instansi</th>
+                                            <th class="py-1 px-1.5">Lokasi Pemasangan</th>
+                                            <th class="py-1 px-1.5 text-center">Jumlah Kamera</th>
+                                            <th class="py-1 px-1.5">Progres Terakhir</th>
+                                            <th class="py-1 px-1.5">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-cctv-details" class="divide-y divide-slate-100 text-slate-700">
+                                        <tr>
+                                            <td colspan="5" class="py-3 text-center text-slate-400 italic">Memproses detail CCTV...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -373,7 +499,7 @@
                                 <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Ditarik Gudang (Off)</span>
                                 <span id="stat-display-off" class="text-xl font-black text-amber-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-arrow-rotate-left"></i></div>
                         </div>
                     </div>
                     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col">
@@ -403,7 +529,7 @@
                     </div>
                 </div>
 
-                <!-- SEKSI MANAJEMEN ASET LAPTOP GUDANG (TERPISAH SEPENUHNYA) -->
+                <!-- SEKSI MANAJEMEN ASET LAPTOP GUDANG -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block border-b pb-1.5 flex items-center gap-1.5">
                         <i class="fa-solid fa-warehouse text-emerald-600"></i> Monitoring Master Laptop Gudang (Total Aset: <span id="stat-laptop-total" class="font-mono">0</span> Unit)
@@ -449,11 +575,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
                         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start gap-4">
                             <h4 class="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide"><i class="fa-solid fa-boxes-stacked text-emerald-600 mr-1"></i> Status Ketersediaan Unit Gudang</h4>
-                            <div class="relative flex-1" style="min-height: 210px;">
-                                <canvas id="chartLaptopStock"></canvas>
-                            </div>
+                            <div class="relative flex-1 h-[210px]"><canvas id="chartLaptopStock"></canvas></div>
                         </div>
-                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start gap-4">
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b pb-2">
                                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
                                     <i class="fa-solid fa-list-ol text-cyan-600 mr-1"></i> Detail Distribusi Aset Gudang
@@ -466,7 +590,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="relative flex-1 overflow-y-auto custom-table-scrollbar max-h-[281px] pr-1 mt-2">
+                            <div class="relative flex-1 overflow-y-auto custom-table-scrollbar max-h-[210px] pr-1 mt-2">
                                 <div id="dashboard-laptop-models-container" class="space-y-4">
                                     <p class="text-center text-xs text-gray-400 py-6 italic">Memproses data gudang...</p>
                                 </div>
@@ -475,7 +599,7 @@
                     </div>
                 </div>
 
-                <!-- SEKSI MONITORING INVENTARIS SUKU CADANG & ALAT KERJA (TERPISAH SEPENUHNYA) -->
+                <!-- SEKSI MONITORING INVENTARIS SUKU CADANG & ALAT KERJA -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block border-b pb-1.5 flex items-center gap-1.5">
                         <i class="fa-solid fa-toolbox text-blue-600"></i> Monitoring Suku Cadang & Inventaris Kerja
@@ -513,7 +637,6 @@
 
                     <!-- LAYOUT DUA KOLOM BAWAH INVENTARIS: STOK KRITIS & DETAIL DISTRIBUSI SUKU CADANG -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                        <!-- Kolom Kiri: Deteksi Dini Stok Kritis -->
                         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start gap-4">
                             <h5 class="text-xs font-extrabold text-rose-700 flex items-center gap-1.5 uppercase mb-2">
                                 <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> Deteksi Dini Kebutuhan Restok Suku Cadang (Stok ≤ 3)
@@ -535,8 +658,6 @@
                                 </table>
                             </div>
                         </div>
-
-                        <!-- Kolom Kanan: Detail Distribusi Suku Cadang & Alat (Baru) -->
                         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start gap-4">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b pb-2">
                                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
@@ -551,9 +672,8 @@
                         </div>
                     </div>
                 </div>
-                
 
-                <!-- LISENSI & AKUN OFFICE (MICROSOFT 365 SERVER & MEMBER) -->
+                <!-- LISENSI & AKUN OFFICE -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block border-b pb-1.5"><i class="fa-brands fa-microsoft mr-1.5 text-purple-600"></i> Lisensi & Akun Office (M365 Server & Member)</span>
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">

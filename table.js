@@ -58,6 +58,9 @@ function renderTable() {
     
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    } else if (window.currentTab === 'services') {
+        // Khusus Log Servisan: Urutkan Descending dari ID terbesar ke terkecil (Newest on Top)
+        data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
     }
 
     const searchBar = document.getElementById('search-bar');
@@ -88,8 +91,9 @@ function renderTable() {
                 if (item.status !== filterStatusValue) return false;
             }
         }
-        // Filter cabang dinonaktifkan untuk menu global agar semua pengguna dengan hak akses dapat melihat seluruh data
-        if (window.currentTab !== 'list_office' && window.currentTab !== 'user_management' && window.currentTab !== 'activity_logs') {
+        
+        // Filter cabang diabaikan untuk menu global dan inventaris agar memunculkan seluruh data
+        if (window.currentTab !== 'list_office' && window.currentTab !== 'user_management' && window.currentTab !== 'activity_logs' && window.currentTab !== 'inventaris') {
             if (branchFilterValue && item.cabang && item.cabang !== branchFilterValue) return false;
         }
         
@@ -114,7 +118,7 @@ function renderTable() {
     const totalData = filteredData.length;
 
     if(totalData === 0) {
-        tbody.innerHTML = `<tr><td colspan="${tableHeaders[window.currentTab].length}" class="px-4 py-8 text-center text-gray-400 bg-gray-50 font-medium"><i class="fa-solid fa-folder-open text-xl block mb-2"></i>Tidak ada data yang sesuai filter</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${tableHeaders[window.currentTab].length}" class="px-4 py-12 text-center text-slate-500 bg-slate-50/50"> <div class="flex flex-col items-center justify-center space-y-3"> <i class="fa-solid fa-folder-open text-3xl text-cyan-600"></i> <span class="text-sm font-semibold tracking-wide">Tidak ada data yang sesuai filter</span> </div> </td></tr>`;
         const paginationControls = document.getElementById('pagination-controls');
         if (paginationControls) paginationControls.classList.add('hidden');
         return;
@@ -149,6 +153,10 @@ function renderTable() {
             
             if (key === 'id') {
                 rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${val}</td>`;
+            } else if (key === 'no_ref') {
+                // Menampilkan No. Referensi permanen, jika data lama gunakan ID lama sebagai fallback
+                const refDisplay = (val && val !== '-') ? val : `SRV-Legacy-#${item.id}`;
+                rowHtml += `<td class="px-4 py-3 font-bold text-slate-700 font-mono text-xs whitespace-nowrap">${refDisplay}</td>`;
             } else if (key === 'tanggal' || key === 'tanggal_jam') {
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val}</span></td>`;
             } else if (key === 'tgl_mulai' && window.currentTab === 'penyewaan') {
@@ -216,7 +224,18 @@ function renderTable() {
                     }
                 }
 
-                if (displayVal === 'Selesai' || displayVal === 'Lunas' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
+                // Tambahan: Menyisipkan tanggal selesai di lencana status untuk modul Servis
+                if (window.currentTab === 'services' && val === 'Selesai') {
+                    if (item.tgl_selesai) {
+                        const dateParts = item.tgl_selesai.split('-');
+                        const formattedSelesai = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : item.tgl_selesai;
+                        displayVal = `Selesai (${formattedSelesai})`;
+                    } else {
+                        displayVal = `Selesai`;
+                    }
+                }
+
+                if (val === 'Selesai' || displayVal === 'Lunas' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
                 if (displayVal === 'Permanen') badgeColor = "bg-cyan-100 text-cyan-800";
                 if (displayVal === 'Belum Bayar' || displayVal === 'Maintenance' || displayVal === 'Gudang' || displayVal === 'Tidak Aktif' || displayVal === 'Rusak') badgeColor = "bg-rose-100 text-rose-800";
                 if (displayVal === 'Disewa') badgeColor = "bg-blue-100 text-blue-800";
@@ -368,6 +387,25 @@ function openEditModal(firebaseKey) {
     if (!fieldsContainer) return;
     fieldsContainer.innerHTML = '';
 
+    // Logika HTML dinamis kolom cabang untuk modal edit
+    let cabangEditHtml = '';
+    if (!window.userBranch) {
+        // Untuk Admin / Superadmin: Muncul dropdown pilihan cabang
+        cabangEditHtml = `
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Cabang Toko</label>
+                <select id="edit-cabang" class="w-full border p-2 text-sm rounded-lg bg-white">
+                    <option value="Monumen Emmy Saelan" ${targetItem.cabang === 'Monumen Emmy Saelan' ? 'selected' : ''}>Monumen Emmy Saelan</option>
+                    <option value="Perintis" ${targetItem.cabang === 'Perintis' ? 'selected' : ''}>Perintis</option>
+                    <option value="Head Office" ${targetItem.cabang === 'Head Office' ? 'selected' : ''}>Head Office</option>
+                </select>
+            </div>
+        `;
+    } else {
+        // Untuk Staf Cabang: Cabang dikunci (hidden) sesuai dengan hak akses
+        cabangEditHtml = `<input type="hidden" id="edit-cabang" value="${window.userBranch}">`;
+    }
+
     if (window.currentTab === 'services') {
         const inventarisList = window.globalDataCloud.inventaris || [];
         const availableSpareparts = inventarisList.filter(item => item.kondisi === 'Baik' && Number(item.stok) > 0);
@@ -388,6 +426,7 @@ function openEditModal(firebaseKey) {
         }
 
         fieldsContainer.innerHTML = `
+            ${cabangEditHtml}
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pelanggan</label><input type="text" id="edit-pelanggan" value="${targetItem.pelanggan || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Perangkat</label><input type="text" id="edit-perangkat" value="${targetItem.perangkat || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -407,10 +446,23 @@ function openEditModal(firebaseKey) {
                 </div>
             </div>
 
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Antrean" ${targetItem.status === 'Antrean' ? 'selected' : ''}>Antrean</option><option value="Proses" ${targetItem.status === 'Proses' ? 'selected' : ''}>Proses Pengecekan</option><option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai</option></select></div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
+                <select id="edit-status" onchange="window.handleEditStatusChange(this.value)" class="w-full border p-2 text-sm rounded-lg">
+                    <option value="Antrean" ${targetItem.status === 'Antrean' ? 'selected' : ''}>Antrean</option>
+                    <option value="Proses" ${targetItem.status === 'Proses' ? 'selected' : ''}>Proses Pengecekan</option>
+                    <option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                </select>
+            </div>
+            
+            <div id="tgl-selesai-container" class="${targetItem.status === 'Selesai' ? '' : 'hidden'}">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai Servis</label>
+                <input type="date" id="edit-tgl-selesai" value="${targetItem.tgl_selesai || ''}" class="w-full border p-2 text-sm rounded-lg">
+            </div>
         `;
     } else if (window.currentTab === 'cctv') {
         fieldsContainer.innerHTML = `
+            ${cabangEditHtml}
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Klien</label><input type="text" id="edit-klien" value="${targetItem.klien || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Lokasi Pemasangan</label><input type="text" id="edit-lokasi" value="${targetItem.lokasi || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Jumlah CCTV</label><input type="number" id="edit-jumlah_cctv" value="${targetItem.jumlah_cctv || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -467,6 +519,7 @@ function openEditModal(firebaseKey) {
         window.editSelectedLaptopKeys = targetItem._linkedLaptopKeys ? [...targetItem._linkedLaptopKeys] : [];
 
         fieldsContainer.innerHTML = `
+            ${cabangFieldHtml}
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Penyewa</label><input type="text" id="edit-penyewa" value="${targetItem.penyewa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div class="grid grid-cols-2 gap-2">
@@ -682,7 +735,7 @@ function openEditModal(firebaseKey) {
                 if (v) {
                     if (editOfficeSelect) { editOfficeSelect.value = '365 Family'; editOfficeSelect.disabled = true; }
                 } else {
-                    if (editOfficeSelect) editOfficeSelect.disabled = false;
+                    if (editOfficeSelect) { editOfficeSelect.value = '365 Family'; editOfficeSelect.disabled = false; }
                 }
             });
         }
@@ -887,7 +940,6 @@ function deleteRow(firebaseKey) {
         const targetRowRef = ref(db, `${window.currentTab}/${firebaseKey}`);
         remove(targetRowRef)
             .then(() => {
-                // Panggil reindex helper global
                 if (window.reindexSequentialIdsForTab) {
                     return window.reindexSequentialIdsForTab(window.currentTab, firebaseKey);
                 }
@@ -901,6 +953,22 @@ function deleteRow(firebaseKey) {
             });
     }
 }
+
+window.handleEditStatusChange = function(statusValue) {
+    const container = document.getElementById('tgl-selesai-container');
+    const input = document.getElementById('edit-tgl-selesai');
+    if (container && input) {
+        if (statusValue === 'Selesai') {
+            container.classList.remove('hidden');
+            if (!input.value) {
+                input.value = new Date().toISOString().slice(0, 10);
+            }
+        } else {
+            container.classList.add('hidden');
+            input.value = '';
+        }
+    }
+};
 
 // Pasang fungsi navigasi halaman dan rendering
 window.nextPage = function() {

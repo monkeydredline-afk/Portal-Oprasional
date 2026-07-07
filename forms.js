@@ -112,8 +112,9 @@ function handleSubmit(e) {
     const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
     const newDataItem = { id: nextId };
 
-    const userBranch = window.currentUser.branch || 'Head Office';
-    newDataItem.cabang = userBranch;
+    // Mendukung input cabang eksplisit (dropdown/hidden) atau fallback ke cabang akun operator
+    const submittedCabang = formData.get('cabang');
+    newDataItem.cabang = submittedCabang || window.currentUser.branch || 'Head Office';
 
     let inputTgl = formData.get('tanggal');
     if (inputTgl && inputTgl.includes('-')) {
@@ -155,7 +156,7 @@ function handleSubmit(e) {
         newDataItem.status = formData.get('status');
         newDataItem.unit = listUnitSewa.join(', ');
         newDataItem._linkedLaptopKeys = laptopKeysToUpdate;
-        logDetail = `Penyewa: ${newDataItem.penyewa} dengan unit sewa: ${newDataItem.unit}`;
+        logDetail = `Penyewa: ${newDataItem.penyewa} dengan unit sewa: ${newDataItem.unit} di cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'list_laptop') {
         const proc = formData.get('spec_proc');
         const ram = formData.get('spec_ram');
@@ -163,7 +164,6 @@ function handleSubmit(e) {
         const vga = formData.get('spec_vga');
         const screen = formData.get('spec_screen');
 
-        newDataItem.cabang = formData.get('cabang') || userBranch;
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
         newDataItem.sn = formData.get('sn');
@@ -179,7 +179,6 @@ function handleSubmit(e) {
         const vga = formData.get('spec_vga');
         const screen = formData.get('spec_screen');
 
-        newDataItem.cabang = formData.get('cabang') || userBranch;
         newDataItem.teknisi = formData.get('teknisi');
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
@@ -190,7 +189,6 @@ function handleSubmit(e) {
         newDataItem.spek_singkat = `CPU: ${proc}\nRAM: ${ram}\nSSD/HDD: ${storage}\nVGA/Layar: ${vga} (${screen})`;
         logDetail = `${newDataItem.merk} ${newDataItem.tipe} (SN: ${newDataItem.sn}) di etalase cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'inventaris') { 
-        newDataItem.cabang = formData.get('cabang') || userBranch;
         newDataItem.nama_barang = formData.get('nama_barang');
         newDataItem.kategori = formData.get('kategori');
         newDataItem.stok = Number(formData.get('stok')) || 0;
@@ -199,7 +197,7 @@ function handleSubmit(e) {
         newDataItem.kondisi = formData.get('kondisi');
         newDataItem.catatan = formData.get('catatan') || '';
         newDataItem.kode_barang = window.generateInventarisSku ? window.generateInventarisSku(newDataItem.kategori, inputTgl) : 'SKU-ERR';
-        logDetail = `Barang: ${newDataItem.nama_barang} (Stok: ${newDataItem.stok} ${newDataItem.satuan}) di Rak ${newDataItem.lokasi_rak}`;
+        logDetail = `Barang: ${newDataItem.nama_barang} (Stok: ${newDataItem.stok} ${newDataItem.satuan}) di Rak ${newDataItem.lokasi_rak} cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'services') {
         const activeName = window.currentUser.name || window.currentUser.email.split('@')[0];
         
@@ -214,6 +212,13 @@ function handleSubmit(e) {
         
         const rawKeluhan = formData.get('kerusakan') || '';
 
+        // Otomatisasi Pembuatan No. Referensi Permanen (Opsi A)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const paddedId = String(nextId).padStart(5, '0');
+        newDataItem.no_ref = `SRV/${year}/${month}/${paddedId}`;
+
         newDataItem.pelanggan = formData.get('pelanggan');
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.perangkat = formData.get('perangkat');
@@ -221,16 +226,17 @@ function handleSubmit(e) {
         newDataItem.status = formData.get('status');
         newDataItem.teknisi = 'Belum Ditentukan';
         newDataItem.tindakan_teknisi = '';
+        newDataItem.tgl_selesai = ''; 
         
         newDataItem.kerusakan = `Penerima: ${activeName} (${roleDisplay})\n${rawKeluhan}`;
-        logDetail = `Pelanggan: ${newDataItem.pelanggan} - Unit: ${newDataItem.perangkat}`;
+        logDetail = `Pelanggan: ${newDataItem.pelanggan} - Unit: ${newDataItem.perangkat} - Ref: ${newDataItem.no_ref} cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'cctv') {
         newDataItem.klien = formData.get('klien');
         newDataItem.lokasi = formData.get('lokasi'); 
         newDataItem.jumlah_cctv = formData.get('jumlah_cctv');
         newDataItem.progres = formData.get('progres');
         newDataItem.status = formData.get('status');
-        logDetail = `Klien: ${newDataItem.klien} - Lokasi: ${newDataItem.lokasi} (${newDataItem.jumlah_cctv} Kamera)`;
+        logDetail = `Klien: ${newDataItem.klien} - Lokasi: ${newDataItem.lokasi} (${newDataItem.jumlah_cctv} Kamera) cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'list_office') {
         newDataItem.nama_user = formData.get('nama_user');
         newDataItem.akun = formData.get('akun');
@@ -242,7 +248,7 @@ function handleSubmit(e) {
         newDataItem.name = formData.get('name');
         newDataItem.workspace_expired = formData.get('masa_aktif');
         newDataItem.status = formData.get('status');
-        logDetail = `User: ${newDataItem.nama_user} - Akun Office: ${newDataItem.akun}`;
+        logDetail = `User: ${newDataItem.nama_user} - Akun Office: ${newDataItem.akun} cabang ${newDataItem.cabang}`;
     }
 
     const targetRef = ref(db, window.currentTab);
@@ -314,7 +320,13 @@ function handleUpdateSubmit(e) {
         updatedData.kerusakan = document.getElementById('edit-kerusakan').value;
         updatedData.teknisi = document.getElementById('edit-teknisi').value;
         updatedData.tindakan_teknisi = document.getElementById('edit-tindakan_teknisi').value || '';
-        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
+        updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
+
+        // Simpan No. Referensi asli agar tidak berubah saat diedit (Opsi A)
+        updatedData.no_ref = targetItem?.no_ref || `SRV/Legacy/#${targetItem?.id}`;
+        
+        // Tangkap Tanggal Selesai yang diinput oleh Teknisi
+        updatedData.tgl_selesai = document.getElementById('edit-tgl-selesai')?.value || '';
 
         const sparepartKey = document.getElementById('edit-sparepart-select').value;
         const sparepartQty = Number(document.getElementById('edit-sparepart-qty').value) || 0;
@@ -342,7 +354,7 @@ function handleUpdateSubmit(e) {
         updatedData.jumlah_cctv = document.getElementById('edit-jumlah_cctv').value;
         updatedData.progres = document.getElementById('edit-progres').value;
         updatedData.status = document.getElementById('edit-status').value;
-        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
+        updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
         itemDescription = `${updatedData.klien} - ${updatedData.lokasi}`;
     } else if (window.currentTab === 'list_laptop') {
         let editTgl = document.getElementById('edit-tanggal').value;
@@ -411,7 +423,7 @@ function handleUpdateSubmit(e) {
         updatedData.tgl_selesai = tglSelesaiVal;
         updatedData.total_biaya = document.getElementById('edit-total_biaya').value;
         updatedData.status = newStatus;
-        updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
+        updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
 
         if (!window.editSelectedLaptopKeys || window.editSelectedLaptopKeys.length === 0) {
             alert("Silakan centang minimal 1 unit laptop!");

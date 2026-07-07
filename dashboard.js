@@ -3,7 +3,8 @@
    ========================================================================== */
 import { parseDate } from './utils.js';
 
-let chartWorkloadInstance = null;
+let chartServicesInstance = null;
+let chartCctvInstance = null;
 let chartLaptopStockInstance = null;
 
 function escapeHtml(value) {
@@ -54,17 +55,116 @@ function calculateAndRenderStats() {
         const startVal = startValEl ? startValEl.value : '';
         const endVal = endValEl ? endValEl.value : '';
 
-        // Gunakan optional chaining (?.) untuk menghindari pembacaan data null
+        // ==========================================================================
+        // 2. SEKSI LOGIKA DYNAMIC FILTERING LOG SERVIS & KARTU UTAMA
+        // ==========================================================================
+        const filterServicesCabang = document.getElementById('filter-services-cabang');
+        const filterServicesStart = document.getElementById('filter-services-start');
+        const filterServicesEnd = document.getElementById('filter-services-end');
+
+        if (window.userBranch) {
+            if (filterServicesCabang) filterServicesCabang.style.display = 'none';
+        } else {
+            if (filterServicesCabang) filterServicesCabang.style.display = '';
+        }
+
+        const servicesBranchVal = window.userBranch || (filterServicesCabang ? filterServicesCabang.value : '');
+        const startServicesVal = filterServicesStart ? filterServicesStart.value : '';
+        const endServicesVal = filterServicesEnd ? filterServicesEnd.value : '';
+
         let filteredServices = dataServices;
-        let filteredPenyewaan = dataPenyewaan;
+
+        if (servicesBranchVal) {
+            filteredServices = filteredServices.filter(item => item?.cabang === servicesBranchVal);
+        }
+
+        if (startServicesVal && endServicesVal) {
+            const startDate = new Date(startServicesVal);
+            startDate.setHours(0,0,0,0);
+            const endDate = new Date(endServicesVal);
+            endDate.setHours(23,59,59,999);
+
+            filteredServices = filteredServices.filter(item => {
+                const itemDate = parseDate(item?.tanggal);
+                if (!itemDate) return false;
+                return itemDate >= startDate && itemDate <= endDate;
+            });
+        }
+
+        // Kalkulasi 3 Status Servis Mandiri
+        const totalServicesCount = filteredServices.length;
+        const sAntrean = filteredServices.filter(s => s?.status === 'Antrean').length;
+        const sProses = filteredServices.filter(s => s?.status === 'Proses').length;
+        const sSelesai = filteredServices.filter(s => s?.status === 'Selesai').length;
+
+        const setInnerText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setInnerText('stat-services-total', totalServicesCount);
+        setInnerText('stat-services-pending-only', sAntrean);
+        setInnerText('stat-services-processing', sProses);
+        setInnerText('stat-services-completed', sSelesai);
+
+        // ==========================================================================
+        // 3. SEKSI LOGIKA DYNAMIC FILTERING PROYEK CCTV & KARTU UTAMA
+        // ==========================================================================
+        const filterCctvCabang = document.getElementById('filter-cctv-cabang');
+        const filterCctvStart = document.getElementById('filter-cctv-start');
+        const filterCctvEnd = document.getElementById('filter-cctv-end');
+
+        if (window.userBranch) {
+            if (filterCctvCabang) filterCctvCabang.style.display = 'none';
+        } else {
+            if (filterCctvCabang) filterCctvCabang.style.display = '';
+        }
+
+        const cctvBranchVal = window.userBranch || (filterCctvCabang ? filterCctvCabang.value : '');
+        const startCctvVal = filterCctvStart ? filterCctvStart.value : '';
+        const endCctvVal = filterCctvEnd ? filterCctvEnd.value : '';
+
         let filteredCctv = dataCctv;
 
-        const generalBranchVal = window.userBranch || displayBranchVal || gudangBranchVal;
-        if (generalBranchVal) {
-            filteredServices = filteredServices.filter(item => item?.cabang === generalBranchVal);
-            filteredPenyewaan = filteredPenyewaan.filter(item => item?.cabang === generalBranchVal);
-            filteredCctv = filteredCctv.filter(item => item?.cabang === generalBranchVal);
+        if (cctvBranchVal) {
+            filteredCctv = filteredCctv.filter(item => item?.cabang === cctvBranchVal);
         }
+
+        if (startCctvVal && endCctvVal) {
+            const startDate = new Date(startCctvVal);
+            startDate.setHours(0,0,0,0);
+            const endDate = new Date(endCctvVal);
+            endDate.setHours(23,59,59,999);
+
+            filteredCctv = filteredCctv.filter(item => {
+                const itemDate = parseDate(item?.tanggal);
+                if (!itemDate) return false;
+                return itemDate >= startDate && itemDate <= endDate;
+            });
+        }
+
+        // Kalkulasi 3 Status CCTV Mandiri
+        const totalCctvCount = filteredCctv.length;
+        const cSurvei = filteredCctv.filter(c => c?.status === 'Survei').length;
+        const cKerja = filteredCctv.filter(c => c?.status === 'Pengerjaan').length;
+        const cSelesai = filteredCctv.filter(c => c?.status === 'Selesai' || c?.status === 'Selesai / Serah Terima').length;
+
+        setInnerText('stat-cctv-total', totalCctvCount);
+        setInnerText('stat-cctv-survey', cSurvei);
+        setInnerText('stat-cctv-working', cKerja);
+        setInnerText('stat-cctv-completed', cSelesai);
+
+        // ==========================================================================
+        // 4. PENYETTINGAN NILAI KARTU STATISTIK LAIN & LAPTOP
+        // ==========================================================================
+        let filteredPenyewaan = dataPenyewaan;
+        if (window.userBranch) {
+            filteredPenyewaan = filteredPenyewaan.filter(item => item?.cabang === window.userBranch);
+        }
+        let totalOmsetSewa = 0;
+        filteredPenyewaan.forEach(p => { totalOmsetSewa += (Number(p?.total_biaya) || 0); });
+
+        setInnerText('stat-rent-omset', totalOmsetSewa.toLocaleString('id-ID'));
 
         let filteredLaptop = dataLaptop;
         if (gudangBranchVal) {
@@ -76,13 +176,6 @@ function calculateAndRenderStats() {
             filteredDisplay = filteredDisplay.filter(item => item?.cabang === displayBranchVal);
         }
 
-        let pendingServices = filteredServices.filter(s => s?.status === 'Antrean' || s?.status === 'Proses').length;
-        
-        let totalOmsetSewa = 0;
-        filteredPenyewaan.forEach(p => { totalOmsetSewa += (Number(p?.total_biaya) || 0); });
-        
-        let activeCctv = filteredCctv.filter(c => c?.status === 'Survei' || c?.status === 'Pengerjaan').length;
-        
         let totalLaptopAset = filteredLaptop.length;
         let lapReady = filteredLaptop.filter(l => l?.status === 'Tersedia').length;
         let lapSewa = filteredLaptop.filter(l => l?.status === 'Disewa').length;
@@ -108,14 +201,6 @@ function calculateAndRenderStats() {
         let dispSold = filteredDisplay.filter(d => d?.status === 'Terjual').length;
         let dispOff = filteredDisplay.filter(d => d?.status === 'Gudang').length;
 
-        const setInnerText = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.innerText = val;
-        };
-
-        setInnerText('stat-services-pending', pendingServices);
-        setInnerText('stat-rent-omset', totalOmsetSewa.toLocaleString('id-ID'));
-        setInnerText('stat-cctv-active', activeCctv);
         setInnerText('stat-laptop-total', totalLaptopAset);
         setInnerText('stat-laptop-ready', lapReady);
         setInnerText('stat-laptop-rented', lapSewa);
@@ -369,53 +454,153 @@ function calculateAndRenderStats() {
             }
         }
 
-        let sAntrean = filteredServices.filter(s => s?.status === 'Antrean').length;
-        let sProses = filteredServices.filter(s => s?.status === 'Proses').length;
-        let sSelesai = filteredServices.filter(s => s?.status === 'Selesai').length;
-
-        let cSurvei = filteredCctv.filter(c => c?.status === 'Survei').length;
-        let cKerja = filteredCctv.filter(c => c?.status === 'Pengerjaan').length;
-        let cSelesai = filteredCctv.filter(c => c?.status === 'Selesai' || c?.status === 'Selesai / Serah Terima').length;
-
-        // 2. Bungkus inisialisasi visual grafik dengan try-catch agar terisolasi
+        // ==========================================================================
+        // 5. VISUALISASI DUA GRAFIK DOUGHNUT KEMBAR (SERVICES & CCTV TERPISAH)
+        // ==========================================================================
+        // Render Grafik Status Servis
         try {
-            const workloadCanvas = document.getElementById('chartWorkload');
-            if (workloadCanvas && typeof Chart !== 'undefined') {
-                const ctxWorkload = workloadCanvas.getContext('2d');
-                if (chartWorkloadInstance !== null) chartWorkloadInstance.destroy();
-                
-                chartWorkloadInstance = new Chart(ctxWorkload, {
-                    type: 'bar',
+            const servicesCanvas = document.getElementById('chartServicesProgress');
+            const servicesChartsContainer = document.getElementById('services-charts-container');
+            if (servicesChartsContainer) {
+                const isAdminOrSuper = !window.userBranch;
+                if (isAdminOrSuper && filterServicesCabang && filterServicesCabang.value !== '') {
+                    servicesChartsContainer.classList.add('hidden');
+                } else {
+                    servicesChartsContainer.classList.remove('hidden');
+                }
+            }
+
+            if (servicesCanvas && typeof Chart !== 'undefined' && servicesChartsContainer && !servicesChartsContainer.classList.contains('hidden')) {
+                const ctxServices = servicesCanvas.getContext('2d');
+                if (chartServicesInstance !== null) chartServicesInstance.destroy();
+
+                chartServicesInstance = new Chart(ctxServices, {
+                    type: 'doughnut',
                     data: {
-                        labels: ['Tahap Awal', 'Berjalan', 'Selesai'],
-                        datasets: [
-                            {
-                                label: 'Services',
-                                data: [sAntrean, sProses, sSelesai],
-                                backgroundColor: 'rgba(236, 72, 153, 0.85)',
-                                borderRadius: 4
-                            },
-                            {
-                                label: 'CCTV',
-                                data: [cSurvei, cKerja, cSelesai],
-                                backgroundColor: 'rgba(59, 130, 246, 0.85)',
-                                borderRadius: 4
-                            }
-                        ]
+                        labels: [`Antrean (${sAntrean})`, `Proses (${sProses})`, `Selesai (${sSelesai})`],
+                        datasets: [{
+                            data: [sAntrean, sProses, sSelesai],
+                            backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+                            borderWidth: 2,
+                            hoverOffset: 4
+                        }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, ticks: { stepSize: 1, color: '#64748b' } }
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
                         }
                     }
                 });
             }
         } catch (chartErr) {
-            console.warn("Gagal menggambar diagram workload:", chartErr);
+            console.warn("Gagal menggambar diagram status servis:", chartErr);
         }
 
+        // Render Grafik Status Proyek CCTV
+        try {
+            const cctvCanvas = document.getElementById('chartCctvProgress');
+            const cctvChartsContainer = document.getElementById('cctv-charts-container');
+            if (cctvChartsContainer) {
+                const isAdminOrSuper = !window.userBranch;
+                if (isAdminOrSuper && filterCctvCabang && filterCctvCabang.value !== '') {
+                    cctvChartsContainer.classList.add('hidden');
+                } else {
+                    cctvChartsContainer.classList.remove('hidden');
+                }
+            }
+
+            if (cctvCanvas && typeof Chart !== 'undefined' && cctvChartsContainer && !cctvChartsContainer.classList.contains('hidden')) {
+                const ctxCctv = cctvCanvas.getContext('2d');
+                if (chartCctvInstance !== null) chartCctvInstance.destroy();
+
+                chartCctvInstance = new Chart(ctxCctv, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [`Survei (${cSurvei})`, `Pengerjaan (${cKerja})`, `Selesai (${cSelesai})`],
+                        datasets: [{
+                            data: [cSurvei, cKerja, cSelesai],
+                            backgroundColor: ['#a855f7', '#06b6d4', '#10b981'],
+                            borderWidth: 2,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+        } catch (chartErr) {
+            console.warn("Gagal menggambar diagram status proyek CCTV:", chartErr);
+        }
+
+        // ==========================================================================
+        // 6. RENDER DAFTAR DETAIL PEKERJAAN AKTIF (LIVE DETAILS TABLE)
+        // ==========================================================================
+        // Render Detail Antrean Servis Aktif (Antrean & Proses)
+        const servicesDetailsBody = document.getElementById('dashboard-services-details');
+        if (servicesDetailsBody) {
+            const activeServices = filteredServices.filter(s => s?.status === 'Antrean' || s?.status === 'Proses');
+            activeServices.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+
+            if (activeServices.length === 0) {
+                servicesDetailsBody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic font-semibold">Tidak ada antrean servis berjalan saat ini.</td></tr>`;
+            } else {
+                servicesDetailsBody.innerHTML = activeServices.map((s, idx) => {
+                    // Poin 5: ID Tampilan Dinamis (Virtual ID) khusus tampilan visual
+                    const visualId = idx + 1;
+                    const refCode = s.no_ref || `SRV-Legacy-#${s.id}`;
+                    const pelangganText = s.pelanggan || '-';
+                    const perangkatText = s.perangkat || '-';
+                    const teknisiText = s.teknisi || 'Belum Ditentukan';
+                    const statusColor = s.status === 'Proses' ? 'text-blue-600 bg-blue-50 border border-blue-100' : 'text-amber-600 bg-amber-50 border border-amber-100';
+                    return `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-2 px-1.5 font-bold font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(refCode)} (ID: ${visualId})</td>
+                            <td class="py-2 px-1.5 font-semibold text-slate-800">${escapeHtml(pelangganText)}</td>
+                            <td class="py-2 px-1.5">${escapeHtml(perangkatText)}</td>
+                            <td class="py-2 px-1.5 font-semibold text-slate-500">${escapeHtml(teknisiText)}</td>
+                            <td class="py-2 px-1.5"><span class="px-2 py-0.5 rounded text-[10px] font-extrabold border ${statusColor}">${s.status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Detail Proyek CCTV Berjalan (Survei & Pengerjaan)
+        const cctvDetailsBody = document.getElementById('dashboard-cctv-details');
+        if (cctvDetailsBody) {
+            const activeCctvList = filteredCctv.filter(c => c?.status === 'Survei' || c?.status === 'Pengerjaan');
+            activeCctvList.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+
+            if (activeCctvList.length === 0) {
+                cctvDetailsBody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic font-semibold">Tidak ada proyek CCTV berjalan saat ini.</td></tr>`;
+            } else {
+                cctvDetailsBody.innerHTML = activeCctvList.map(c => {
+                    const klienText = c.klien || '-';
+                    const lokasiText = c.lokasi || '-';
+                    const kameraText = c.jumlah_cctv || 0;
+                    const progresText = c.progres || '-';
+                    const statusColor = c.status === 'Pengerjaan' ? 'text-cyan-600 bg-cyan-50 border border-cyan-100' : 'text-purple-600 bg-purple-50 border border-purple-100';
+                    return `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-2 px-1.5 font-semibold text-slate-800">${escapeHtml(klienText)}</td>
+                            <td class="py-2 px-1.5">${escapeHtml(lokasiText)}</td>
+                            <td class="py-2 px-1.5 text-center font-bold font-mono">${kameraText} Unit</td>
+                            <td class="py-2 px-1.5 text-slate-500 italic font-medium">${escapeHtml(progresText)}</td>
+                            <td class="py-2 px-1.5"><span class="px-2 py-0.5 rounded text-[10px] font-extrabold border ${statusColor}">${c.status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Grafik Laptop Stok Gudang
         try {
             const laptopStockCanvas = document.getElementById('chartLaptopStock');
             if (laptopStockCanvas && typeof Chart !== 'undefined') {
@@ -499,6 +684,8 @@ function updateDashboardBranchFilters() {
         const gudangSelect = document.getElementById('filter-gudang-cabang');
         const displaySelect = document.getElementById('filter-display-cabang');
         const mainBranchSelect = document.getElementById('branch-filter');
+        const servicesSelect = document.getElementById('filter-services-cabang');
+        const cctvSelect = document.getElementById('filter-cctv-cabang');
         
         let optionsHtml = '<option value="">Semua Cabang</option>';
         [...branches].sort().forEach(b => {
@@ -512,6 +699,18 @@ function updateDashboardBranchFilters() {
             displaySelect.innerHTML = optionsHtml;
             gudangSelect.value = currentGudang;
             displaySelect.value = currentDisplay;
+        }
+
+        if (servicesSelect) {
+            let currentServices = servicesSelect.value;
+            servicesSelect.innerHTML = optionsHtml;
+            servicesSelect.value = currentServices;
+        }
+
+        if (cctvSelect) {
+            let currentCctv = cctvSelect.value;
+            cctvSelect.innerHTML = optionsHtml;
+            cctvSelect.value = currentCctv;
         }
 
         if(mainBranchSelect) {
@@ -528,6 +727,26 @@ function resetDisplayFilters() {
     const filterBranch = document.getElementById('filter-display-cabang');
     const filterStart = document.getElementById('filter-display-start');
     const filterEnd = document.getElementById('filter-display-end');
+    if (filterBranch) filterBranch.value = '';
+    if (filterStart) filterStart.value = '';
+    if (filterEnd) filterEnd.value = '';
+    calculateAndRenderStats();
+}
+
+function resetServicesFilters() {
+    const filterBranch = document.getElementById('filter-services-cabang');
+    const filterStart = document.getElementById('filter-services-start');
+    const filterEnd = document.getElementById('filter-services-end');
+    if (filterBranch) filterBranch.value = '';
+    if (filterStart) filterStart.value = '';
+    if (filterEnd) filterEnd.value = '';
+    calculateAndRenderStats();
+}
+
+function resetCctvFilters() {
+    const filterBranch = document.getElementById('filter-cctv-cabang');
+    const filterStart = document.getElementById('filter-cctv-start');
+    const filterEnd = document.getElementById('filter-cctv-end');
     if (filterBranch) filterBranch.value = '';
     if (filterStart) filterStart.value = '';
     if (filterEnd) filterEnd.value = '';
@@ -553,5 +772,7 @@ function closeDashboardModal() {
 window.calculateAndRenderStats = calculateAndRenderStats;
 window.updateDashboardBranchFilters = updateDashboardBranchFilters;
 window.resetDisplayFilters = resetDisplayFilters;
+window.resetServicesFilters = resetServicesFilters;
+window.resetCctvFilters = resetCctvFilters;
 window.openDashboardModal = openDashboardModal;
-window.closeDashboardModal = closeDashboardModal;
+window.closeDashboardModal = closeDashboardModal; 
