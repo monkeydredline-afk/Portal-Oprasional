@@ -1,5 +1,17 @@
+/* ==========================================================================
+   Teknisi Portal - templates.js (Template Input Form & Struktur Tabel)
+   ========================================================================== */
+
 export const fieldsTemplate = {
     services: `
+        <div id="cabang-input-container">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cabang Toko</label>
+            <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                <option value="Perintis">Perintis</option>
+                <option value="Head Office">Head Office</option>
+            </select>
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan</label>
             <input type="text" name="pelanggan" list="list-pelanggan" autocomplete="off" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
@@ -17,9 +29,9 @@ export const fieldsTemplate = {
             <input type="number" name="biaya" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div class="md:col-span-2">
-    <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
-    <textarea name="kerusakan" rows="4" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">Detail Unit: &#10;kelengkapan: &#10;keluhan: </textarea>
-</div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
+            <textarea name="kerusakan" rows="4" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">Detail Unit: &#10;kelengkapan: &#10;keluhan: </textarea>
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
@@ -30,6 +42,14 @@ export const fieldsTemplate = {
         </div>
     `,
     penyewaan: `
+        <div id="cabang-input-container">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cabang Toko</label>
+            <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                <option value="Perintis">Perintis</option>
+                <option value="Head Office">Head Office</option>
+            </select>
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Nama Penyewa</label>
             <input type="text" name="penyewa" list="list-penyewa" autocomplete="off" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
@@ -70,6 +90,14 @@ export const fieldsTemplate = {
         </div>
     `,
     cctv: `
+        <div id="cabang-input-container">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cabang Toko</label>
+            <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                <option value="Perintis">Perintis</option>
+                <option value="Head Office">Head Office</option>
+            </select>
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Nama Klien / Instansi</label>
             <input type="text" name="klien" list="list-klien" autocomplete="off" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
@@ -467,9 +495,9 @@ export const fieldsTemplate = {
 };
 
 export const tableHeaders = {
-    services: ['ID', 'Tanggal', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Biaya', 'Status', 'Aksi'],
-    penyewaan: ['ID', 'Tanggal', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Biaya', 'Status', 'Aksi'],
-    cctv: ['ID', 'Tanggal', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
+    services: ['No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Biaya', 'Status', 'Aksi'],
+    penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Biaya', 'Status', 'Aksi'],
+    cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang / Part', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
@@ -479,9 +507,9 @@ export const tableHeaders = {
 };
 
 export const dataKeysMapping = {
-    services: ['id', 'tanggal', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'biaya', 'status'],
-    penyewaan: ['id', 'tanggal', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_biaya', 'status'],
-    cctv: ['id', 'tanggal', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
+    services: ['no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'biaya', 'status'],
+    penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_biaya', 'status'],
+    cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['id', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
