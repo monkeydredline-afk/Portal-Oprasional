@@ -385,7 +385,7 @@ export const fieldsTemplate = {
             <label class="block text-sm font-medium text-gray-700 mb-1">Posisi Struktural (Alur Visual)</label>
             <select id="user-role" name="role" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white" required>
                 <option value="Sales Counter">Sales Counter</option>
-                <option value="Teknisi">Teknisi (Sembunyikan Form)</option>
+                <option value="Teknisi">Teknisi</option>
                 <option value="Customer Service">Customer Service</option>
                 <option value="Admin">Admin</option>
             </select>

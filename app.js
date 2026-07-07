@@ -491,7 +491,6 @@ function switchTab(tabName) {
 
     const formCard = document.getElementById('form-container-card');
     if (formCard) {
-        const structuralPosition = String(window.currentUser.role || '').toLowerCase();
         
         if (structuralPosition === 'teknisi' || tabName === 'activity_logs') {
             formCard.style.display = 'none';
