@@ -112,7 +112,7 @@ function handleSubmit(e) {
     const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
     const newDataItem = { id: nextId };
 
-    // Mendukung input cabang eksplisit (dropdown/hidden) atau fallback ke cabang akun operator (Blok A)
+    // Mendukung input cabang eksplisit (dropdown/hidden) atau fallback ke cabang akun operator
     const submittedCabang = formData.get('cabang');
     newDataItem.cabang = submittedCabang || window.currentUser.branch || 'Head Office';
 
@@ -152,7 +152,10 @@ function handleSubmit(e) {
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.tgl_mulai = formData.get('tgl_mulai');
         newDataItem.tgl_selesai = formData.get('tgl_selesai');
-        newDataItem.total_biaya = formData.get('total_biaya');
+        
+        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
+        newDataItem.total_biaya = String(formData.get('total_biaya') || '').replace(/\D/g, '');
+        
         newDataItem.status = formData.get('status');
         newDataItem.unit = listUnitSewa.join(', ');
         newDataItem._linkedLaptopKeys = laptopKeysToUpdate;
@@ -183,7 +186,10 @@ function handleSubmit(e) {
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
         newDataItem.sn = formData.get('sn');
-        newDataItem.harga_jual = formData.get('harga_jual');
+        
+        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
+        newDataItem.harga_jual = String(formData.get('harga_jual') || '').replace(/\D/g, '');
+        
         newDataItem.status = formData.get('status');
         newDataItem.catatan = formData.get('catatan') || '';
         newDataItem.spek_singkat = `CPU: ${proc}\nRAM: ${ram}\nSSD/HDD: ${storage}\nVGA/Layar: ${vga} (${screen})`;
@@ -222,7 +228,10 @@ function handleSubmit(e) {
         newDataItem.pelanggan = formData.get('pelanggan');
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.perangkat = formData.get('perangkat');
-        newDataItem.biaya = formData.get('biaya');
+        
+        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
+        newDataItem.biaya = String(formData.get('biaya') || '').replace(/\D/g, '');
+        
         newDataItem.status = formData.get('status');
         newDataItem.teknisi = 'Belum Ditentukan';
         newDataItem.tindakan_teknisi = '';
@@ -315,7 +324,10 @@ function handleUpdateSubmit(e) {
         updatedData.pelanggan = document.getElementById('edit-pelanggan').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
         updatedData.perangkat = document.getElementById('edit-perangkat').value;
-        updatedData.biaya = document.getElementById('edit-biaya').value;
+        
+        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
+        updatedData.biaya = String(document.getElementById('edit-biaya').value || '').replace(/\D/g, '');
+        
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.kerusakan = document.getElementById('edit-kerusakan').value;
         updatedData.teknisi = document.getElementById('edit-teknisi').value;
@@ -383,7 +395,10 @@ function handleUpdateSubmit(e) {
         updatedData.merk = document.getElementById('edit-merk').value;
         updatedData.tipe = document.getElementById('edit-tipe').value;
         updatedData.sn = document.getElementById('edit-sn').value;
-        updatedData.harga_jual = document.getElementById('edit-harga_jual').value;
+        
+        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
+        updatedData.harga_jual = String(document.getElementById('edit-harga_jual').value || '').replace(/\D/g, '');
+        
         updatedData.spek_singkat = document.getElementById('edit-spek_singkat').value;
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.catatan = document.getElementById('edit-catatan').value;
@@ -421,7 +436,10 @@ function handleUpdateSubmit(e) {
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
         updatedData.tgl_mulai = tglMulaiVal;
         updatedData.tgl_selesai = tglSelesaiVal;
-        updatedData.total_biaya = document.getElementById('edit-total_biaya').value;
+        
+        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
+        updatedData.total_biaya = String(document.getElementById('edit-total_biaya').value || '').replace(/\D/g, '');
+        
         updatedData.status = newStatus;
         updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
 
@@ -541,6 +559,6 @@ function handleUpdateSubmit(e) {
         });
 }
 
-// Ikat ke global window agar langsung dikenali oleh form submit harian & modal di index.html
+// Bind ke global window
 window.handleSubmit = handleSubmit;
 window.handleUpdateSubmit = handleUpdateSubmit;

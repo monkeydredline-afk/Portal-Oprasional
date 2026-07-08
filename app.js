@@ -8,8 +8,8 @@ window.formatCurrencyInput = function(val) {
     // Hapus semua karakter selain angka
     let clean = String(val).replace(/\D/g, '');
     if (!clean) return '';
-    // Tambahkan tanda titik sebagai pemisah ribuan
-    return clean.replace(/\B(?=(\d{3})+(?!\D))/g, ".");
+    // Tambahkan tanda titik sebagai pemisah ribuan (Menggunakan \d kecil agar posisi tepat)
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
 // Import konfigurasi & template
