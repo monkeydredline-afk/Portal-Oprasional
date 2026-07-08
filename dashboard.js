@@ -4,7 +4,9 @@
 import { parseDate } from './utils.js';
 
 let chartServicesInstance = null;
+let chartServicesLineInstance = null; // Instansi diagram garis untuk Servis (Multi-Line)
 let chartCctvInstance = null;
+let chartCctvLineInstance = null; // Instansi diagram garis untuk CCTV (Project Trend)
 let chartLaptopStockInstance = null;
 
 function escapeHtml(value) {
@@ -56,7 +58,7 @@ function calculateAndRenderStats() {
         const endVal = endValEl ? endValEl.value : '';
 
         // ==========================================================================
-        // 2. SEKSI LOGIKA DYNAMIC FILTERING LOG SERVIS & KARTU UTAMA
+        // 2. SEKSI LOGIKA DYNAMIC FILTERING LOG SERVIS & KARTU UTAMA (Blok B)
         // ==========================================================================
         const filterServicesCabang = document.getElementById('filter-services-cabang');
         const filterServicesStart = document.getElementById('filter-services-start');
@@ -91,11 +93,12 @@ function calculateAndRenderStats() {
             });
         }
 
-        // Kalkulasi 3 Status Servis Mandiri
+        // Kalkulasi 4 Status Servis Mandiri
         const totalServicesCount = filteredServices.length;
         const sAntrean = filteredServices.filter(s => s?.status === 'Antrean').length;
         const sProses = filteredServices.filter(s => s?.status === 'Proses').length;
         const sSelesai = filteredServices.filter(s => s?.status === 'Selesai').length;
+        const sCancel = filteredServices.filter(s => s?.status === 'Cancel').length;
 
         const setInnerText = (id, val) => {
             const el = document.getElementById(id);
@@ -106,9 +109,10 @@ function calculateAndRenderStats() {
         setInnerText('stat-services-pending-only', sAntrean);
         setInnerText('stat-services-processing', sProses);
         setInnerText('stat-services-completed', sSelesai);
+        setInnerText('stat-services-cancelled', sCancel);
 
         // ==========================================================================
-        // 3. SEKSI LOGIKA DYNAMIC FILTERING PROYEK CCTV & KARTU UTAMA
+        // 3. SEKSI LOGIKA DYNAMIC FILTERING PROYEK CCTV & KARTU UTAMA (Blok B)
         // ==========================================================================
         const filterCctvCabang = document.getElementById('filter-cctv-cabang');
         const filterCctvStart = document.getElementById('filter-cctv-start');
@@ -455,32 +459,74 @@ function calculateAndRenderStats() {
         }
 
         // ==========================================================================
-        // 5. VISUALISASI DUA GRAFIK DOUGHNUT KEMBAR (SERVICES & CCTV TERPISAH)
+        // 5. VISUALISASI DUA GRAFIK (MERK PERANGKAT & TREN PENERIMAAN SERVISAN)
         // ==========================================================================
-        // Render Grafik Status Servis
+        // Render Grafik Distribusi Merk / Tipe Laptop yang Diservis (Doughnut)
         try {
             const servicesCanvas = document.getElementById('chartServicesProgress');
             const servicesChartsContainer = document.getElementById('services-charts-container');
+            
             if (servicesChartsContainer) {
-                const isAdminOrSuper = !window.userBranch;
-                if (isAdminOrSuper && filterServicesCabang && filterServicesCabang.value !== '') {
-                    servicesChartsContainer.classList.add('hidden');
-                } else {
-                    servicesChartsContainer.classList.remove('hidden');
-                }
+                servicesChartsContainer.classList.remove('hidden');
             }
 
             if (servicesCanvas && typeof Chart !== 'undefined' && servicesChartsContainer && !servicesChartsContainer.classList.contains('hidden')) {
                 const ctxServices = servicesCanvas.getContext('2d');
                 if (chartServicesInstance !== null) chartServicesInstance.destroy();
 
+                // Fungsi pembantu ekstraksi merk dari input teks perangkat
+                const extractBrand = (perangkatStr) => {
+                    if (!perangkatStr) return 'Lainnya';
+                    const clean = perangkatStr.trim().toLowerCase();
+                    if (clean.includes('lenovo')) return 'Lenovo';
+                    if (clean.includes('asus')) return 'Asus';
+                    if (clean.includes('acer')) return 'Acer';
+                    if (clean.includes('hp')) return 'HP';
+                    if (clean.includes('dell')) return 'Dell';
+                    if (clean.includes('apple') || clean.includes('macbook') || clean.includes('ipad')) return 'Apple';
+                    if (clean.includes('axioo')) return 'Axioo';
+                    if (clean.includes('toshiba')) return 'Toshiba';
+                    if (clean.includes('msi')) return 'MSI';
+                    if (clean.includes('samsung')) return 'Samsung';
+                    
+                    const firstWord = perangkatStr.trim().split(' ')[0];
+                    if (firstWord && firstWord.length > 2) {
+                        return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+                    }
+                    return 'Lainnya';
+                };
+
+                // Hitung frekuensi masing-masing merk dari data servisan aktif
+                const brandCounts = {};
+                filteredServices.forEach(item => {
+                    const brand = extractBrand(item?.perangkat || '');
+                    brandCounts[brand] = (brandCounts[brand] || 0) + 1;
+                });
+
+                const sortedBrands = Object.keys(brandCounts).sort((a, b) => brandCounts[b] - brandCounts[a]);
+                const doughnutLabels = sortedBrands.map(brand => `${brand} (${brandCounts[brand]})`);
+                const doughnutData = sortedBrands.map(brand => brandCounts[brand]);
+
+                const presetColors = {
+                    'Lenovo': '#f59e0b', // Orange/Amber
+                    'Asus': '#3b82f6',   // Blue
+                    'Acer': '#10b981',   // Emerald Green
+                    'HP': '#8b5cf6',     // Violet
+                    'Dell': '#06b6d4',   // Cyan
+                    'Apple': '#6b7280',  // Slate Gray
+                    'Axioo': '#ec4899',  // Pink
+                    'MSI': '#ef4444',    // Red
+                    'Lainnya': '#cbd5e1' // Light Gray
+                };
+                const backgroundColors = sortedBrands.map(brand => presetColors[brand] || '#' + Math.floor(Math.random()*16777215).toString(16));
+
                 chartServicesInstance = new Chart(ctxServices, {
                     type: 'doughnut',
                     data: {
-                        labels: [`Antrean (${sAntrean})`, `Proses (${sProses})`, `Selesai (${sSelesai})`],
+                        labels: doughnutLabels.length > 0 ? doughnutLabels : ['Tidak Ada Data'],
                         datasets: [{
-                            data: [sAntrean, sProses, sSelesai],
-                            backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+                            data: doughnutData.length > 0 ? doughnutData : [0],
+                            backgroundColor: backgroundColors.length > 0 ? backgroundColors : ['#cbd5e1'],
                             borderWidth: 2,
                             hoverOffset: 4
                         }]
@@ -495,72 +541,216 @@ function calculateAndRenderStats() {
                 });
             }
         } catch (chartErr) {
-            console.warn("Gagal menggambar diagram status servis:", chartErr);
+            console.warn("Gagal menggambar diagram merk perangkat servis:", chartErr);
         }
 
-        // Render Grafik Status Proyek CCTV
+        // Render Grafik Tren Garis (Line Chart) Log Servisan Berdasarkan Merk/Tipe Perangkat
         try {
-            const cctvCanvas = document.getElementById('chartCctvProgress');
+            const servicesLineCanvas = document.getElementById('chartServicesLine');
+            if (servicesLineCanvas && typeof Chart !== 'undefined') {
+                const ctxServicesLine = servicesLineCanvas.getContext('2d');
+                if (chartServicesLineInstance !== null) chartServicesLineInstance.destroy();
+
+                // 1. Ekstraksi semua tanggal unik secara urut kronologis (Sumbu X)
+                const datesSet = new Set();
+                filteredServices.forEach(item => {
+                    if (item?.tanggal) {
+                        datesSet.add(item.tanggal);
+                    }
+                });
+
+                const sortedServicesDates = Array.from(datesSet).sort((a, b) => {
+                    const dateA = parseDate(a) || new Date(0);
+                    const dateB = parseDate(b) || new Date(0);
+                    return dateA - dateB;
+                });
+
+                // 2. Fungsi pembantu pencari merk perangkat
+                const extractBrand = (perangkatStr) => {
+                    if (!perangkatStr) return 'Lainnya';
+                    const clean = perangkatStr.trim().toLowerCase();
+                    if (clean.includes('lenovo')) return 'Lenovo';
+                    if (clean.includes('asus')) return 'Asus';
+                    if (clean.includes('acer')) return 'Acer';
+                    if (clean.includes('hp')) return 'HP';
+                    if (clean.includes('dell')) return 'Dell';
+                    if (clean.includes('apple') || clean.includes('macbook')) return 'Apple';
+                    if (clean.includes('axioo')) return 'Axioo';
+                    if (clean.includes('toshiba')) return 'Toshiba';
+                    if (clean.includes('msi')) return 'MSI';
+                    return 'Lainnya';
+                };
+
+                // 3. Definisikan merk utama yang ingin dipantau garis trennya
+                const trackedBrands = ['Lenovo', 'Asus', 'Acer', 'HP', 'Lainnya'];
+                const brandDateCounts = {};
+
+                // Inisialisasi counter per merk per tanggal dengan nilai 0
+                trackedBrands.forEach(brand => {
+                    brandDateCounts[brand] = {};
+                    sortedServicesDates.forEach(tgl => {
+                        brandDateCounts[brand][tgl] = 0;
+                    });
+                });
+
+                // Akumulasikan data jumlah unit masuk
+                filteredServices.forEach(item => {
+                    const brand = extractBrand(item?.perangkat || '');
+                    const tgl = item?.tanggal || '';
+                    const mappedBrand = trackedBrands.includes(brand) ? brand : 'Lainnya';
+                    if (tgl && brandDateCounts[mappedBrand]) {
+                        brandDateCounts[mappedBrand][tgl]++;
+                    }
+                });
+
+                // 4. Konfigurasi warna garis agar senada dan kontras
+                const brandColors = {
+                    'Lenovo': '#f59e0b', // Amber
+                    'Asus': '#3b82f6',   // Blue
+                    'Acer': '#10b981',   // Emerald
+                    'HP': '#8b5cf6',     // Violet
+                    'Lainnya': '#94a3b8' // Slate/Gray
+                };
+
+                // Susun dataset multi-garis untuk Chart.js
+                const lineDatasets = trackedBrands.map(brand => {
+                    return {
+                        label: brand,
+                        data: sortedServicesDates.map(tgl => brandDateCounts[brand][tgl] || 0),
+                        borderColor: brandColors[brand],
+                        backgroundColor: 'transparent',
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointRadius: 2.5,
+                        hoverRadius: 4
+                    };
+                });
+
+                chartServicesLineInstance = new Chart(ctxServicesLine, {
+                    type: 'line',
+                    data: {
+                        labels: sortedServicesDates.length > 0 ? sortedServicesDates : ['Tidak Ada Data'],
+                        datasets: lineDatasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: 'top', 
+                                labels: { boxWidth: 12, font: { size: 10 } } 
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                ticks: { precision: 0 } 
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (chartErr) {
+            console.warn("Gagal menggambar diagram garis tren merk servis:", chartErr);
+        }
+
+        // Render Grafik Status Proyek CCTV (Hanya Diagram Garis - Doughnut CCTV Dihapus)
+        try {
             const cctvChartsContainer = document.getElementById('cctv-charts-container');
             if (cctvChartsContainer) {
-                const isAdminOrSuper = !window.userBranch;
-                if (isAdminOrSuper && filterCctvCabang && filterCctvCabang.value !== '') {
-                    cctvChartsContainer.classList.add('hidden');
-                } else {
-                    cctvChartsContainer.classList.remove('hidden');
-                }
+                cctvChartsContainer.classList.remove('hidden');
             }
+        } catch (err) {
+            console.warn(err);
+        }
 
-            if (cctvCanvas && typeof Chart !== 'undefined' && cctvChartsContainer && !cctvChartsContainer.classList.contains('hidden')) {
-                const ctxCctv = cctvCanvas.getContext('2d');
-                if (chartCctvInstance !== null) chartCctvInstance.destroy();
+        // Render Grafik Tren Garis (Line Chart) Proyek CCTV
+        try {
+            const cctvLineCanvas = document.getElementById('chartCctvLine');
+            if (cctvLineCanvas && typeof Chart !== 'undefined') {
+                const ctxCctvLine = cctvLineCanvas.getContext('2d');
+                if (chartCctvLineInstance !== null) chartCctvLineInstance.destroy();
 
-                chartCctvInstance = new Chart(ctxCctv, {
-                    type: 'doughnut',
+                // Kelompokkan proyek CCTV berdasarkan tanggal untuk Diagram Garis
+                const cctvByDate = {};
+                filteredCctv.forEach(item => {
+                    let tgl = item?.tanggal || '';
+                    if (tgl) {
+                        cctvByDate[tgl] = (cctvByDate[tgl] || 0) + 1;
+                    }
+                });
+
+                const sortedCctvDates = Object.keys(cctvByDate).sort((a, b) => {
+                    const dateA = parseDate(a) || new Date(0);
+                    const dateB = parseDate(b) || new Date(0);
+                    return dateA - dateB;
+                });
+
+                const lineLabels = sortedCctvDates;
+                const lineData = sortedCctvDates.map(d => cctvByDate[d]);
+
+                chartCctvLineInstance = new Chart(ctxCctvLine, {
+                    type: 'line',
                     data: {
-                        labels: [`Survei (${cSurvei})`, `Pengerjaan (${cKerja})`, `Selesai (${cSelesai})`],
+                        labels: lineLabels.length > 0 ? lineLabels : ['No Data'],
                         datasets: [{
-                            data: [cSurvei, cKerja, cSelesai],
-                            backgroundColor: ['#a855f7', '#06b6d4', '#10b981'],
-                            borderWidth: 2,
-                            hoverOffset: 4
+                            label: 'Pendaftaran Proyek Baru',
+                            data: lineData.length > 0 ? lineData : [0],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2.5,
+                            pointRadius: 3
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
                         }
                     }
                 });
             }
         } catch (chartErr) {
-            console.warn("Gagal menggambar diagram status proyek CCTV:", chartErr);
+            console.warn("Gagal menggambar diagram garis proyek CCTV:", chartErr);
         }
 
         // ==========================================================================
         // 6. RENDER DAFTAR DETAIL PEKERJAAN AKTIF (LIVE DETAILS TABLE)
         // ==========================================================================
-        // Render Detail Antrean Servis Aktif (Antrean & Proses)
+        // Render Detail Antrean Servis Aktif (Antrean, Proses, Selesai & Cancel)
         const servicesDetailsBody = document.getElementById('dashboard-services-details');
         if (servicesDetailsBody) {
-            const activeServices = filteredServices.filter(s => s?.status === 'Antrean' || s?.status === 'Proses');
+            const activeServices = [...filteredServices]; 
             activeServices.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
             if (activeServices.length === 0) {
-                servicesDetailsBody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic font-semibold">Tidak ada antrean servis berjalan saat ini.</td></tr>`;
+                servicesDetailsBody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic font-semibold">Tidak ada log servis terdaftar saat ini.</td></tr>`;   
             } else {
                 servicesDetailsBody.innerHTML = activeServices.map((s, idx) => {
-                    // Poin 5: ID Tampilan Dinamis (Virtual ID) khusus tampilan visual
                     const visualId = idx + 1;
                     const refCode = s.no_ref || `SRV-Legacy-#${s.id}`;
                     const pelangganText = s.pelanggan || '-';
                     const perangkatText = s.perangkat || '-';
                     const teknisiText = s.teknisi || 'Belum Ditentukan';
-                    const statusColor = s.status === 'Proses' ? 'text-blue-600 bg-blue-50 border border-blue-100' : 'text-amber-600 bg-amber-50 border border-amber-100';
+                    
+                    let statusColor = 'text-amber-600 bg-amber-50 border border-amber-100'; // Antrean
+                    if (s.status === 'Proses') {
+                        statusColor = 'text-blue-600 bg-blue-50 border border-blue-100';
+                    } else if (s.status === 'Selesai') {
+                        statusColor = 'text-emerald-600 bg-emerald-50 border border-emerald-100';
+                    } else if (s.status === 'Cancel') {
+                        statusColor = 'text-rose-600 bg-rose-50 border border-rose-100';
+                    }
+
                     return `
-                        <tr class="hover:bg-slate-50 transition">
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-50">
                             <td class="py-2 px-1.5 font-bold font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(refCode)} (ID: ${visualId})</td>
                             <td class="py-2 px-1.5 font-semibold text-slate-800">${escapeHtml(pelangganText)}</td>
                             <td class="py-2 px-1.5">${escapeHtml(perangkatText)}</td>
@@ -572,23 +762,30 @@ function calculateAndRenderStats() {
             }
         }
 
-        // Render Detail Proyek CCTV Berjalan (Survei & Pengerjaan)
+        // Render Detail Proyek CCTV Berjalan (Semua Status)
         const cctvDetailsBody = document.getElementById('dashboard-cctv-details');
         if (cctvDetailsBody) {
-            const activeCctvList = filteredCctv.filter(c => c?.status === 'Survei' || c?.status === 'Pengerjaan');
+            const activeCctvList = [...filteredCctv]; 
             activeCctvList.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
             if (activeCctvList.length === 0) {
-                cctvDetailsBody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic font-semibold">Tidak ada proyek CCTV berjalan saat ini.</td></tr>`;
+                cctvDetailsBody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic font-semibold">Tidak ada proyek CCTV terdaftar saat ini.</td></tr>`;
             } else {
                 cctvDetailsBody.innerHTML = activeCctvList.map(c => {
                     const klienText = c.klien || '-';
                     const lokasiText = c.lokasi || '-';
                     const kameraText = c.jumlah_cctv || 0;
                     const progresText = c.progres || '-';
-                    const statusColor = c.status === 'Pengerjaan' ? 'text-cyan-600 bg-cyan-50 border border-cyan-100' : 'text-purple-600 bg-purple-50 border border-purple-100';
+                    
+                    let statusColor = 'text-purple-600 bg-purple-50 border border-purple-100'; // Survei
+                    if (c.status === 'Pengerjaan') {
+                        statusColor = 'text-cyan-600 bg-cyan-50 border border-cyan-100';
+                    } else if (c.status === 'Selesai' || c.status === 'Selesai / Serah Terima') {
+                        statusColor = 'text-emerald-600 bg-emerald-50 border border-emerald-100';
+                    }
+
                     return `
-                        <tr class="hover:bg-slate-50 transition">
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-50">
                             <td class="py-2 px-1.5 font-semibold text-slate-800">${escapeHtml(klienText)}</td>
                             <td class="py-2 px-1.5">${escapeHtml(lokasiText)}</td>
                             <td class="py-2 px-1.5 text-center font-bold font-mono">${kameraText} Unit</td>
@@ -775,4 +972,4 @@ window.resetDisplayFilters = resetDisplayFilters;
 window.resetServicesFilters = resetServicesFilters;
 window.resetCctvFilters = resetCctvFilters;
 window.openDashboardModal = openDashboardModal;
-window.closeDashboardModal = closeDashboardModal; 
+window.closeDashboardModal = closeDashboardModal;

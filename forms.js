@@ -112,7 +112,7 @@ function handleSubmit(e) {
     const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
     const newDataItem = { id: nextId };
 
-    // Mendukung input cabang eksplisit (dropdown/hidden) atau fallback ke cabang akun operator
+    // Mendukung input cabang eksplisit (dropdown/hidden) atau fallback ke cabang akun operator (Blok A)
     const submittedCabang = formData.get('cabang');
     newDataItem.cabang = submittedCabang || window.currentUser.branch || 'Head Office';
 
@@ -212,7 +212,7 @@ function handleSubmit(e) {
         
         const rawKeluhan = formData.get('kerusakan') || '';
 
-        // Otomatisasi Pembuatan No. Referensi Permanen (Opsi A)
+        // Otomatisasi Pembuatan No. Referensi Permanen (Opsi A - Blok C)
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -322,10 +322,10 @@ function handleUpdateSubmit(e) {
         updatedData.tindakan_teknisi = document.getElementById('edit-tindakan_teknisi').value || '';
         updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
 
-        // Simpan No. Referensi asli agar tidak berubah saat diedit (Opsi A)
+        // Simpan No. Referensi asli agar tidak berubah saat diedit (Opsi A - Blok C)
         updatedData.no_ref = targetItem?.no_ref || `SRV/Legacy/#${targetItem?.id}`;
         
-        // Tangkap Tanggal Selesai yang diinput oleh Teknisi
+        // Tangkap Tanggal Selesai yang diinput oleh Teknisi (Blok C)
         updatedData.tgl_selesai = document.getElementById('edit-tgl-selesai')?.value || '';
 
         const sparepartKey = document.getElementById('edit-sparepart-select').value;

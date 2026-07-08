@@ -462,14 +462,17 @@ function switchTab(tabName) {
         const serverContainer = document.getElementById('server-link-container');
         const serverSelect = document.getElementById('server-utama-select');
         const officeSelect = document.getElementById('select-office');
+        const masaAktifContainer = document.getElementById('masa-aktif-container');
 
         function handleTipeAkunChange() {
             const val = tipeSelect ? tipeSelect.value : '';
             if (val === 'Anggota') {
                 if (serverContainer) serverContainer.classList.remove('hidden');
+                if (masaAktifContainer) masaAktifContainer.classList.add('hidden'); // Sembunyikan input Masa Aktif untuk Anggota
                 refreshServerOptions();
             } else {
                 if (serverContainer) serverContainer.classList.add('hidden');
+                if (masaAktifContainer) masaAktifContainer.classList.remove('hidden'); // Tampilkan input Masa Aktif untuk tipe lain
                 if (serverSelect) serverSelect.value = '';
                 if (officeSelect) officeSelect.disabled = false;
             }
@@ -489,6 +492,13 @@ function switchTab(tabName) {
                         officeSelect.value = '365 Family';
                         officeSelect.disabled = true;
                     }
+                    // Mengisi secara otomatis masa aktif anggota agar sama persis dengan server induk (Poin 1)
+                    const master = window.globalDataCloud['list_office'] || [];
+                    const matchedServer = master.find(it => (it?.akun || '').toString() === v && (it?.tipe_akun || '').toString().toLowerCase() === 'utama');
+                    const masaAktifInput = document.querySelector('#form-fields input[name="masa_aktif"]');
+                    if (matchedServer && masaAktifInput) {
+                        masaAktifInput.value = matchedServer.workspace_expired || matchedServer.masa_aktif || '';
+                    }
                 } else {
                     if (officeSelect) {
                         officeSelect.disabled = false;
@@ -505,18 +515,18 @@ function switchTab(tabName) {
     if (searchBar) searchBar.value = ''; 
 
     const formCard = document.getElementById('form-container-card');
-if (formCard) {
-    const structuralPosition = String(window.currentUser.role || '').toLowerCase();
-    
-    // Form disembunyikan HANYA pada:
-    // 1. Tab 'activity_logs' (karena tab log memang tidak memerlukan input form).
-    // 2. Tab 'services' (Log Services) KHUSUS untuk pengguna dengan role 'teknisi'.
-    if (tabName === 'activity_logs' || (structuralPosition === 'teknisi' && tabName === 'services')) {
-        formCard.style.display = 'none';
-    } else {
-        formCard.style.display = 'block';
+    if (formCard) {
+        const structuralPosition = String(window.currentUser.role || '').toLowerCase();
+        
+        // Form disembunyikan HANYA pada:
+        // 1. Tab 'activity_logs' (karena tab log memang tidak memerlukan input form).
+        // 2. Tab 'services' (Log Services) KHUSUS untuk pengguna dengan role 'teknisi'.
+        if (tabName === 'activity_logs' || (structuralPosition === 'teknisi' && tabName === 'services')) {
+            formCard.style.display = 'none';
+        } else {
+            formCard.style.display = 'block';
+        }
     }
-}
 
     const dateInput = document.querySelector('#form-fields input[name="tanggal"]');
     if (dateInput) {
@@ -917,17 +927,22 @@ function refreshServerOptions() {
         return;
     }
 
+    // Perbaikan Poin 4: Menyaring dan menyembunyikan sepenuhnya server yang sudah penuh dari daftar dropdown
     const options = utamaAccounts.map(utama => {
         const email = utama?.akun || '';
-        const anggotaCount = master.filter(it => (it?.server_utama || '') === email).length;
+        const anggotaCount = master.filter(it => (it?.server_utama || '') === email && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
         const slotsLeft = Math.max(0, 5 - anggotaCount);
         if (slotsLeft > 0) {
             return `<option value="${escapeHtml(email)}">${escapeHtml(email)} (Sisa ${slotsLeft} Slot)</option>`;
         }
-        return `<option value="${escapeHtml(email)}" disabled>${escapeHtml(email)} (FULL - 0 Slot)</option>`;
-    }).join('');
+        return ''; 
+    }).filter(Boolean).join('');
 
-    serverSelect.innerHTML = `<option value="">(Pilih Server Utama)</option>` + options;
+    if (options === '') {
+        serverSelect.innerHTML = `<option value="">-- Semua Server Utama FULL (Penuh) --</option>`;
+    } else {
+        serverSelect.innerHTML = `<option value="">(Pilih Server Utama)</option>` + options;
+    }
 }
 
 function refreshServerFilterOptions() {
@@ -939,8 +954,8 @@ function refreshServerFilterOptions() {
 
     let html = '<option value="">Semua Server</option>';
     utamaAccounts.forEach(utama => {
-        const email = utama?.akun || '';
-        const anggotaCount = master.filter(it => (it?.server_utama || '') === email).length;
+        const email = utama?.akun || ''; // Perbaikan: Menghilangkan variabel ExplicitPrefix yang memicu crash
+        const anggotaCount = master.filter(it => (it?.server_utama || '') === email && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
         html += `<option value="${escapeHtml(email)}">${escapeHtml(email)} (${anggotaCount} anggota)</option>`;
     });
     serverSelect.innerHTML = html;

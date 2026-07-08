@@ -308,7 +308,7 @@
         </div>
     </div>
 
-<!-- DASHBOARD STATISTIK MODAL (MENGADOPSI STRUKTUR COHESIVE HORIZONTAL GRID) -->
+<!-- DASHBOARD STATISTIK MODAL (MENGADOPSI STRUKTUR COHESIVE HORIZONTAL GRID - Blok B) -->
     <div id="dashboard-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
@@ -325,7 +325,7 @@
                 <!-- SEKSI 1: MONITORING ANTREAD SERVIS TOKO (SEPARASI VERTIKAL MAJU) -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
-                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTREAD SERVIS TOKO</span>
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTREAD SERVIS TOKO (TOTAL TICKET: <span id="stat-services-total" class="font-mono">0</span> TICKET)</span>
                         <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
                             <select id="filter-services-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
                                 <option value="">Semua Cabang</option>
@@ -341,8 +341,8 @@
                         </div>
                     </div>
                     
-                    <!-- 3 Kartu Statistik Horizontal di atas Grafik & Tabel -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- 4 Kartu Statistik Horizontal di atas Grafik & Tabel -->
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
                             <div>
                                 <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Antrean Baru</span>
@@ -364,37 +364,54 @@
                             </div>
                             <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
                         </div>
+                        <div class="bg-rose-50/50 p-3 border border-rose-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Dibatalkan / Cancel</span>
+                                <span id="stat-services-cancelled" class="text-xl font-black text-rose-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-rose-500 text-lg"><i class="fa-solid fa-ban"></i></div>
+                        </div>
                     </div>
 
-                    <!-- Inner Card Side-by-Side: Grafik Kiri, Tabel Kanan -->
+                    <!-- Inner Card: Dua Grafik Kembar Berdampingan (Doughnut Kiri, Line Kanan) -->
                     <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-start gap-4">
                         <div class="flex justify-between items-center border-b pb-2 mb-1">
-                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-store mr-1 text-cyan-500"></i> Detail Distribusi & Antrean Servis Aktif</span>
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-chart-line mr-1 text-cyan-500"></i> Analisis Distribusi & Tren Penerimaan Servisan</span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Sisi Kiri: Doughnut Chart -->
                             <div id="services-charts-container" class="relative flex flex-col justify-center items-center h-[210px] border-r border-slate-100/50 pr-2">
                                 <canvas id="chartServicesProgress"></canvas>
                             </div>
-                            <!-- Sisi Kanan: Tabel Detail Aktif (Scrollable) -->
-                            <div class="overflow-x-auto relative max-h-[210px] overflow-y-auto custom-table-scrollbar">
-                                <table class="w-full text-left border-collapse text-xs">
-                                    <thead class="sticky top-0 bg-white z-10 border-b border-slate-200 pb-2 shadow-sm">
-                                        <tr class="text-slate-500 font-bold uppercase">
-                                            <th class="py-1 px-1.5">No. Referensi</th>
-                                            <th class="py-1 px-1.5">Pelanggan</th>
-                                            <th class="py-1 px-1.5">Perangkat</th>
-                                            <th class="py-1 px-1.5">Teknisi PJ</th>
-                                            <th class="py-1 px-1.5">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashboard-services-details" class="divide-y divide-slate-100 text-slate-700">
-                                        <tr>
-                                            <td colspan="5" class="py-3 text-center text-slate-400 italic">Memproses detail servis...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <!-- Sisi Kanan: Diagram Garis (Line Chart) -->
+                            <div id="services-line-charts-container" class="relative flex flex-col justify-center items-center h-[210px]">
+                                <canvas id="chartServicesLine"></canvas>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Pindah Posisi: Tabel Detail Berada di Bawah Grafik (Lebar Penuh) -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-1 text-cyan-500"></i> Detail Antrean & Status Log Servisan</span>
+                        </div>
+                        <div class="overflow-x-auto relative max-h-[250px] overflow-y-auto custom-table-scrollbar">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="sticky top-0 bg-white z-10 border-b border-slate-200 pb-2 shadow-sm">
+                                    <tr class="text-slate-500 font-bold uppercase">
+                                        <th class="py-1 px-1.5">No. Referensi</th>
+                                        <th class="py-1 px-1.5">Pelanggan</th>
+                                        <th class="py-1 px-1.5">Perangkat</th>
+                                        <th class="py-1 px-1.5">Teknisi PJ</th>
+                                        <th class="py-1 px-1.5">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-services-details" class="divide-y divide-slate-100 text-slate-700">
+                                    <tr>
+                                        <td colspan="5" class="py-3 text-center text-slate-400 italic">Memproses detail servis...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -402,7 +419,7 @@
                 <!-- SEKSI 2: MONITORING INSTALASI PROYEK CCTV (SEPARASI VERTIKAL MAJU) -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
-                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-video mr-1.5 text-blue-500"></i> LIVE MONITOR PROYEK INSTALASI CCTV</span>
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-video mr-1.5 text-blue-500"></i> LIVE MONITOR PROYEK INSTALASI CCTV (TOTAL PROYEK: <span id="stat-cctv-total" class="font-mono">0</span> PROYEK)</span>
                         <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
                             <select id="filter-cctv-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
                                 <option value="">Semua Cabang</option>
@@ -443,35 +460,38 @@
                         </div>
                     </div>
 
-                    <!-- Inner Card Side-by-Side: Grafik Kiri, Tabel Kanan -->
+                    <!-- Inner Card: Hanya Diagram Garis Lebar Penuh -->
                     <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-start gap-4">
                         <div class="flex justify-between items-center border-b pb-2 mb-1">
-                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-video mr-1 text-blue-500"></i> Detail Jalannya Proyek Instalasi CCTV</span>
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-chart-line mr-1 text-blue-500"></i> Tren Pendaftaran Proyek CCTV Baru</span>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Sisi Kiri: Doughnut Chart -->
-                            <div id="cctv-charts-container" class="relative flex flex-col justify-center items-center h-[210px] border-r border-slate-100/50 pr-2">
-                                <canvas id="chartCctvProgress"></canvas>
-                            </div>
-                            <!-- Sisi Kanan: Tabel Detail Aktif (Scrollable) -->
-                            <div class="overflow-x-auto relative max-h-[210px] overflow-y-auto custom-table-scrollbar">
-                                <table class="w-full text-left border-collapse text-xs">
-                                    <thead class="sticky top-0 bg-white z-10 border-b border-slate-200 pb-2 shadow-sm">
-                                        <tr class="text-slate-500 font-bold uppercase">
-                                            <th class="py-1 px-1.5">Klien / Instansi</th>
-                                            <th class="py-1 px-1.5">Lokasi Pemasangan</th>
-                                            <th class="py-1 px-1.5 text-center">Jumlah Kamera</th>
-                                            <th class="py-1 px-1.5">Progres Terakhir</th>
-                                            <th class="py-1 px-1.5">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashboard-cctv-details" class="divide-y divide-slate-100 text-slate-700">
-                                        <tr>
-                                            <td colspan="5" class="py-3 text-center text-slate-400 italic">Memproses detail CCTV...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div id="cctv-line-charts-container" class="relative w-full h-[220px]">
+                            <canvas id="chartCctvLine"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Pindah Posisi: Tabel Detail Berada di Bawah Grafik (Lebar Penuh) -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-1 text-blue-500"></i> Detail Jalannya Proyek Instalasi CCTV (Seluruh Status)</span>
+                        </div>
+                        <div class="overflow-x-auto relative max-h-[250px] overflow-y-auto custom-table-scrollbar">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="sticky top-0 bg-white z-10 border-b border-slate-200 pb-2 shadow-sm">
+                                    <tr class="text-slate-500 font-bold uppercase">
+                                        <th class="py-1 px-1.5">Klien / Instansi</th>
+                                        <th class="py-1 px-1.5">Lokasi Pemasangan</th>
+                                        <th class="py-1 px-1.5 text-center">Jumlah Kamera</th>
+                                        <th class="py-1 px-1.5">Progres Terakhir</th>
+                                        <th class="py-1 px-1.5">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-cctv-details" class="divide-y divide-slate-100 text-slate-700">
+                                    <tr>
+                                        <td colspan="5" class="py-3 text-center text-slate-400 italic">Memproses detail CCTV...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -547,7 +567,7 @@
                                 <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sedang Disewa</span>
                                 <span id="stat-laptop-rented" class="text-xl font-black text-amber-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-boxes-packing"></i></div>
+                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-boxes-packing"></i></div>
                         </div>
                         <div class="bg-rose-50/50 p-3 border border-rose-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -689,7 +709,7 @@
                                 <span class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Anggota/Member</span>
                                 <span id="stat-office-members" class="text-xl font-black text-indigo-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-indigo-500 text-lg"><i class="fa-solid fa-user-group"></i></div>
+                            <div class="text-purple-500 text-lg"><i class="fa-solid fa-user-group"></i></div>
                         </div>
                         <div class="bg-blue-50/50 p-3 border border-blue-100 rounded-xl flex items-center justify-between">
                             <div>

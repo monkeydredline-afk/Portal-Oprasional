@@ -26,7 +26,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Estimasi Biaya (Rp)</label>
-            <input type="number" name="biaya" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <input type="text" name="biaya" oninput="this.value = window.formatCurrencyInput(this.value)" placeholder="Contoh: 90.000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
@@ -38,6 +38,7 @@ export const fieldsTemplate = {
                 <option value="Antrean">Antrean</option>
                 <option value="Proses">Proses Pengecekan</option>
                 <option value="Selesai">Selesai</option>
+                <option value="Cancel">Cancel</option>
             </select>
         </div>
     `,
@@ -78,7 +79,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Total Biaya Sewa (Rp)</label>
-            <input type="number" name="total_biaya" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <input type="text" name="total_biaya" oninput="this.value = window.formatCurrencyInput(this.value)" placeholder="Contoh: 150.000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
@@ -216,7 +217,7 @@ export const fieldsTemplate = {
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Harga Jual Display (Rp)</label>
-            <input type="number" name="harga_jual" placeholder="Contoh: 4500000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <input type="text" name="harga_jual" oninput="this.value = window.formatCurrencyInput(this.value)" placeholder="Contoh: 4.500.000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status Pajangan</label>
@@ -360,13 +361,13 @@ export const fieldsTemplate = {
             <select id="server-utama-select" name="server_utama" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="">Memuat daftar server...</option>
             </select>
-            <p class="text-xs text-gray-400 mt-1">Pilihan server menampilkan sisa slot 365 Family; server penuh akan dinonaktifkan.</p>
+            <p class="text-xs text-gray-400 mt-1">Pilihan server hanya memuat server yang memiliki sisa slot kosong.</p>
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Name (Device / Identitas)</label>
             <input type="text" name="name" placeholder="Nama PC / Perangkat" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
-        <div>
+        <div id="masa-aktif-container">
             <label class="block text-sm font-medium text-gray-700 mb-1">Masa Aktif</label>
             <input type="text" name="masa_aktif" placeholder="Contoh: 1 Tahun / 25-12-2026" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
@@ -495,31 +496,31 @@ export const fieldsTemplate = {
 };
 
 export const tableHeaders = {
-    services: ['No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Biaya', 'Status', 'Aksi'],
+    services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Biaya', 'Status', 'Aksi'],
     penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
-    inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang / Part', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
-    list_office: ['ID', 'Tgl Invite', 'Nama User', 'Akun', 'Server Utama', 'Password', 'Pemulihan', 'Office', 'Name', 'Masa Aktif', 'Status', 'Aksi'],
+    inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
+    list_office: ['ID', 'Tanggal', 'Nama User', 'Akun', 'Server Utama', 'Password', 'Pemulihan', 'Office', 'Name', 'Masa Aktif', 'Status', 'Aksi'],
     user_management: ['ID', 'Nama Lengkap', 'Email Akun', 'Sandi Terdaftar', 'Hak Akses Menu', 'Cabang / Branch', 'Aksi'],
     activity_logs: ['Waktu Log', 'Operator (User)', 'Aksi', 'Modul', 'Detail Aktivitas', 'Aksi']
 };
 
 export const dataKeysMapping = {
-    services: ['no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'biaya', 'status'],
+    services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'biaya', 'status'],
     penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['id', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
-    list_office: ['id', 'tanggal', 'nama_user', 'akun', 'server_utama', 'password', 'pemulihan', 'office', 'name', 'workspace_expired', 'status'],
+    list_office: ['id', 'tanggal', 'nama_user', 'akun', 'server_utama', 'password', 'pemulihan', 'office', 'name', 'masa_aktif', 'status'],
     user_management: ['id', 'name', 'email', 'password', 'permissions', 'branch'],
     activity_logs: ['tanggal_jam', 'user', 'action', 'menu_display', 'details']
 };
 
 export const filterOptionsTemplate = {
-    services: ['Antrean', 'Proses', 'Selesai'],
+    services: ['Antrean', 'Proses', 'Seleser','Cancel'],
     penyewaan: ['Belum Bayar', 'DP 50%', 'Lunas'],
     cctv: ['Survei', 'Pengerjaan', 'Selesai'],
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],

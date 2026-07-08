@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Teknisi Portal - table.js (Modul Manajemen Tabel, Data & Paginasi)
+   Teknisi Portal - table.js (Modul Tampilan Tabel, Paginasi & Modal Edit)
    ========================================================================== */
 import { db, ref, update, remove } from './firebase-config.js';
 import { tableHeaders, dataKeysMapping } from './templates.js';
@@ -40,7 +40,7 @@ function renderTableHeader() {
     if(!head) return;
     let html = '<tr>';
     tableHeaders[window.currentTab].forEach(header => {
-        if(header === 'Kode Toko' || header === 'Harga Jual' || header === 'Cabang') {
+        if(header === 'Kode Toko' || header === 'Harga Jual' || header === 'Cabang' || header === 'Masa Aktif' || header === 'No. WhatsApp' || header === 'Tanggal Invite' || header === 'Tanggal Masuk' || header === 'Tanggal Input' || header === 'Tanggal' || header === 'Spesifikasi Ringkas' || header === 'Nama User' || header === 'Serial Number (SN)' || header === 'Pemulihan' || header === 'No. Referensi' || header === 'No. WA' || header === 'Akun' || header === 'Status Display' || header === 'Stok' || header === 'Kondisi') {
             html += `<th class="px-4 py-3 font-semibold whitespace-nowrap">${header}</th>`;
         } else {
             html += `<th class="px-4 py-3 font-semibold">${header}</th>`;
@@ -59,7 +59,6 @@ function renderTable() {
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     } else if (window.currentTab === 'services') {
-        // Khusus Log Servisan: Urutkan Descending dari ID terbesar ke terkecil (Newest on Top)
         data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
     }
 
@@ -92,7 +91,6 @@ function renderTable() {
             }
         }
         
-        // Filter cabang diabaikan untuk menu global dan inventaris agar memunculkan seluruh data
         if (window.currentTab !== 'list_office' && window.currentTab !== 'user_management' && window.currentTab !== 'activity_logs' && window.currentTab !== 'inventaris') {
             if (branchFilterValue && item.cabang && item.cabang !== branchFilterValue) return false;
         }
@@ -152,9 +150,9 @@ function renderTable() {
             const val = item[key] !== undefined ? item[key] : '-';
             
             if (key === 'id') {
-                rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${val}</td>`;
+                const displayId = window.currentTab === 'services' ? (startIndex + index + 1) : val;
+                rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${displayId}</td>`;
             } else if (key === 'no_ref') {
-                // Menampilkan No. Referensi permanen, jika data lama gunakan ID lama sebagai fallback
                 const refDisplay = (val && val !== '-') ? val : `SRV-Legacy-#${item.id}`;
                 rowHtml += `<td class="px-4 py-3 font-bold text-slate-700 font-mono text-xs whitespace-nowrap">${refDisplay}</td>`;
             } else if (key === 'tanggal' || key === 'tanggal_jam') {
@@ -164,6 +162,8 @@ function renderTable() {
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val} - ${tglSelesai}</span></td>`;
             } else if ((key === 'biaya' || key === 'total_biaya' || key === 'harga_jual') && window.currentTab !== 'list_laptop') {
                 rowHtml += `<td class="px-4 py-3 font-medium text-slate-900">Rp ${Number(val).toLocaleString('id-ID')}</td>`;
+            } else if (key === 'akun' && window.currentTab === 'list_office') {
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-medium text-slate-800">${val}</span></td>`;
             } else if (key === 'no_wa' && (window.currentTab === 'services' || window.currentTab === 'penyewaan')) {
                 rowHtml += `
                     <td class="px-4 py-3 whitespace-nowrap">
@@ -213,7 +213,7 @@ function renderTable() {
                 let displayVal = val;
                 
                 if (window.currentTab === 'list_office') {
-                    const expiredStr = item.workspace_expired || '';
+                    const expiredStr = item.masa_aktif || item.workspace_expired || '';
                     const expiredDate = parseFlexibleDate(expiredStr);
                     if (expiredDate) {
                         const today = new Date();
@@ -224,7 +224,6 @@ function renderTable() {
                     }
                 }
 
-                // Tambahan: Menyisipkan tanggal selesai di lencana status untuk modul Servis
                 if (window.currentTab === 'services' && val === 'Selesai') {
                     if (item.tgl_selesai) {
                         const dateParts = item.tgl_selesai.split('-');
@@ -237,7 +236,7 @@ function renderTable() {
 
                 if (val === 'Selesai' || displayVal === 'Lunas' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
                 if (displayVal === 'Permanen') badgeColor = "bg-cyan-100 text-cyan-800";
-                if (displayVal === 'Belum Bayar' || displayVal === 'Maintenance' || displayVal === 'Gudang' || displayVal === 'Tidak Aktif' || displayVal === 'Rusak') badgeColor = "bg-rose-100 text-rose-800";
+                if (displayVal === 'Belum Bayar' || displayVal === 'Maintenance' || displayVal === 'Gudang' || displayVal === 'Tidak Aktif' || displayVal === 'Rusak' || displayVal === 'Cancel') badgeColor = "bg-rose-100 text-rose-800";
                 if (displayVal === 'Disewa') badgeColor = "bg-blue-100 text-blue-800";
                 if (displayVal === 'Terjual') badgeColor = "bg-slate-200 text-slate-800";
                 if (displayVal === 'Staf') { badgeColor = "bg-indigo-100 text-indigo-800"; displayVal = "Digunakan Staf"; }
@@ -317,6 +316,12 @@ function renderTable() {
                 rowHtml += `<td class="px-4 py-3 font-mono font-semibold text-cyan-700 whitespace-nowrap">${val}</td>`;
             } else if (key === 'catatan') {
                 rowHtml += `<td class="px-4 py-3 text-xs font-medium italic text-slate-500 max-w-xs truncate" title="${val}">${val || '-'}</td>`;
+            } else if (key === 'name' && window.currentTab === 'list_office') {
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap">${val}</td>`;
+            } else if (key === 'cabang') {
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap">${val}</td>`;
+            } else if (key === 'masa_aktif' || key === 'workspace_expired') {
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap min-w-[150px]">${val}</td>`;
             } else {
                 rowHtml += `<td class="px-4 py-3">${val}</td>`;
             }
@@ -387,10 +392,8 @@ function openEditModal(firebaseKey) {
     if (!fieldsContainer) return;
     fieldsContainer.innerHTML = '';
 
-    // Logika HTML dinamis kolom cabang untuk modal edit
     let cabangEditHtml = '';
     if (!window.userBranch) {
-        // Untuk Admin / Superadmin: Muncul dropdown pilihan cabang
         cabangEditHtml = `
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Cabang Toko</label>
@@ -402,7 +405,6 @@ function openEditModal(firebaseKey) {
             </div>
         `;
     } else {
-        // Untuk Staf Cabang: Cabang dikunci (hidden) sesuai dengan hak akses
         cabangEditHtml = `<input type="hidden" id="edit-cabang" value="${window.userBranch}">`;
     }
 
@@ -430,7 +432,7 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pelanggan</label><input type="text" id="edit-pelanggan" value="${targetItem.pelanggan || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Perangkat</label><input type="text" id="edit-perangkat" value="${targetItem.perangkat || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Estimasi Biaya (Rp)</label><input type="number" id="edit-biaya" value="${targetItem.biaya || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Estimasi Biaya (Rp)</label><input type="text" id="edit-biaya" value="${window.formatCurrencyInput(String(targetItem.biaya || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Gejala / Kerusakan & Kelengkapan</label><textarea id="edit-kerusakan" rows="2" required class="w-full border p-2 text-sm rounded-lg">${targetItem.kerusakan || ''}</textarea></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Teknisi Penanggung Jawab</label><input type="text" id="edit-teknisi" value="${teknisiVal}" ${teknisiReadonlyAttr}></div>
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Analisa / Tindakan Teknisi</label><textarea id="edit-tindakan_teknisi" rows="2" placeholder="Tuliskan tindakan servis, perbaikan komponen, dll." class="w-full border p-2 text-sm rounded-lg">${targetItem.tindakan_teknisi || ''}</textarea></div>
@@ -452,6 +454,7 @@ function openEditModal(firebaseKey) {
                     <option value="Antrean" ${targetItem.status === 'Antrean' ? 'selected' : ''}>Antrean</option>
                     <option value="Proses" ${targetItem.status === 'Proses' ? 'selected' : ''}>Proses Pengecekan</option>
                     <option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                    <option value="Cancel" ${targetItem.status === 'Cancel' ? 'selected' : ''}>Cancel</option>
                 </select>
             </div>
             
@@ -492,7 +495,7 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Brand / Merk Laptop</label><input type="text" id="edit-merk" list="list-merk" value="${targetItem.merk || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tipe / Model Laptop</label><input type="text" id="edit-tipe" list="list-tipe" value="${targetItem.tipe || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Serial Number (SN)</label><input type="text" id="edit-sn" value="${targetItem.sn || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Harga Jual Display (Rp)</label><input type="number" id="edit-harga_jual" value="${targetItem.harga_jual || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Harga Jual Display (Rp)</label><input type="text" id="edit-harga_jual" value="${window.formatCurrencyInput(String(targetItem.harga_jual || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Pajangan</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Ready" ${targetItem.status === 'Ready' ? 'selected' : ''}>Ready di Etalase</option><option value="Terjual" ${targetItem.status === 'Terjual' ? 'selected' : ''}>Sudah Terjual</option><option value="Gudang" ${targetItem.status === 'Gudang' ? 'selected' : ''}>Ditarik ke Gudang (Off)</option></select></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Etalase</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
             <div class="md:col-span-2">
@@ -519,7 +522,7 @@ function openEditModal(firebaseKey) {
         window.editSelectedLaptopKeys = targetItem._linkedLaptopKeys ? [...targetItem._linkedLaptopKeys] : [];
 
         fieldsContainer.innerHTML = `
-            ${cabangFieldHtml}
+            ${cabangEditHtml}
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Penyewa</label><input type="text" id="edit-penyewa" value="${targetItem.penyewa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div class="grid grid-cols-2 gap-2">
@@ -538,7 +541,7 @@ function openEditModal(firebaseKey) {
                 </div>
             </div>
 
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Total Biaya (Rp)</label><input type="number" id="edit-total_biaya" value="${targetItem.total_biaya || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Total Biaya (Rp)</label><input type="text" id="edit-total_biaya" value="${window.formatCurrencyInput(String(targetItem.total_biaya || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Pembayaran</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Belum Bayar" ${targetItem.status === 'Belum Bayar' ? 'selected' : ''}>Belum Bayar</option><option value="DP 50%" ${targetItem.status === 'DP 50%' ? 'selected' : ''}>DP 50%</option><option value="Lunas" ${targetItem.status === 'Lunas' ? 'selected' : ''}>Lunas</option></select></div>
         `;
         
@@ -589,7 +592,12 @@ function openEditModal(firebaseKey) {
                 </select>
             </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Name (Device)</label><input type="text" id="edit-name" value="${targetItem.name || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Masa Aktif</label><input type="text" id="edit-masa_aktif" value="${targetItem.workspace_expired || targetItem.masa_aktif || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            
+            <!-- Wrapper Masa Aktif -->
+            <div id="edit-masa-aktif-container" class="${targetItem.tipe_akun === 'Anggota' ? 'hidden' : ''}">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Masa Aktif</label>
+                <input type="text" id="edit-masa_aktif" value="${targetItem.masa_aktif || ''}" required class="w-full border p-2 text-sm rounded-lg">
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Lisensi</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg bg-white"><option value="Aktif" ${targetItem.status === 'Aktif' ? 'selected' : ''}>Aktif</option><option value="Tidak Aktif" ${targetItem.status === 'Tidak Aktif' ? 'selected' : ''}>Tidak Aktif</option><option value="Permanen" ${targetItem.status === 'Permanen' ? 'selected' : ''}>Permanen</option></select></div>
         `;
     } else if (window.currentTab === 'user_management') {
@@ -599,7 +607,7 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Password Baru (Kosongkan jika tak diubah)</label><input type="password" id="edit-password-user" class="w-full border p-2 text-sm rounded-lg"></div>
             
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Posisi Struktural (Alur Visual)</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Posisi Struktural</label>
                 <select id="edit-role-user" class="w-full border p-2 text-sm rounded-lg bg-white">
                     <option value="Sales Counter" ${targetItem.role === 'Sales Counter' ? 'selected' : ''}>Sales Counter</option>
                     <option value="Teknisi" ${targetItem.role === 'Teknisi' ? 'selected' : ''}>Teknisi (Sembunyikan Form)</option>
@@ -693,23 +701,25 @@ function openEditModal(firebaseKey) {
 
     if (window.currentTab === 'list_office') {
         const editTipe = document.getElementById('edit-tipe_akun');
-        const editServer = document.getElementById('edit-server_utama');
+        const editServerSelect = document.getElementById('edit-server_utama');
         const editOfficeSelect = document.getElementById('edit-office-select');
+        const editMasaAktifCont = document.getElementById('edit-masa-aktif-container');
+        const editMasaAktifInput = document.getElementById('edit-masa_aktif');
 
-        if (editOfficeSelect) {
-            const cur = targetItem.office || '';
-            if (cur) editOfficeSelect.value = cur;
+        if (editServerSelect) {
+            const master = window.globalDataCloud['list_office'] || [];
+            const utamaAccounts = master.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
+            const options = utamaAccounts.map(utama => {
+                const email = utama?.akun || '';
+                const linkedMembers = master.filter(it => (it?.server_utama || '') === email && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota' && it._firebaseKey !== targetItem._firebaseKey);
+                const slotsLeft = Math.max(0, 5 - linkedMembers.length);
+                if (slotsLeft > 0 || (targetItem.server_utama && targetItem.server_utama === email)) {
+                    return `<option value="${escapeHtml(email)}"${targetItem.server_utama === email ? ' selected' : ''}>${escapeHtml(email)} (Sisa ${slotsLeft} Slot)</option>`;
+                }
+                return '';
+            }).filter(Boolean).join('');
+            editServerSelect.innerHTML = `<option value="">(Pilih Server Utama)</option>` + options;
         }
-
-        if (window.refreshServerOptions) window.refreshServerOptions();
-        setTimeout(() => {
-            if (editServer) {
-                editServer.value = targetItem.server_utama || '';
-            }
-            if (editServer && editServer.value) {
-                if (editOfficeSelect) { editOfficeSelect.value = '365 Family'; editOfficeSelect.disabled = true; }
-            }
-        }, 80);
 
         function handleEditTipeChange() {
             if (!editTipe) return;
@@ -717,9 +727,11 @@ function openEditModal(firebaseKey) {
             const srvCont = document.getElementById('edit-server-container');
             if (v === 'Anggota') {
                 if (srvCont) srvCont.style.display = '';
+                if (editMasaAktifCont) editMasaAktifCont.classList.add('hidden'); 
             } else {
                 if (srvCont) srvCont.style.display = 'none';
-                if (editServer) editServer.value = '';
+                if (editMasaAktifCont) editMasaAktifCont.classList.remove('hidden'); 
+                if (editServerSelect) editServerSelect.value = '';
                 if (editOfficeSelect) editOfficeSelect.disabled = false;
             }
         }
@@ -729,13 +741,23 @@ function openEditModal(firebaseKey) {
             setTimeout(() => { handleEditTipeChange(); }, 50);
         }
 
-        if (editServer) {
-            editServer.addEventListener('change', () => {
-                const v = editServer.value || '';
+        if (editServerSelect) {
+            editServerSelect.addEventListener('change', () => {
+                const v = editServerSelect.value || '';
                 if (v) {
-                    if (editOfficeSelect) { editOfficeSelect.value = '365 Family'; editOfficeSelect.disabled = true; }
+                    if (editOfficeSelect) {
+                        editOfficeSelect.value = '365 Family';
+                        editOfficeSelect.disabled = true;
+                    }
+                    const master = window.globalDataCloud['list_office'] || [];
+                    const matchedServer = master.find(it => (it?.akun || '').toString() === v && (it?.tipe_akun || '').toString().toLowerCase() === 'utama');
+                    if (matchedServer && editMasaAktifInput) {
+                        editMasaAktifInput.value = matchedServer.masa_aktif || '';
+                    }
                 } else {
-                    if (editOfficeSelect) { editOfficeSelect.value = '365 Family'; editOfficeSelect.disabled = false; }
+                    if (editOfficeSelect) {
+                        editOfficeSelect.disabled = false;
+                    }
                 }
             });
         }
@@ -970,7 +992,6 @@ window.handleEditStatusChange = function(statusValue) {
     }
 };
 
-// Pasang fungsi navigasi halaman dan rendering
 window.nextPage = function() {
     window.currentPage++;
     renderTable();
