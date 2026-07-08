@@ -2,6 +2,16 @@
    Teknisi Portal - app.js (Orchestrator Utama, Navigasi & Event Form)
    ========================================================================== */
 
+// --- FUNGSI GLOBAL PEMFORMAT RUPIAH REAL-TIME ---
+window.formatCurrencyInput = function(val) {
+    if (!val) return '';
+    // Hapus semua karakter selain angka
+    let clean = String(val).replace(/\D/g, '');
+    if (!clean) return '';
+    // Tambahkan tanda titik sebagai pemisah ribuan
+    return clean.replace(/\B(?=(\d{3})+(?!\D))/g, ".");
+};
+
 // Import konfigurasi & template
 import { 
     db, ref, set, push, onValue, query, orderByChild, equalTo,
@@ -444,7 +454,6 @@ function switchTab(tabName) {
     if (formFields) formFields.innerHTML = fieldsTemplate[tabName];
     refreshInventarisFieldOptions();
 
-    // Logika Pengaturan Cabang Dinamis (Terkunci & Tersembunyi untuk Staf, Dropdown Terbuka untuk Admin/Superadmin)
     const cabangContainer = document.getElementById('cabang-input-container');
     if (cabangContainer) {
         const selectCabang = cabangContainer.querySelector('select[name="cabang"]');
@@ -468,11 +477,11 @@ function switchTab(tabName) {
             const val = tipeSelect ? tipeSelect.value : '';
             if (val === 'Anggota') {
                 if (serverContainer) serverContainer.classList.remove('hidden');
-                if (masaAktifContainer) masaAktifContainer.classList.add('hidden'); // Sembunyikan input Masa Aktif untuk Anggota
+                if (masaAktifContainer) masaAktifContainer.classList.add('hidden'); 
                 refreshServerOptions();
             } else {
                 if (serverContainer) serverContainer.classList.add('hidden');
-                if (masaAktifContainer) masaAktifContainer.classList.remove('hidden'); // Tampilkan input Masa Aktif untuk tipe lain
+                if (masaAktifContainer) masaAktifContainer.classList.remove('hidden'); 
                 if (serverSelect) serverSelect.value = '';
                 if (officeSelect) officeSelect.disabled = false;
             }
@@ -492,12 +501,11 @@ function switchTab(tabName) {
                         officeSelect.value = '365 Family';
                         officeSelect.disabled = true;
                     }
-                    // Mengisi secara otomatis masa aktif anggota agar sama persis dengan server induk (Poin 1)
                     const master = window.globalDataCloud['list_office'] || [];
                     const matchedServer = master.find(it => (it?.akun || '').toString() === v && (it?.tipe_akun || '').toString().toLowerCase() === 'utama');
                     const masaAktifInput = document.querySelector('#form-fields input[name="masa_aktif"]');
                     if (matchedServer && masaAktifInput) {
-                        masaAktifInput.value = matchedServer.workspace_expired || matchedServer.masa_aktif || '';
+                        masaAktifInput.value = matchedServer.masa_aktif || '';
                     }
                 } else {
                     if (officeSelect) {
@@ -517,10 +525,6 @@ function switchTab(tabName) {
     const formCard = document.getElementById('form-container-card');
     if (formCard) {
         const structuralPosition = String(window.currentUser.role || '').toLowerCase();
-        
-        // Form disembunyikan HANYA pada:
-        // 1. Tab 'activity_logs' (karena tab log memang tidak memerlukan input form).
-        // 2. Tab 'services' (Log Services) KHUSUS untuk pengguna dengan role 'teknisi'.
         if (tabName === 'activity_logs' || (structuralPosition === 'teknisi' && tabName === 'services')) {
             formCard.style.display = 'none';
         } else {
@@ -927,7 +931,6 @@ function refreshServerOptions() {
         return;
     }
 
-    // Perbaikan Poin 4: Menyaring dan menyembunyikan sepenuhnya server yang sudah penuh dari daftar dropdown
     const options = utamaAccounts.map(utama => {
         const email = utama?.akun || '';
         const anggotaCount = master.filter(it => (it?.server_utama || '') === email && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
@@ -954,7 +957,7 @@ function refreshServerFilterOptions() {
 
     let html = '<option value="">Semua Server</option>';
     utamaAccounts.forEach(utama => {
-        const email = utama?.akun || ''; // Perbaikan: Menghilangkan variabel ExplicitPrefix yang memicu crash
+        const email = utama?.akun || ''; 
         const anggotaCount = master.filter(it => (it?.server_utama || '') === email && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
         html += `<option value="${escapeHtml(email)}">${escapeHtml(email)} (${anggotaCount} anggota)</option>`;
     });
