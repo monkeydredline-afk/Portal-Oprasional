@@ -79,6 +79,10 @@
                     <button id="btn-inventaris" onclick="switchTab('inventaris')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
                         <i class="fa-solid fa-toolbox w-6 text-center"></i> <span>Inventaris Alat & Part</span>
                     </button>
+                    <!-- DETAIL MENU NAVIGASI BARU: MASTER JASA -->
+                    <button id="btn-master_jasa" onclick="switchTab('master_jasa')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-briefcase w-6 text-center"></i> <span>Master Jasa</span>
+                    </button>
                     <button id="btn-list_office" onclick="switchTab('list_office')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
                         <i class="fa-brands fa-microsoft w-6 text-center"></i> <span>List Akun Office</span>
                     </button>
@@ -93,7 +97,7 @@
             
             <div class="p-4 border-t border-slate-800 text-center">
                 <div class="text-[10px] text-slate-500 tracking-wide">
-                    V4.1 Cloud Operational System
+                    V4.2 Cloud Operational System
                 </div>
             </div>
         </div>
@@ -132,7 +136,7 @@
                                 </button>
                             </div>
                             <div class="py-1" id="dropdown-purge-container">
-                                <button onclick="window.purgeOldLogs(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-semibold transition">
+                                <button onclick="window.purgeOldLogs(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-bold transition flex items-center gap-2">
                                     <i class="fa-solid fa-broom text-rose-500"></i> Bersihkan Log > 30 Hari
                                 </button>
                             </div>
@@ -205,100 +209,87 @@
                 </div>
 
                 <!-- KARTU DATA TERINPUT (CLOUD) -->
-<div class="bg-white rounded-xl shadow-sm border p-6 overflow-hidden">
-    <!-- Baris Header Tabel & Filter (Diatur Fleksibel) -->
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
-        <h3 class="text-lg font-semibold text-slate-700 flex items-center gap-2 whitespace-nowrap">
-            <i class="fa-solid fa-list-check text-cyan-600"></i> Data Terinput (Cloud)
-        </h3>
-        <div class="flex items-center gap-2 w-full lg:w-auto flex-1 lg:flex-none justify-end flex-wrap">
-            <!-- Kolom Pencarian -->
-            <div class="relative w-full sm:w-40">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-gray-400 text-sm"></i>
-                <input type="text" id="search-bar" oninput="resetPaginationAndRenderWithDebounce()" placeholder="Cari data..." class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-            </div>
-            
-            <!-- PANEL FILTER DATA TERPADU -->
-            <div class="relative inline-block text-left" id="filter-popover-container">
-                <!-- Tombol Pemicu Popover -->
-                <button id="filter-trigger-btn" onclick="window.toggleFilterPanel(event)" class="relative px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                    <i class="fa-solid fa-sliders text-cyan-500"></i>
-                    <span>Filter Data</span>
-                    <!-- Indikator Aktif Dinamis -->
-                    <span id="filter-active-count" class="hidden px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-white leading-none">0</span>
-                    <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
-                </button>
-                
-                <!-- Panel Popover Melayang -->
-                <div id="filter-popover-panel" class="hidden absolute right-0 mt-2 w-64 origin-top-right rounded-xl bg-white shadow-xl border border-slate-200 p-4 z-40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div class="bg-white rounded-xl shadow-sm border p-6 overflow-hidden">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+                        <h3 class="text-lg font-semibold text-slate-700 flex items-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-list-check text-cyan-600"></i> Data Terinput (Cloud)
+                        </h3>
+                        <div class="flex items-center gap-2 w-full lg:w-auto flex-1 lg:flex-none justify-end flex-wrap">
+                            <div class="relative w-full sm:w-40">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+                                <input type="text" id="search-bar" oninput="resetPaginationAndRender()" placeholder="Cari data..." class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            </div>
+                            
+                            <!-- PANEL FILTER DATA TERPADU -->
+                            <div class="relative inline-block text-left" id="filter-popover-container">
+                                <button id="filter-trigger-btn" onclick="window.toggleFilterPanel(event)" class="relative px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                    <i class="fa-solid fa-sliders text-cyan-500"></i>
+                                    <span>Filter Data</span>
+                                    <span id="filter-active-count" class="hidden px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-white leading-none">0</span>
+                                    <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
+                                </button>
+                                
+                                <div id="filter-popover-panel" class="hidden absolute right-0 mt-2 w-64 origin-top-right rounded-xl bg-white shadow-xl border border-slate-200 p-4 z-40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <div id="branch-filter-container">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Wilayah Cabang</label>
+                                        <select id="branch-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                            <option value="">Semua Cabang</option>
+                                            <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                            <option value="Perintis">Perintis</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="status-filter-container">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Status / Kondisi</label>
+                                        <select id="status-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                            <option value="">Semua Status</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="server-filter-container" class="hidden">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Server Utama</label>
+                                        <select id="server-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                            <option value="">Semua Server</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="border-t border-slate-100 pt-3">
+                                        <button onclick="window.resetAllFilters();" type="button" class="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-lg border border-slate-200 hover:border-slate-300 transition flex items-center justify-center gap-1.5">
+                                            <i class="fa-solid fa-arrows-rotate text-gray-400"></i>
+                                            <span>Atur Ulang Filter</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="subtab-filters-container" class="hidden flex flex-wrap gap-1.5 border-b border-slate-100 pb-3 mb-3"></div>
+
+                    <div class="overflow-x-auto border rounded-t-lg">
+                        <table class="w-full text-left border-collapse">
+                            <thead id="table-head" class="bg-slate-50 text-slate-600 text-sm font-semibold uppercase tracking-wider border-b"></thead>
+                            <tbody id="table-body" class="divide-y text-sm text-gray-700 bg-white">
+                                <tr>
+                                    <td colspan="10" class="px-4 py-12 text-center text-slate-500 bg-slate-50/50">
+                                        <div class="flex flex-col items-center justify-center space-y-3">
+                                            <i class="fa-solid fa-cloud-arrow-down animate-bounce text-3xl text-cyan-600"></i>
+                                            <span class="text-sm font-semibold tracking-wide animate-pulse">Menghubungkan ke Cloud...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     
-                    <!-- Filter Cabang -->
-                    <div id="branch-filter-container">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Wilayah Cabang</label>
-                        <select id="branch-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                            <option value="">Semua Cabang</option>
-                            <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
-                            <option value="Perintis">Perintis</option>
-                        </select>
-                    </div>
-
-                    <!-- Filter Status / Kondisi -->
-                    <div id="status-filter-container">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Status / Kondisi</label>
-                        <select id="status-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                            <option value="">Semua Status</option>
-                        </select>
-                    </div>
-
-                    <!-- Filter Server Utama -->
-                    <div id="server-filter-container" class="hidden">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Server Utama</label>
-                        <select id="server-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                            <option value="">Semua Server</option>
-                        </select>
-                    </div>
-
-                    <!-- Tombol Reset Filter -->
-                    <div class="border-t border-slate-100 pt-3">
-                        <button onclick="window.resetAllFilters();" type="button" class="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-lg border border-slate-200 hover:border-slate-300 transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-arrows-rotate text-gray-400"></i>
-                            <span>Atur Ulang Filter</span>
-                        </button>
+                    <div id="pagination-controls" class="flex flex-col sm:flex-row justify-between items-center p-3 border border-t-0 bg-slate-50 rounded-b-lg hidden gap-3">
+                        <span id="pagination-info" class="text-xs font-semibold text-slate-500">Menampilkan 0 data</span>
+                        <div class="flex space-x-2">
+                            <button id="btn-prev-page" onclick="prevPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition shadow-sm"><i class="fa-solid fa-chevron-left mr-1"></i> Prev</button>
+                            <button id="btn-next-page" onclick="nextPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition shadow-sm">Next <i class="fa-solid fa-chevron-right mr-1"></i></button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div> <!-- Penutup DIV filter-wrap (flex items-center...) -->
-    </div> <!-- Penutup DIV flex-row header (flex flex-col lg:flex-row...) -->
-
-    <!-- SUBTAB FILTERS (UNTUK PENYEWAAN / DISPLAY) -->
-    <div id="subtab-filters-container" class="hidden flex flex-wrap gap-1.5 border-b border-slate-100 pb-3 mb-3"></div>
-
-    <!-- TABEL DATA UTAMA -->
-    <div class="overflow-x-auto border rounded-t-lg">
-        <table class="w-full text-left border-collapse">
-            <thead id="table-head" class="bg-slate-50 text-slate-600 text-sm font-semibold uppercase tracking-wider border-b"></thead>
-            <tbody id="table-body" class="divide-y text-sm text-gray-700 bg-white">
-                <tr>
-                    <td class="px-4 py-12 text-center text-slate-500 bg-slate-50/50">
-                        <div class="flex flex-col items-center justify-center space-y-3">
-                            <i class="fa-solid fa-cloud-arrow-down animate-bounce text-3xl text-cyan-600"></i>
-                            <span class="text-sm font-semibold tracking-wide animate-pulse">Menghubungkan ke Cloud...</span>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    
-    <!-- PAGINASI TABEL -->
-    <div id="pagination-controls" class="flex flex-col sm:flex-row justify-between items-center p-3 border border-t-0 bg-slate-50 rounded-b-lg hidden gap-3">
-        <span id="pagination-info" class="text-xs font-semibold text-slate-500">Menampilkan 0 data</span>
-        <div class="flex space-x-2">
-            <button id="btn-prev-page" onclick="prevPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition shadow-sm"><i class="fa-solid fa-chevron-left mr-1"></i> Prev</button>
-            <button id="btn-next-page" onclick="nextPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition shadow-sm">Next <i class="fa-solid fa-chevron-right mr-1"></i></button>
-        </div>
-    </div>
-</div>
 
                 <div id="toast" class="hidden fixed bottom-5 right-5 bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3 transition duration-300 z-50">
                     <i class="fa-solid fa-circle-check text-xl"></i>
@@ -308,7 +299,7 @@
         </div>
     </div>
 
-<!-- DASHBOARD STATISTIK MODAL (MENGADOPSI STRUKTUR COHESIVE HORIZONTAL GRID - Blok B) -->
+    <!-- DASHBOARD STATISTIK MODAL -->
     <div id="dashboard-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
@@ -322,10 +313,10 @@
             
             <div class="p-6 bg-slate-50 overflow-y-auto max-h-[85vh] space-y-8">
                 
-                <!-- SEKSI 1: MONITORING ANTREAD SERVIS TOKO (SEPARASI VERTIKAL MAJU) -->
+                <!-- SEKSI 1: MONITORING ANTRIAN SERVIS TOKO -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
-                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTREAD SERVIS TOKO (TOTAL TICKET: <span id="stat-services-total" class="font-mono">0</span> TICKET)</span>
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTRIAN SERVIS TOKO (TOTAL TICKET: <span id="stat-services-total" class="font-mono">0</span> TICKET)</span>
                         <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
                             <select id="filter-services-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
                                 <option value="">Semua Cabang</option>
@@ -341,7 +332,6 @@
                         </div>
                     </div>
                     
-                    <!-- 4 Kartu Statistik Horizontal di atas Grafik & Tabel -->
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -373,24 +363,20 @@
                         </div>
                     </div>
 
-                    <!-- Inner Card: Dua Grafik Kembar Berdampingan (Doughnut Kiri, Line Kanan) -->
                     <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-start gap-4">
                         <div class="flex justify-between items-center border-b pb-2 mb-1">
                             <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-chart-line mr-1 text-cyan-500"></i> Analisis Distribusi & Tren Penerimaan Servisan</span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Sisi Kiri: Doughnut Chart -->
                             <div id="services-charts-container" class="relative flex flex-col justify-center items-center h-[210px] border-r border-slate-100/50 pr-2">
                                 <canvas id="chartServicesProgress"></canvas>
                             </div>
-                            <!-- Sisi Kanan: Diagram Garis (Line Chart) -->
                             <div id="services-line-charts-container" class="relative flex flex-col justify-center items-center h-[210px]">
                                 <canvas id="chartServicesLine"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Pindah Posisi: Tabel Detail Berada di Bawah Grafik (Lebar Penuh) -->
                     <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
                         <div class="flex justify-between items-center border-b pb-2">
                             <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-1 text-cyan-500"></i> Detail Antrean & Status Log Servisan</span>
@@ -416,7 +402,7 @@
                     </div>
                 </div>
 
-                <!-- SEKSI 2: MONITORING INSTALASI PROYEK CCTV (SEPARASI VERTIKAL MAJU) -->
+                <!-- SEKSI 2: MONITORING INSTALASI PROYEK CCTV -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
                         <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-video mr-1.5 text-blue-500"></i> LIVE MONITOR PROYEK INSTALASI CCTV (TOTAL PROYEK: <span id="stat-cctv-total" class="font-mono">0</span> PROYEK)</span>
@@ -435,7 +421,6 @@
                         </div>
                     </div>
                     
-                    <!-- 3 Kartu Statistik Horizontal di atas Grafik & Tabel -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="bg-purple-50/50 p-3 border border-purple-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -460,7 +445,6 @@
                         </div>
                     </div>
 
-                    <!-- Inner Card: Hanya Diagram Garis Lebar Penuh -->
                     <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-start gap-4">
                         <div class="flex justify-between items-center border-b pb-2 mb-1">
                             <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-chart-line mr-1 text-blue-500"></i> Tren Pendaftaran Proyek CCTV Baru</span>
@@ -470,7 +454,6 @@
                         </div>
                     </div>
 
-                    <!-- Pindah Posisi: Tabel Detail Berada di Bawah Grafik (Lebar Penuh) -->
                     <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
                         <div class="flex justify-between items-center border-b pb-2">
                             <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-1 text-blue-500"></i> Detail Jalannya Proyek Instalasi CCTV (Seluruh Status)</span>
@@ -512,7 +495,7 @@
                                 <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Terjual / Laku</span>
                                 <span id="stat-display-sold" class="text-xl font-black text-emerald-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-money-bill-wave"></i></div>
+                            <div class="text-cyan-500 text-lg"><i class="fa-solid fa-money-bill-wave"></i></div>
                         </div>
                         <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -662,17 +645,19 @@
                                 <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> Deteksi Dini Kebutuhan Restok Suku Cadang (Stok ≤ 3)
                             </h5>
                             <div class="overflow-x-auto relative flex-1">
+                                <!-- SOLUSI A: MENYELARASKAN TABEL RESTOK DENGAN MENYISIPKAN KOLOM KATEGORI -->
                                 <table class="w-full text-left border-collapse text-xs">
                                     <thead>
                                         <tr class="border-b border-rose-100 text-rose-800 font-bold uppercase tracking-wider">
                                             <th class="py-1.5 px-2">Nama Barang</th>
+                                            <th class="py-1.5 px-2">Kategori</th>
                                             <th class="py-1.5 px-2 text-center">Sisa Stok</th>
                                             <th class="py-1.5 px-2">Lokasi Rak</th>
                                         </tr>
                                     </thead>
                                     <tbody id="critical-stock-table-body" class="divide-y divide-rose-100/30 text-slate-700">
                                         <tr>
-                                            <td colspan="3" class="py-3 text-center text-slate-400 italic">Menganalisis data...</td>
+                                            <td colspan="4" class="py-3 text-center text-slate-400 italic">Menganalisis data...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -762,8 +747,8 @@
                 <div id="edit-modal-fields" class="grid grid-cols-1 gap-4"></div>
                 <div class="flex justify-end space-x-3 pt-4 border-t sticky bottom-0 bg-white">
                     <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium transition">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Perbarui Online
+                    <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> <span>Perbarui Online</span>
                     </button>
                 </div>
             </form>

@@ -8,7 +8,7 @@ window.formatCurrencyInput = function(val) {
     // Hapus semua karakter selain angka
     let clean = String(val).replace(/\D/g, '');
     if (!clean) return '';
-    // Tambahkan tanda titik sebagai pemisah ribuan (Menggunakan \d kecil agar posisi tepat)
+    // Tambahkan tanda titik sebagai pemisah ribuan
     return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
@@ -39,6 +39,7 @@ import './opname.js';         // Modul checklist audit fisik
 import './excel.js';          // Modul transfer data XLSX biner
 import './forms.js';          // Modul formulir transaksi & ERP
 import './admin-utils.js';    // Modul backup & pemeliharaan database admin
+import './jasa.js';           // Modul Master Jasa & Perawatan Data Tindakan Toko
 
 // ==========================================================================
 // INISIALISASI STATUS GLOBAL WINDOW (Diakses oleh seluruh modul eksternal)
@@ -54,6 +55,7 @@ window.globalDataCloud = {
     list_laptop: [],
     laptop_display: [],
     inventaris: [], 
+    master_jasa: [], // Node Master Jasa Global Baru
     list_office: [],
     user_management: [],
     activity_logs: []
@@ -192,6 +194,9 @@ window.togglePassword = togglePassword;
 window.firebaseLogout = firebaseLogout;
 
 function isPermitted(val) {
+    if (window.currentUser && window.currentUser.email === 'superadmin@wanasatria.com') {
+        return true; // Superadmin selalu diizinkan mutlak
+    }
     return val === true || val === 'true';
 }
 
@@ -206,6 +211,7 @@ function applyRoleBasedAccess() {
     const btnListLaptop = document.getElementById('btn-list_laptop');
     const btnLaptopDisplay = document.getElementById('btn-laptop_display');
     const btnInventaris = document.getElementById('btn-inventaris'); 
+    const btnMasterJasa = document.getElementById('btn-master_jasa'); 
     const btnListOffice = document.getElementById('btn-list_office');
     const btnUserManagement = document.getElementById('btn-user_management');
     const btnActivityLogs = document.getElementById('btn-activity_logs');
@@ -238,6 +244,10 @@ function applyRoleBasedAccess() {
     if (btnInventaris) {
         if (isPermitted(perms.inventaris)) btnInventaris.classList.remove('hidden');
         else btnInventaris.classList.add('hidden');
+    }
+    if (btnMasterJasa) {
+        if (isPermitted(perms.master_jasa)) btnMasterJasa.classList.remove('hidden');
+        else btnMasterJasa.classList.add('hidden');
     }
     if (btnListOffice) {
         if (isPermitted(perms.list_office)) btnListOffice.classList.remove('hidden');
@@ -287,13 +297,51 @@ function applyRoleBasedAccess() {
         }
     }
 
-    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'list_office', 'user_management', 'activity_logs'];
+    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office', 'user_management', 'activity_logs'];
     for (let t of tabsOrder) {
         if (isPermitted(perms[t])) {
             return t;
         }
     }
     return 'list_laptop'; 
+}
+
+// --- FUNGSI OTOMATISASI & VISUAL LOCK KOLOM CABANG TOKO ---
+function applyBranchFieldRules() {
+    const form = document.getElementById('operational-form');
+    if (!form) return;
+
+    const branchElement = form.querySelector('[name="cabang"]');
+    if (!branchElement) return;
+
+    const isRestricted = !!window.userBranch; 
+
+    if (isRestricted) {
+        // Operator Cabang: Kunci input cabang secara visual (seperti di gambar Anda)
+        const lockedInput = document.createElement('input');
+        lockedInput.type = 'text';
+        lockedInput.name = 'cabang';
+        lockedInput.value = window.userBranch;
+        lockedInput.readOnly = true;
+        lockedInput.className = "w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none";
+
+        branchElement.parentNode.replaceChild(lockedInput, branchElement);
+    } else {
+        // Admin / Superadmin: Tetap biarkan interaktif & pastikan pilihan "Head Office" bersih dari transaksi harian
+        if (branchElement.tagName === 'SELECT') {
+            for (let i = 0; i < branchElement.options.length; i++) {
+                if (branchElement.options[i].value === 'Head Office') {
+                    branchElement.remove(i);
+                    break;
+                }
+            }
+            if (!branchElement.value) {
+                branchElement.value = "Monumen Emmy Saelan";
+            }
+        } else if (branchElement.tagName === 'INPUT') {
+            branchElement.placeholder = "Pilih / ketik cabang...";
+        }
+    }
 }
 
 function updateDynamicDatalists() {
@@ -395,7 +443,7 @@ window.switchTab = switchTab;
 function switchTab(tabName) {
     const perms = window.currentUser.permissions || {};
     if (tabName !== 'login' && !isPermitted(perms[tabName])) {
-        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'list_office', 'user_management', 'activity_logs'];
+        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office', 'user_management', 'activity_logs'];
         const firstAllowed = tabsOrder.find(t => isPermitted(perms[t]));
 
         if (!firstAllowed) {
@@ -429,6 +477,7 @@ function switchTab(tabName) {
         list_laptop: "Manajemen Unit Laptop yang Disewakan (Master Data)",
         laptop_display: "Manajemen List Laptop Display (Etalase Toko)",
         inventaris: "Manajemen Inventaris Suku Cadang, Alat & Part",
+        master_jasa: "Manajemen Master Jasa & Tindakan Toko",
         list_office: "Manajemen Akun dan Lisensi Office",
         user_management: "User Management (Kontrol Akun & Hak Akses)",
         activity_logs: "Riwayat Aktivitas & Audit Log Operasional"
@@ -442,6 +491,7 @@ function switchTab(tabName) {
         list_laptop: "Kosongkan Master Laptop",
         laptop_display: "Kosongkan List Laptop Display",
         inventaris: "Kosongkan List Inventaris",
+        master_jasa: "Kosongkan Data Jasa",
         list_office: "Kosongkan Data Office",
         user_management: "Kosongkan Data Users",
         activity_logs: "Kosongkan Log Aktivitas"
@@ -454,17 +504,8 @@ function switchTab(tabName) {
     if (formFields) formFields.innerHTML = fieldsTemplate[tabName];
     refreshInventarisFieldOptions();
 
-    const cabangContainer = document.getElementById('cabang-input-container');
-    if (cabangContainer) {
-        const selectCabang = cabangContainer.querySelector('select[name="cabang"]');
-        if (window.userBranch) {
-            if (selectCabang) selectCabang.value = window.userBranch;
-            cabangContainer.classList.add('hidden');
-        } else {
-            cabangContainer.classList.remove('hidden');
-            if (selectCabang) selectCabang.value = 'Head Office';
-        }
-    }
+    // Jalankan aturan visualisasi kolom cabang
+    applyBranchFieldRules();
 
     if (tabName === 'list_office') {
         const tipeSelect = document.querySelector('#form-fields select[name="tipe_akun"]');
@@ -564,7 +605,8 @@ function switchTab(tabName) {
 
     const branchContainer = document.getElementById('branch-filter-container');
     if (branchContainer) {
-        if ((tabName === 'list_laptop' || tabName === 'laptop_display' || tabName === 'inventaris') && !window.userBranch) {
+        const nonBranchTabs = ['list_laptop', 'laptop_display', 'inventaris', 'master_jasa'];
+        if (nonBranchTabs.includes(tabName) && !window.userBranch) {
             branchContainer.classList.remove('hidden');
         } else {
             branchContainer.classList.add('hidden');
@@ -602,6 +644,7 @@ function switchTab(tabName) {
             list_laptop: "Master Laptop",
             laptop_display: "Laptop Display",
             inventaris: "List Inventaris",
+            master_jasa: "Data Jasa",
             list_office: "Data Office",
             user_management: "Data Users",
             activity_logs: "Log Aktivitas"
@@ -611,7 +654,7 @@ function switchTab(tabName) {
     
     applyRoleBasedAccess();
     
-    ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'list_office','user_management', 'activity_logs'].forEach(tab => {
+    ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office','user_management', 'activity_logs'].forEach(tab => {
         const btn = document.getElementById(`btn-${tab}`);
         if(btn) {
             if(tab === tabName) {
@@ -741,9 +784,9 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: true, services: true, penyewaan: true, cctv: true,
-                    list_laptop: true, laptop_display: true, inventaris: true, list_office: true, user_management: true,
+                    list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
-                    export_excel: true, import_excel: true, edit_data: true, delete_data: true
+                    export_excel: true, import_excel: true, edit_data: true, delete_data: true, cetak_nota: true
                 };
             } else if (snapshot.exists()) {
                 const profile = snapshot.val();
@@ -760,7 +803,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: false, services: false, penyewaan: false, cctv: false,
-                    list_laptop: true, laptop_display: true, inventaris: false, list_office: false, user_management: false,
+                    list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, list_office: false, user_management: false,
                     activity_logs: false, backup_database: false,
                     export_excel: false, import_excel: false, edit_data: true, delete_data: false
                 };
@@ -775,7 +818,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: true, services: true, penyewaan: true, cctv: true,
-                    list_laptop: true, laptop_display: true, inventaris: true, list_office: true, user_management: true,
+                    list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
                     export_excel: true, import_excel: true, edit_data: true, delete_data: true
                 };
@@ -785,7 +828,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: false, services: false, penyewaan: false, cctv: false,
-                    list_laptop: true, laptop_display: true, inventaris: false, list_office: false, user_management: false,
+                    list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, list_office: false, user_management: false,
                     activity_logs: false, backup_database: false,
                     export_excel: false, import_excel: false, edit_data: true, delete_data: false
                 };
@@ -819,6 +862,7 @@ onAuthStateChanged(auth, async (user) => {
             list_laptop: [],
             laptop_display: [],
             inventaris: [],
+            master_jasa: [],
             list_office: [],
             user_management: [],
             activity_logs: []
@@ -863,7 +907,7 @@ function initApp() {
     switchTab(defaultTab);
     if (window.syncHamburgerIcon) window.syncHamburgerIcon();
 
-    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'list_office','user_management', 'activity_logs'];
+    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office','user_management', 'activity_logs'];
     allnodes.forEach(node => {
         if (!db) return;
         
@@ -882,7 +926,10 @@ function initApp() {
         const isAdmin = (email === 'superadmin@wanasatria.com' || role === 'admin');
         const hasBranchRestriction = (branch && branch !== 'Head Office' && email !== 'superadmin@wanasatria.com');
 
-        if (node !== 'user_management' && node !== 'list_office' && !isAdmin && hasBranchRestriction) {
+        // Modul-modul yang datanya disaring spesifik berdasarkan cabang operator
+        const filterableNodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris'];
+
+        if (filterableNodes.includes(node) && !isAdmin && hasBranchRestriction) {
             nodeRef = query(ref(db, node), orderByChild('cabang'), equalTo(branch));
         } else {
             nodeRef = ref(db, node);
@@ -979,6 +1026,7 @@ window.buildInventarisCategoryOptions = buildInventarisCategoryOptions;
 window.buildInventarisUnitOptions = buildInventarisUnitOptions;
 window.generateInventarisSku = generateInventarisSku;
 window.refreshInventarisFieldOptions = refreshInventarisFieldOptions;
+window.applyBranchFieldRules = applyBranchFieldRules;
 
 window.handleLoginSubmit = function(event) {
     event.preventDefault();

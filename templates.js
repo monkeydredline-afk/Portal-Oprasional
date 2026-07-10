@@ -9,7 +9,6 @@ export const fieldsTemplate = {
             <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
                 <option value="Perintis">Perintis</option>
-                <option value="Head Office">Head Office</option>
             </select>
         </div>
         <div>
@@ -23,10 +22,6 @@ export const fieldsTemplate = {
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Perangkat (Laptop/PC/dll)</label>
             <input type="text" name="perangkat" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Estimasi Biaya (Rp)</label>
-            <input type="text" name="biaya" oninput="this.value = window.formatCurrencyInput(this.value)" placeholder="Contoh: 90.000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
@@ -48,7 +43,6 @@ export const fieldsTemplate = {
             <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
                 <option value="Perintis">Perintis</option>
-                <option value="Head Office">Head Office</option>
             </select>
         </div>
         <div>
@@ -96,7 +90,6 @@ export const fieldsTemplate = {
             <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
                 <option value="Perintis">Perintis</option>
-                <option value="Head Office">Head Office</option>
             </select>
         </div>
         <div>
@@ -259,6 +252,13 @@ export const fieldsTemplate = {
         </div>
     `,
     inventaris: `
+        <div id="cabang-input-container">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cabang Toko</label>
+            <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                <option value="Perintis">Perintis</option>
+            </select>
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Input</label>
             <input type="date" name="tanggal" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
@@ -452,6 +452,10 @@ export const fieldsTemplate = {
                         <span>Inventaris Suku Cadang & Alat</span>
                     </label>
                     <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                        <input type="checkbox" name="perm_master_jasa" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
+                        <span>Master Jasa</span>
+                    </label>
+                    <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                         <input type="checkbox" name="perm_list_office" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
                         <span>List Office</span>
                     </label>
@@ -487,6 +491,16 @@ export const fieldsTemplate = {
             </div>
         </div>
     `,
+    master_jasa: `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Tindakan Jasa</label>
+            <input type="text" name="nama_jasa" required placeholder="Contoh: Jasa Pasang Keyboard, Instalasi OS" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Biaya Standar Jasa (Rp)</label>
+            <input type="text" name="biaya_jasa" oninput="this.value = window.formatCurrencyInput(this.value)" placeholder="Contoh: 50.000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+    `,
     activity_logs: `
         <div class="md:col-span-2 p-4 bg-slate-50 rounded-lg border text-center text-slate-500 italic text-sm">
             <i class="fa-solid fa-circle-info text-cyan-600 text-lg mr-1"></i>
@@ -496,36 +510,39 @@ export const fieldsTemplate = {
 };
 
 export const tableHeaders = {
-    services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Biaya', 'Status', 'Aksi'],
+    services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Status', 'Aksi'],
     penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
+    master_jasa: ['ID', 'Nama Jasa', 'Biaya Jasa', 'Aksi'],
     list_office: ['ID', 'Tanggal', 'Nama User', 'Akun', 'Server Utama', 'Password', 'Pemulihan', 'Office', 'Name', 'Masa Aktif', 'Status', 'Aksi'],
     user_management: ['ID', 'Nama Lengkap', 'Email Akun', 'Sandi Terdaftar', 'Hak Akses Menu', 'Cabang / Branch', 'Aksi'],
     activity_logs: ['Waktu Log', 'Operator (User)', 'Aksi', 'Modul', 'Detail Aktivitas', 'Aksi']
 };
 
 export const dataKeysMapping = {
-    services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'biaya', 'status'],
+    services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'status'],
     penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['id', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
+    master_jasa: ['id', 'nama_jasa', 'biaya_jasa'],
     list_office: ['id', 'tanggal', 'nama_user', 'akun', 'server_utama', 'password', 'pemulihan', 'office', 'name', 'masa_aktif', 'status'],
     user_management: ['id', 'name', 'email', 'password', 'permissions', 'branch'],
     activity_logs: ['tanggal_jam', 'user', 'action', 'menu_display', 'details']
 };
 
 export const filterOptionsTemplate = {
-    services: ['Antrean', 'Proses', 'Seleser','Cancel'],
+    services: ['Antrean', 'Proses', 'Selesai', 'Cancel'],
     penyewaan: ['Belum Bayar', 'DP 50%', 'Lunas'],
     cctv: ['Survei', 'Pengerjaan', 'Selesai'],
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],
     laptop_display: ['Ready', 'Terjual', 'Gudang'],
     inventaris: ['Baik', 'Rusak'],
+    master_jasa: [],
     list_office: ['Aktif', 'Tidak Aktif', 'Permanen'],
     user_management: ['Head Office', 'Monumen Emmy Saelan', 'Perintis'],
     activity_logs: ['Tambah', 'Ubah', 'Hapus', 'Kosongkan', 'Impor']

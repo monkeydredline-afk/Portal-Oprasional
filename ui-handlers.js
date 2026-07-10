@@ -2,6 +2,29 @@
    Teknisi Portal - ui-handlers.js (Modul Navigasi, Dropdown & Kontrol UI)
    ========================================================================== */
 
+// --- FUNGSI UNIVERSAL UNTUK MENUTUP SEMUA PANEL MELAYANG (MUTUAL EXCLUSION) ---
+function closeAllFloatingPanels(exceptId = '') {
+    const userMenu = document.getElementById('user-dropdown-menu');
+    const utilityMenu = document.getElementById('utility-dropdown-menu');
+    const filterPanel = document.getElementById('filter-popover-panel');
+
+    if (userMenu && exceptId !== 'user-dropdown-menu') {
+        userMenu.classList.add('hidden');
+    }
+    if (utilityMenu && exceptId !== 'utility-dropdown-menu') {
+        utilityMenu.classList.add('hidden');
+    }
+    if (filterPanel && exceptId !== 'filter-popover-panel') {
+        filterPanel.classList.add('hidden');
+    }
+
+    // Tutup juga seluruh dropdown aksi baris tabel jika ada yang terbuka
+    const rowDropdowns = document.querySelectorAll('.row-action-dropdown');
+    rowDropdowns.forEach(dropdown => {
+        dropdown.classList.add('hidden');
+    });
+}
+
 function syncHamburgerIcon() {
     const sidebar = document.getElementById('sidebar');
     const icon = document.getElementById('hamburger-icon');
@@ -53,6 +76,10 @@ function toggleSidebar() {
 
 function toggleUserDropdown(event) {
     if (event) event.stopPropagation();
+    
+    // Tutup panel melayang lain sebelum membuka menu user
+    closeAllFloatingPanels('user-dropdown-menu');
+    
     const dropdown = document.getElementById('user-dropdown-menu');
     if (dropdown) {
         dropdown.classList.toggle('hidden');
@@ -61,6 +88,10 @@ function toggleUserDropdown(event) {
 
 function toggleUtilityDropdown(event) {
     if (event) event.stopPropagation();
+    
+    // Tutup panel melayang lain sebelum membuka menu utilitas
+    closeAllFloatingPanels('utility-dropdown-menu');
+    
     const dropdown = document.getElementById('utility-dropdown-menu');
     if (dropdown) {
         dropdown.classList.toggle('hidden');
@@ -73,6 +104,10 @@ function toggleUtilityDropdown(event) {
 
 function toggleFilterPanel(event) {
     if (event) event.stopPropagation();
+    
+    // Tutup panel melayang lain sebelum membuka popover filter
+    closeAllFloatingPanels('filter-popover-panel');
+    
     const panel = document.getElementById('filter-popover-panel');
     if (panel) {
         panel.classList.toggle('hidden');
@@ -127,7 +162,29 @@ function resetAllFilters() {
     if (window.resetPaginationAndRender) window.resetPaginationAndRender();
 }
 
-// Sensor penutupan dropdown jika pengguna mengklik di luar area menu
+// --- FUNGSI TOGGLE DROPDOWN MENU AKSI BARIS TABEL (SERVICES) ---
+function toggleRowActionDropdown(event, firebaseKey) {
+    if (event) event.stopPropagation();
+    
+    // Tutup seluruh panel melayang navigasi luar
+    closeAllFloatingPanels();
+
+    // Sembunyikan seluruh dropdown baris lain yang mungkin sedang aktif
+    const allRowDropdowns = document.querySelectorAll('.row-action-dropdown');
+    allRowDropdowns.forEach(dropdown => {
+        if (dropdown.id !== `srv-action-dropdown-${firebaseKey}`) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Toggle status dropdown baris target
+    const targetDropdown = document.getElementById(`srv-action-dropdown-${firebaseKey}`);
+    if (targetDropdown) {
+        targetDropdown.classList.toggle('hidden');
+    }
+}
+
+// Sensor penutupan dropdown jika pengguna mengeklik di luar area menu
 window.addEventListener('click', function(e) {
     const userDropdown = document.getElementById('user-dropdown-menu');
     const userButton = document.getElementById('user-menu-button');
@@ -152,6 +209,17 @@ window.addEventListener('click', function(e) {
             filterPanel.classList.add('hidden');
         }
     }
+
+    // Klik di luar baris aksi dropdown juga akan menyembunyikan semua dropdown baris aktif
+    const activeRowDropdowns = document.querySelectorAll('.row-action-dropdown');
+    activeRowDropdowns.forEach(dropdown => {
+        if (!dropdown.classList.contains('hidden')) {
+            const parentTd = dropdown.closest('td');
+            if (parentTd && !parentTd.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        }
+    });
 });
 
 // Daftarkan ke window agar langsung dipanggil oleh atribut HTML
@@ -163,3 +231,4 @@ window.toggleUtilityDropdown = toggleUtilityDropdown;
 window.toggleFilterPanel = toggleFilterPanel;
 window.updateFilterBadgeCount = updateFilterBadgeCount;
 window.resetAllFilters = resetAllFilters;
+window.toggleRowActionDropdown = toggleRowActionDropdown;

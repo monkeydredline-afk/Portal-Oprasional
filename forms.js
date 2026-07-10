@@ -8,6 +8,9 @@ function isPermitted(val) {
     return val === true || val === 'true';
 }
 
+// ==========================================================================
+// PENGENDALI PENDAFTARAN DATA BARU (FORM UTAMA)
+// ==========================================================================
 function handleSubmit(e) {
     e.preventDefault();
     if (!db) return;
@@ -24,6 +27,20 @@ function handleSubmit(e) {
         originalText = btnSubmit.innerHTML;
         btnSubmit.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> Menyinkronkan...`;
         btnSubmit.disabled = true;
+    }
+
+    // --- DELEGASI KHUSUS UNTUK FORM MASTER JASA BARU ---
+    if (window.currentTab === 'master_jasa') {
+        if (window.submitMasterJasa) {
+            window.submitMasterJasa(formData, btnSubmit, originalText, e.target);
+        } else {
+            alert("Gagal memproses: Modul Master Jasa belum sepenuhnya siap.");
+            if (btnSubmit) {
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            }
+        }
+        return;
     }
 
     if (window.currentTab === 'penyewaan') {
@@ -65,6 +82,7 @@ function handleSubmit(e) {
                     list_laptop: formData.get('perm_list_laptop') === 'true',
                     laptop_display: formData.get('perm_laptop_display') === 'true',
                     inventaris: formData.get('perm_inventaris') === 'true', 
+                    master_jasa: formData.get('perm_master_jasa') === 'true', // Menyimpan hak akses Master Jasa baru
                     list_office: formData.get('perm_list_office') === 'true',
                     user_management: formData.get('perm_user_management') === 'true',
                     activity_logs: formData.get('perm_activity_logs') === 'true',
@@ -112,17 +130,17 @@ function handleSubmit(e) {
     const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
     const newDataItem = { id: nextId };
 
-    // Mendukung input cabang eksplisit (dropdown/hidden) atau fallback ke cabang akun operator
     const submittedCabang = formData.get('cabang');
     newDataItem.cabang = submittedCabang || window.currentUser.branch || 'Head Office';
 
     let inputTgl = formData.get('tanggal');
-    if (inputTgl && inputTgl.includes('-')) {
+    if (!inputTgl) {
+        inputTgl = tanggalHariIni;
+    } else if (inputTgl.includes('-')) {
         const parts = inputTgl.split('-');
-        newDataItem.tanggal = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } else {
-        newDataItem.tanggal = tanggalHariIni;
+        inputTgl = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
+    newDataItem.tanggal = inputTgl;
 
     let laptopKeysToUpdate = [];
     let logDetail = '';
@@ -153,7 +171,6 @@ function handleSubmit(e) {
         newDataItem.tgl_mulai = formData.get('tgl_mulai');
         newDataItem.tgl_selesai = formData.get('tgl_selesai');
         
-        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
         newDataItem.total_biaya = String(formData.get('total_biaya') || '').replace(/\D/g, '');
         
         newDataItem.status = formData.get('status');
@@ -187,7 +204,6 @@ function handleSubmit(e) {
         newDataItem.tipe = formData.get('tipe');
         newDataItem.sn = formData.get('sn');
         
-        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
         newDataItem.harga_jual = String(formData.get('harga_jual') || '').replace(/\D/g, '');
         
         newDataItem.status = formData.get('status');
@@ -218,7 +234,7 @@ function handleSubmit(e) {
         
         const rawKeluhan = formData.get('kerusakan') || '';
 
-        // Otomatisasi Pembuatan No. Referensi Permanen (Opsi A - Blok C)
+        // Pembuatan No. Referensi Permanen Otomatis
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -229,13 +245,14 @@ function handleSubmit(e) {
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.perangkat = formData.get('perangkat');
         
-        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
-        newDataItem.biaya = String(formData.get('biaya') || '').replace(/\D/g, '');
+        // Penerimaan awal bernilai Rp 0 secara bawaan
+        newDataItem.biaya = "0";
         
         newDataItem.status = formData.get('status');
         newDataItem.teknisi = 'Belum Ditentukan';
         newDataItem.tindakan_teknisi = '';
         newDataItem.tgl_selesai = ''; 
+        newDataItem.items_terpakai = [];
         
         newDataItem.kerusakan = `Penerima: ${activeName} (${roleDisplay})\n${rawKeluhan}`;
         logDetail = `Pelanggan: ${newDataItem.pelanggan} - Unit: ${newDataItem.perangkat} - Ref: ${newDataItem.no_ref} cabang ${newDataItem.cabang}`;
@@ -301,6 +318,9 @@ function handleSubmit(e) {
         });
 }
 
+// ==========================================================================
+// PENGENDALI SIMPAN EDIT / UPDATE DATA ONLINE REAL-TIME
+// ==========================================================================
 function handleUpdateSubmit(e) {
     e.preventDefault();
     const firebaseKey = document.getElementById('edit-firebase-key').value;
@@ -320,13 +340,32 @@ function handleUpdateSubmit(e) {
     const currentDataList = window.globalDataCloud[window.currentTab] || [];
     const targetItem = currentDataList.find(item => item._firebaseKey === firebaseKey);
 
+    // --- DELEGASI UPDATE KHUSUS MASTER JASA ---
+    if (window.currentTab === 'master_jasa') {
+        if (window.updateMasterJasa) {
+            const compiledJasaData = {
+                nama_jasa: document.getElementById('edit-nama_jasa').value,
+                biaya_jasa: String(document.getElementById('edit-biaya_jasa').value || '').replace(/\D/g, '')
+            };
+            window.updateMasterJasa(firebaseKey, compiledJasaData, targetItem, btnUpdate, originalText);
+        } else {
+            alert("Sistem modul Master Jasa belum siap.");
+            if (btnUpdate) {
+                btnUpdate.innerHTML = originalText;
+                btnUpdate.disabled = false;
+            }
+        }
+        return;
+    }
+
     if (window.currentTab === 'services') {
         updatedData.pelanggan = document.getElementById('edit-pelanggan').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
         updatedData.perangkat = document.getElementById('edit-perangkat').value;
         
-        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
-        updatedData.biaya = String(document.getElementById('edit-biaya').value || '').replace(/\D/g, '');
+        // Biaya Log Services dikunci dan diisi oleh total kalkulasi Bahan & Jasa yang tersimpan
+        updatedData.biaya = targetItem?.biaya || "0";
+        updatedData.items_terpakai = targetItem?.items_terpakai || [];
         
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.kerusakan = document.getElementById('edit-kerusakan').value;
@@ -334,31 +373,9 @@ function handleUpdateSubmit(e) {
         updatedData.tindakan_teknisi = document.getElementById('edit-tindakan_teknisi').value || '';
         updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
 
-        // Simpan No. Referensi asli agar tidak berubah saat diedit (Opsi A - Blok C)
         updatedData.no_ref = targetItem?.no_ref || `SRV/Legacy/#${targetItem?.id}`;
-        
-        // Tangkap Tanggal Selesai yang diinput oleh Teknisi (Blok C)
         updatedData.tgl_selesai = document.getElementById('edit-tgl-selesai')?.value || '';
 
-        const sparepartKey = document.getElementById('edit-sparepart-select').value;
-        const sparepartQty = Number(document.getElementById('edit-sparepart-qty').value) || 0;
-
-        if (sparepartKey && sparepartQty > 0) {
-            const part = (window.globalDataCloud.inventaris || []).find(p => p._firebaseKey === sparepartKey);
-            if (part) {
-                const currentStock = Number(part.stok) || 0;
-                if (currentStock >= sparepartQty) {
-                    const newStock = currentStock - sparepartQty;
-                    const inventarisRef = ref(db, `inventaris/${sparepartKey}`);
-                    update(inventarisRef, { stok: newStock });
-                    
-                    updatedData.tindakan_teknisi = (updatedData.tindakan_teknisi ? updatedData.tindakan_teknisi + '\n' : '') + 
-                        `[ERP] Pemakaian Suku Cadang Gudang: ${sparepartQty} ${part.satuan} ${part.nama_barang}`;
-                } else {
-                    alert(`Peringatan ERP: Suku cadang ${part.nama_barang} tidak mencukupi (Stok: ${currentStock}). Penyesuaian dibatalkan.`);
-                }
-            }
-        }
         itemDescription = `${updatedData.pelanggan} (${updatedData.perangkat}) - Teknisi: ${updatedData.teknisi}`;
     } else if (window.currentTab === 'cctv') {
         updatedData.klien = document.getElementById('edit-klien').value;
@@ -396,7 +413,6 @@ function handleUpdateSubmit(e) {
         updatedData.tipe = document.getElementById('edit-tipe').value;
         updatedData.sn = document.getElementById('edit-sn').value;
         
-        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
         updatedData.harga_jual = String(document.getElementById('edit-harga_jual').value || '').replace(/\D/g, '');
         
         updatedData.spek_singkat = document.getElementById('edit-spek_singkat').value;
@@ -437,7 +453,6 @@ function handleUpdateSubmit(e) {
         updatedData.tgl_mulai = tglMulaiVal;
         updatedData.tgl_selesai = tglSelesaiVal;
         
-        // Membersihkan data mata uang dari titik pemisah ribuan sebelum disimpan
         updatedData.total_biaya = String(document.getElementById('edit-total_biaya').value || '').replace(/\D/g, '');
         
         updatedData.status = newStatus;
@@ -522,6 +537,7 @@ function handleUpdateSubmit(e) {
             list_laptop: document.getElementById('edit-perm-list_laptop')?.checked || false,
             laptop_display: document.getElementById('edit-perm-laptop_display')?.checked || false,
             inventaris: document.getElementById('edit-perm-inventaris')?.checked || false, 
+            master_jasa: document.getElementById('edit-perm-master_jasa')?.checked || false, // Menyimpan pembaruan izin Master Jasa
             list_office: document.getElementById('edit-perm-list_office')?.checked || false,
             user_management: document.getElementById('edit-perm-user_management')?.checked || false,
             activity_logs: document.getElementById('edit-perm-activity_logs')?.checked || false,
@@ -559,6 +575,6 @@ function handleUpdateSubmit(e) {
         });
 }
 
-// Bind ke global window
+// Bind ke global window agar dapat dipanggil dari berkas lainnya
 window.handleSubmit = handleSubmit;
 window.handleUpdateSubmit = handleUpdateSubmit;
