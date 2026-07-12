@@ -43,6 +43,34 @@ function handleSubmit(e) {
         return;
     }
 
+    // --- DELEGASI KHUSUS UNTUK FORM KATALOG PRODUK BARU ---
+    if (window.currentTab === 'katalog_produk') {
+        if (window.submitKatalogProduk) {
+            window.submitKatalogProduk(formData, btnSubmit, originalText, e.target);
+        } else {
+            alert("Gagal memproses: Modul Katalog Produk belum sepenuhnya siap.");
+            if (btnSubmit) {
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            }
+        }
+        return;
+    }
+
+    // --- DELEGASI KHUSUS UNTUK FORM LOG PENJUALAN BARU ---
+    if (window.currentTab === 'log_penjualan') {
+        if (window.submitLogPenjualan) {
+            window.submitLogPenjualan(formData, btnSubmit, originalText, e.target, window.selectedPenjualanItems || []);
+        } else {
+            alert("Gagal memproses: Modul Log Penjualan belum sepenuhnya siap.");
+            if (btnSubmit) {
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            }
+        }
+        return;
+    }
+
     if (window.currentTab === 'penyewaan') {
         const tglMulai = new Date(formData.get('tgl_mulai'));
         const tglSelesai = new Date(formData.get('tgl_selesai'));
@@ -82,7 +110,9 @@ function handleSubmit(e) {
                     list_laptop: formData.get('perm_list_laptop') === 'true',
                     laptop_display: formData.get('perm_laptop_display') === 'true',
                     inventaris: formData.get('perm_inventaris') === 'true', 
-                    master_jasa: formData.get('perm_master_jasa') === 'true', // Menyimpan hak akses Master Jasa baru
+                    master_jasa: formData.get('perm_master_jasa') === 'true',
+                    katalog_produk: formData.get('perm_katalog_produk') === 'true', // Menyimpan hak akses Katalog Produk
+                    log_penjualan: formData.get('perm_log_penjualan') === 'true',   // Menyimpan hak akses Log Penjualan
                     list_office: formData.get('perm_list_office') === 'true',
                     user_management: formData.get('perm_user_management') === 'true',
                     activity_logs: formData.get('perm_activity_logs') === 'true',
@@ -90,7 +120,8 @@ function handleSubmit(e) {
                     export_excel: formData.get('perm_export_excel') === 'true',
                     import_excel: formData.get('perm_import_excel') === 'true',
                     edit_data: formData.get('perm_edit_data') === 'true',
-                    delete_data: formData.get('perm_delete_data') === 'true'
+                    delete_data: formData.get('perm_delete_data') === 'true',
+                    cetak_nota: formData.get('perm_cetak_nota') === 'true'
                 };
 
                 const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
@@ -358,6 +389,65 @@ function handleUpdateSubmit(e) {
         return;
     }
 
+    // --- DELEGASI UPDATE KHUSUS KATALOG PRODUK ---
+    if (window.currentTab === 'katalog_produk') {
+        if (window.updateKatalogProduk) {
+            const compiledKatalogData = {
+                nama_barang: document.getElementById('edit-nama_barang').value,
+                kategori: document.getElementById('edit-kategori').value,
+                stok: Number(document.getElementById('edit-stok').value) || 0,
+                satuan: document.getElementById('edit-satuan').value,
+                harga_modal: String(document.getElementById('edit-harga_modal').value || '').replace(/\D/g, ''),
+                harga_jual: String(document.getElementById('edit-harga_jual').value || '').replace(/\D/g, ''),
+                catatan: document.getElementById('edit-catatan').value,
+                cabang: document.getElementById('edit-cabang')?.value || targetItem.cabang || 'Head Office',
+                tanggal: targetItem.tanggal || ''
+            };
+            window.updateKatalogProduk(firebaseKey, compiledKatalogData, targetItem, btnUpdate, originalText);
+        } else {
+            alert("Sistem modul Katalog Produk belum siap.");
+            if (btnUpdate) {
+                btnUpdate.innerHTML = originalText;
+                btnUpdate.disabled = false;
+            }
+        }
+        return;
+    }
+
+    // --- DELEGASI UPDATE KHUSUS LOG PENJUALAN ---
+    if (window.currentTab === 'log_penjualan') {
+        if (window.updateLogPenjualan) {
+            let totalBayar = 0;
+            const itemsTerjual = (window.editSelectedPenjualanItems || []).map(it => {
+                totalBayar += Number(it.subtotal) || 0;
+                return {
+                    _productKey: it._productKey || it.productKey,
+                    name: it.name,
+                    qty: Number(it.qty) || 1,
+                    price: Number(it.price) || 0,
+                    subtotal: Number(it.subtotal) || 0
+                };
+            });
+            const compiledPenjualanData = {
+                nama_pembeli: document.getElementById('edit-nama_pembeli').value,
+                no_wa: document.getElementById('edit-no_wa').value,
+                cabang: document.getElementById('edit-cabang')?.value || targetItem.cabang || 'Head Office',
+                tanggal: targetItem.tanggal || '',
+                no_ref: targetItem.no_ref || '',
+                total_bayar: totalBayar,
+                items_terjual: itemsTerjual
+            };
+            window.updateLogPenjualan(firebaseKey, compiledPenjualanData, targetItem, btnUpdate, originalText);
+        } else {
+            alert("Sistem modul Log Penjualan belum siap.");
+            if (btnUpdate) {
+                btnUpdate.innerHTML = originalText;
+                btnUpdate.disabled = false;
+            }
+        }
+        return;
+    }
+
     if (window.currentTab === 'services') {
         updatedData.pelanggan = document.getElementById('edit-pelanggan').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
@@ -367,7 +457,22 @@ function handleUpdateSubmit(e) {
         updatedData.biaya = targetItem?.biaya || "0";
         updatedData.items_terpakai = targetItem?.items_terpakai || [];
         
-        updatedData.status = document.getElementById('edit-status').value;
+        const oldStatus = targetItem?.status || '';
+        const newStatus = document.getElementById('edit-status').value;
+        
+        // PEMBAHARUAN PILAR 3: Sinkronisasi pemulihan stok jika status diubah menjadi Cancel
+        if (newStatus === 'Cancel' && oldStatus !== 'Cancel') {
+            if (window.syncServiceMaterialStock) {
+                window.syncServiceMaterialStock(targetItem.items_terpakai || [], [], true);
+            }
+        } else if (newStatus !== 'Cancel' && oldStatus === 'Cancel') {
+            // Potong kembali stok jika servisan diaktifkan lagi dari status Cancel
+            if (window.syncServiceMaterialStock) {
+                window.syncServiceMaterialStock([], targetItem.items_terpakai || [], false);
+            }
+        }
+
+        updatedData.status = newStatus;
         updatedData.kerusakan = document.getElementById('edit-kerusakan').value;
         updatedData.teknisi = document.getElementById('edit-teknisi').value;
         updatedData.tindakan_teknisi = document.getElementById('edit-tindakan_teknisi').value || '';
@@ -537,7 +642,9 @@ function handleUpdateSubmit(e) {
             list_laptop: document.getElementById('edit-perm-list_laptop')?.checked || false,
             laptop_display: document.getElementById('edit-perm-laptop_display')?.checked || false,
             inventaris: document.getElementById('edit-perm-inventaris')?.checked || false, 
-            master_jasa: document.getElementById('edit-perm-master_jasa')?.checked || false, // Menyimpan pembaruan izin Master Jasa
+            master_jasa: document.getElementById('edit-perm-master_jasa')?.checked || false,
+            katalog_produk: document.getElementById('edit-perm-katalog_produk')?.checked || false, // Membaca pembaruan izin Katalog Produk
+            log_penjualan: document.getElementById('edit-perm-log_penjualan')?.checked || false,   // Membaca pembaruan izin Log Penjualan
             list_office: document.getElementById('edit-perm-list_office')?.checked || false,
             user_management: document.getElementById('edit-perm-user_management')?.checked || false,
             activity_logs: document.getElementById('edit-perm-activity_logs')?.checked || false,
@@ -545,7 +652,8 @@ function handleUpdateSubmit(e) {
             export_excel: document.getElementById('edit-perm-export')?.checked || false,
             import_excel: document.getElementById('edit-perm-import')?.checked || false,
             edit_data: document.getElementById('edit-perm-edit')?.checked || false,
-            delete_data: document.getElementById('edit-perm-delete')?.checked || false
+            delete_data: document.getElementById('edit-perm-delete')?.checked || false,
+            cetak_nota: document.getElementById('edit-perm-cetak')?.checked || false
         };
 
         const newPass = document.getElementById('edit-password-user')?.value;

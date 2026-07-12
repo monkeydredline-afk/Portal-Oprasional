@@ -6,6 +6,7 @@ import { tableHeaders, dataKeysMapping } from './templates.js';
 import { parseDate, formatDateForInput } from './utils.js';
 
 let activeBahanJasaTicketKey = ''; // Menyimpan kunci tiket aktif untuk penambahan bahan/jasa
+window.editSelectedPenjualanItems = []; // Array temporer item terjual saat proses edit transaksi
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -62,13 +63,49 @@ function renderTable() {
     const tbody = document.getElementById('table-body');
     if(!tbody) return;
 
-    const data = window.globalDataCloud[window.currentTab] || [];
+    let data = [];
+    
+    // Logika Konsolidasi Katalog Produk + Laptop Display secara Real-time
+    if (window.currentTab === 'katalog_produk') {
+        const prodData = window.globalDataCloud['katalog_produk'] || [];
+        const dispData = window.globalDataCloud['laptop_display'] || [];
+
+        // Petakan produk biasa ke struktur konsolidasi standar
+        const mappedProducts = prodData.map(item => ({
+            ...item,
+            _sourceNode: 'katalog_produk',
+            display_name: item.nama_barang || '-',
+            display_kategori: item.kategori || '-',
+            display_identitas: item.satuan || 'Pcs',
+            display_stok: `${item.stok || 0} ${item.satuan || 'Pcs'}`,
+            display_detail: item.catatan || '-',
+            display_harga_modal: item.harga_modal || 0,
+            display_harga_jual: item.harga_jual || 0
+        }));
+
+        // Petakan laptop display ke struktur konsolidasi standar
+        const mappedLaptops = dispData.map(item => ({
+            ...item,
+            _sourceNode: 'laptop_display',
+            display_name: `${item.merk || ''} ${item.tipe || ''}`.trim() || '-',
+            display_kategori: 'Laptop Display',
+            display_identitas: `SN: ${item.sn || 'N/A'}`,
+            display_stok: item.status || 'Ready',
+            display_detail: item.spek_singkat || item.catatan || '-',
+            display_harga_modal: item.harga_modal || 0,
+            display_harga_jual: item.harga_jual || 0
+        }));
+
+        data = [...mappedProducts, ...mappedLaptops];
+    } else {
+        data = window.globalDataCloud[window.currentTab] || [];
+    }
     
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     } else if (window.currentTab === 'services') {
         data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-    } else if (window.currentTab === 'master_jasa') {
+    } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
         data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     }
 
@@ -101,7 +138,7 @@ function renderTable() {
             }
         }
         
-        const nonCabangNodes = ['list_office', 'user_management', 'activity_logs', 'inventaris', 'master_jasa'];
+        const nonCabangNodes = ['list_office', 'user_management', 'activity_logs', 'inventaris', 'master_jasa', 'katalog_produk'];
         if (!nonCabangNodes.includes(window.currentTab)) {
             if (branchFilterValue && item.cabang && item.cabang !== branchFilterValue) return false;
         }
@@ -161,7 +198,7 @@ function renderTable() {
             const val = item[key] !== undefined ? item[key] : '-';
             
             if (key === 'id') {
-                const displayId = (window.currentTab === 'services' || window.currentTab === 'master_jasa') ? (startIndex + index + 1) : val;
+                const displayId = (window.currentTab === 'services' || window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') ? (startIndex + index + 1) : val;
                 rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${displayId}</td>`;
             } else if (key === 'no_ref') {
                 const refDisplay = (val && val !== '-') ? val : `SRV-Legacy-#${item.id}`;
@@ -171,17 +208,17 @@ function renderTable() {
             } else if (key === 'tgl_mulai' && window.currentTab === 'penyewaan') {
                 const tglSelesai = item.tgl_selesai || '-';
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val} - ${tglSelesai}</span></td>`;
-            } else if ((key === 'biaya' || key === 'total_biaya' || key === 'harga_jual' || key === 'biaya_jasa') && window.currentTab !== 'list_laptop') {
+            } else if ((key === 'biaya' || key === 'total_biaya' || key === 'harga_jual' || key === 'harga_modal' || key === 'display_harga_jual' || key === 'display_harga_modal' || key === 'total_bayar' || key === 'biaya_jasa') && window.currentTab !== 'list_laptop') {
                 rowHtml += `<td class="px-4 py-3 font-medium text-slate-900">Rp ${Number(val).toLocaleString('id-ID')}</td>`;
             } else if (key === 'akun' && window.currentTab === 'list_office') {
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-medium text-slate-800">${val}</span></td>`;
-            } else if (key === 'no_wa' && (window.currentTab === 'services' || window.currentTab === 'penyewaan')) {
+            } else if (key === 'no_wa' && (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'log_penjualan')) {
                 rowHtml += `
                     <td class="px-4 py-3 whitespace-nowrap">
                         <div class="flex items-center gap-1.5">
                             <span class="font-mono text-xs text-slate-600">${val}</span>
                             ${val && val !== '-' ? `
-                                <button onclick="window.sendWhatsAppNotify('${val}', '${window.currentTab === 'services' ? item.pelanggan : item.penyewa}', '${window.currentTab === 'services' ? item.perangkat : item.unit}', '${window.currentTab === 'services' ? item.biaya : item.total_biaya}', '${window.currentTab}')" class="text-emerald-500 hover:text-emerald-600 p-0.5 rounded transition hover:scale-110" title="Hubungi via WhatsApp">
+                                <button onclick="window.sendWhatsAppNotify('${val}', '${window.currentTab === 'services' ? item.pelanggan : (window.currentTab === 'log_penjualan' ? item.nama_pembeli : item.penyewa)}', '${window.currentTab === 'services' ? item.perangkat : (window.currentTab === 'log_penjualan' ? 'Produk Toko' : item.unit)}', '${window.currentTab === 'services' ? item.biaya : (window.currentTab === 'log_penjualan' ? item.total_bayar : item.total_biaya)}', '${window.currentTab}')" class="text-emerald-500 hover:text-emerald-600 p-0.5 rounded transition hover:scale-110" title="Hubungi via WhatsApp">
                                     <i class="fa-brands fa-whatsapp text-base"></i>
                                 </button>
                             ` : ''}
@@ -198,6 +235,8 @@ function renderTable() {
                 if (permsDetail.laptop_display) badges.push('Display');
                 if (permsDetail.inventaris) badges.push('Inventaris'); 
                 if (permsDetail.master_jasa) badges.push('Jasa'); 
+                if (permsDetail.katalog_produk) badges.push('Katalog'); 
+                if (permsDetail.log_penjualan) badges.push('Penjualan'); 
                 if (permsDetail.list_office) badges.push('Office');
                 if (permsDetail.user_management) badges.push('Users');
                 if (permsDetail.activity_logs) badges.push('Logs');
@@ -206,6 +245,7 @@ function renderTable() {
                 if (permsDetail.import_excel) badges.push('Import');
                 if (permsDetail.edit_data) badges.push('Edit');
                 if (permsDetail.delete_data) badges.push('Hapus');
+                if (permsDetail.cetak_nota) badges.push('Cetak Nota');
 
                 let badgeHtml = '';
                 if (badges.length === 0) {
@@ -225,7 +265,7 @@ function renderTable() {
                 let displayVal = val;
                 
                 if (window.currentTab === 'list_office') {
-                    const expiredStr = item.masa_aktif || item.workspace_expired || '';
+                    const expiredStr = item.workspace_aktif || item.workspace_expired || item.masa_aktif || '';
                     const expiredDate = parseFlexibleDate(expiredStr);
                     if (expiredDate) {
                         const today = new Date();
@@ -272,6 +312,54 @@ function renderTable() {
                             ${unitHtml}
                         </div>
                     </td>`;
+            } else if (key === 'items_terjual' && window.currentTab === 'log_penjualan') {
+                const soldItems = val || [];
+                const itemsHtml = soldItems.map(it => `
+                    <div class="flex gap-2 text-xs">
+                        <span>•</span>
+                        <span class="font-medium text-slate-800">${escapeHtml(it.name)}</span>
+                        <span class="text-slate-500 font-mono font-semibold">(x${it.qty})</span>
+                    </div>
+                `).join('');
+                rowHtml += `
+                    <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[200px]">
+                        <div class="max-h-24 overflow-y-auto pr-1 space-y-1 custom-table-scrollbar">
+                            ${itemsHtml || '<span class="text-slate-400 italic">Tidak ada item</span>'}
+                        </div>
+                    </td>`;
+            } else if (key === 'display_identitas' && window.currentTab === 'katalog_produk') {
+                // Tampilkan Serial Number (SN) dengan warna biru toska (cyan)
+                if (val.startsWith('SN:')) {
+                    const cleanSn = val.replace('SN:', '').trim();
+                    rowHtml += `<td class="px-4 py-3 font-mono font-bold text-cyan-600 whitespace-nowrap">${cleanSn}</td>`;
+                } else {
+                    rowHtml += `<td class="px-4 py-3 text-slate-600 font-semibold font-mono text-xs whitespace-nowrap">${val}</td>`;
+                }
+            } else if (key === 'display_stok' && window.currentTab === 'katalog_produk') {
+                let badgeColor = "bg-slate-100 text-slate-800 border-slate-200";
+                if (val === 'Ready' || val === 'Tersedia' || val === 'Aktif') {
+                    badgeColor = "bg-emerald-100 text-emerald-800 border-emerald-200/40";
+                } else if (val === 'Gudang' || val === 'Tidak Aktif' || val === 'Rusak') {
+                    badgeColor = "bg-rose-100 text-rose-800 border-rose-200/40";
+                }
+                
+                if (val.includes('Pcs') || val.includes('Unit')) {
+                    rowHtml += `<td class="px-4 py-3 font-semibold text-slate-700 font-mono text-xs whitespace-nowrap">${val}</td>`;
+                } else {
+                    rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold border ${badgeColor}">${val}</span></td>`;
+                }
+            } else if (key === 'display_detail' && window.currentTab === 'katalog_produk') {
+                // Deteksi spesifikasi laptop untuk format visual box
+                if (val.includes('CPU:') || val.includes('\n')) {
+                    rowHtml += `
+                        <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[240px]">
+                            <div class="max-h-28 overflow-y-auto pr-1 font-mono space-y-0.5 custom-table-scrollbar text-slate-600 leading-normal">
+                                ${val.replace(/\n/g, '<br>')}
+                            </div>
+                        </td>`;
+                } else {
+                    rowHtml += `<td class="px-4 py-3 text-xs font-semibold italic text-slate-500 max-w-xs truncate" title="${val}">${val}</td>`;
+                }
             } else if (key === 'spek_singkat' && window.currentTab === 'laptop_display') {
                 rowHtml += `
                     <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[240px]">
@@ -327,7 +415,7 @@ function renderTable() {
             } else if (key === 'kode_barang' && window.currentTab === 'inventaris') {
                 rowHtml += `<td class="px-4 py-3 font-mono font-semibold text-cyan-700 whitespace-nowrap">${val}</td>`;
             } else if (key === 'catatan') {
-                rowHtml += `<td class="px-4 py-3 text-xs font-medium italic text-slate-500 max-w-xs truncate" title="${val}">${val || '-'}</td>`;
+                rowHtml += `<td class="px-4 py-3 text-xs font-semibold italic text-slate-500 max-w-xs truncate" title="${val}">${val || '-'}</td>`;
             } else if (key === 'name' && window.currentTab === 'list_office') {
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap">${val}</td>`;
             } else if (key === 'cabang') {
@@ -339,9 +427,6 @@ function renderTable() {
             }
         });
 
-        // ==========================================================================
-        // PENYUSUNAN TABEL AKSI BARU (MENU DROPDOWN TERPADU UNTUK LOG SERVICES)
-        // ==========================================================================
         if (window.currentTab === 'services') {
             const perms = window.currentUser.permissions || {};
             const isSuperadmin = (window.currentUser && window.currentUser.email === 'superadmin@wanasatria.com');
@@ -349,7 +434,6 @@ function renderTable() {
             rowHtml += `
                 <td class="px-4 py-3 align-middle">
                     <div class="grid grid-cols-2 gap-1.5 w-max">
-                        <!-- Tombol 1: Edit / Proses (Selalu Tampil) -->
                         <button onclick="window.openEditModal('${item._firebaseKey}')" 
                                 class="w-8 h-8 flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition shadow-sm" 
                                 title="Edit / Proses">
@@ -357,19 +441,22 @@ function renderTable() {
                         </button>
             `;
             
-            // Tombol 2: Cetak (Hanya dirender jika memiliki izin cetak)
             if (perms.cetak_nota === true || perms.cetak_nota === 'true') {
                 rowHtml += `
                     <button onclick="window.printServiceNota('${item._firebaseKey}')" 
+                            class="w-8 h-8 flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition shadow-sm" 
+                            title="Cetak Struk Thermal (Bukti Pelanggan)">
+                        <i class="fa-solid fa-receipt text-xs"></i>
+                    </button>
+                    <button onclick="window.printLaptopWorkOrder('${item._firebaseKey}')" 
                             class="w-8 h-8 flex items-center justify-center rounded-lg border border-cyan-200 bg-cyan-50 text-cyan-600 hover:bg-cyan-100 hover:text-cyan-700 transition shadow-sm" 
-                            title="Cetak Nota">
-                        <i class="fa-solid fa-print text-xs"></i>
+                            title="Cetak Lembar Kerja A5 (Label Laptop)">
+                        <i class="fa-solid fa-tags text-xs"></i>
                     </button>
                 `;
             }
             
             rowHtml += `
-                        <!-- Tombol 3: Hapus (Selalu Tampil) -->
                         <button onclick="window.deleteRow('${item._firebaseKey}')" 
                                 class="w-8 h-8 flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition shadow-sm" 
                                 title="Hapus Servis">
@@ -379,7 +466,6 @@ function renderTable() {
                 </td>
             `;
         } else if (window.currentTab === 'master_jasa') {
-            // Aksi khusus untuk tabel Master Jasa
             rowHtml += `
                 <td class="px-4 py-3 flex items-center space-x-2">
                     <button onclick="window.openEditModal('${item._firebaseKey}')" class="text-amber-500 hover:text-amber-700 p-1 rounded hover:bg-amber-50 transition" title="Edit Data Jasa">
@@ -390,14 +476,44 @@ function renderTable() {
                     </button>
                 </td>
             `;
+        } else if (window.currentTab === 'katalog_produk') {
+            if (item._sourceNode === 'katalog_produk') {
+                rowHtml += `
+                    <td class="px-4 py-3 flex items-center space-x-2">
+                        <button onclick="window.openEditModal('${item._firebaseKey}')" class="text-amber-500 hover:text-amber-700 p-1 rounded hover:bg-amber-50 transition" title="Edit Produk">
+                            <i class="fa-solid fa-pen-to-square text-base"></i>
+                        </button>
+                        <button onclick="window.deleteKatalogProduk('${item._firebaseKey}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Hapus Produk">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+            } else {
+                rowHtml += `
+                    <td class="px-4 py-3 text-slate-400 text-xs italic font-semibold whitespace-nowrap min-w-[120px]">
+                        <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 block text-center" title="Pengeditan unit display hanya dapat diproses di menu Laptop Display">
+                            <i class="fa-solid fa-desktop mr-1"></i> Aset Display
+                        </span>
+                    </td>
+                `;
+            }
+        } else if (window.currentTab === 'log_penjualan') {
+            rowHtml += `
+                <td class="px-4 py-3 flex items-center space-x-2">
+                    <button onclick="window.openEditModal('${item._firebaseKey}')" class="text-amber-500 hover:text-amber-700 p-1 rounded hover:bg-amber-50 transition" title="Edit Transaksi">
+                        <i class="fa-solid fa-pen-to-square text-base"></i>
+                    </button>
+                    <button onclick="window.deleteLogPenjualan('${item._firebaseKey}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Hapus Transaksi">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
         } else if (window.currentTab === 'penyewaan') {
-            // Aksi Khusus Tab Penyewaan (Menggunakan Grid Opsi A)
             rowHtml += `
                 <td class="px-4 py-3 align-middle">
                     <div class="grid grid-cols-2 gap-1.5 w-max">
             `;
             
-            // Tombol 1: Selesai / Kembalikan Unit
             if (item.status !== 'Lunas' && item.status !== 'Selesai' && (perms.edit_data === true || perms.edit_data === 'true')) {
                 rowHtml += `
                     <button onclick="window.markAsSelesai('${item._firebaseKey}')" 
@@ -408,7 +524,6 @@ function renderTable() {
                 `;
             }
             
-            // Tombol 2: Edit Data
             if (perms.edit_data === true || perms.edit_data === 'true') {
                 rowHtml += `
                     <button onclick="window.openEditModal('${item._firebaseKey}')" 
@@ -419,13 +534,10 @@ function renderTable() {
                 `;
             }
             
-            // Tombol 3: Hapus Data
             if (perms.delete_data === true || perms.delete_data === 'true') {
                 rowHtml += `
-                    <button onclick="window.deleteRow('${item._firebaseKey}')" 
-                            class="w-8 h-8 flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition shadow-sm" 
-                            title="Hapus Data">
-                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    <button onclick="window.deleteRow('${item._firebaseKey}')" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Hapus">
+                        <i class="fa-solid fa-trash-can"></i>
                     </button>
                 `;
             }
@@ -435,7 +547,6 @@ function renderTable() {
                 </td>
             `;
         } else {
-            // Aksi standar untuk sisa tab lainnya (CCTV, Laptop, Office, dll) tetap mendatar
             rowHtml += `<td class="px-4 py-3 flex items-center space-x-2">`;
             
             if ((perms.edit_data === true || perms.edit_data === 'true') && window.currentTab !== 'activity_logs') {
@@ -478,11 +589,9 @@ function renderTable() {
     }
 }
 
-// --- PENGENDALI TOGGLE MENU AKSI DROPDOWN BARIS SERVISAN ---
 window.toggleRowActionDropdown = function(event, key) {
     if (event) event.stopPropagation();
     
-    // Sembunyikan seluruh menu dropdown baris lainnya yang sedang terbuka
     const allDropdowns = document.querySelectorAll('.row-action-dropdown');
     allDropdowns.forEach(el => {
         if (el.id !== `srv-action-dropdown-${key}`) {
@@ -496,7 +605,6 @@ window.toggleRowActionDropdown = function(event, key) {
     }
 };
 
-// --- RENDER MODAL EDIT DATA SECARA DINAMIS ---
 function openEditModal(firebaseKey) {
     const perms = window.currentUser.permissions || {};
     if (perms.edit_data !== true && perms.edit_data !== 'true') {
@@ -547,11 +655,10 @@ function openEditModal(firebaseKey) {
             teknisiReadonlyAttr = 'class="w-full border p-2 text-sm rounded-lg bg-white"';
         }
 
-        // Hitung baris sub-tabel bahan & jasa terpakai
         const itemsTerpakai = targetItem.items_terpakai || [];
         let itemsRowsHtml = '';
         if (itemsTerpakai.length === 0) {
-            itemsRowsHtml = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Belum ada bahan atau jasa terpasang pada servis ini.</td></tr>`;
+            itemsRowsHtml = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic font-semibold">Belum ada bahan atau jasa terpasang pada servis ini.</td></tr>`;
         } else {
             itemsTerpakai.forEach((it, idx) => {
                 const subtotal = (Number(it.qty) || 1) * (Number(it.price) || 0);
@@ -578,7 +685,6 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Perangkat</label><input type="text" id="edit-perangkat" value="${targetItem.perangkat || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             
-            <!-- TOTAL BIAYA (READ-ONLY) TERKUNCI HASIL KALKULASI DINAMIS BAHAN + JASA -->
             <div>
                 <label class="block text-xs font-bold text-cyan-600 mb-1">Total Biaya Akhir (Rp)</label>
                 <input type="text" id="edit-biaya" value="${window.formatCurrencyInput(String(targetItem.biaya || '0'))}" readonly class="w-full border border-cyan-300 p-2 text-sm font-black text-cyan-700 bg-cyan-50/50 rounded-lg cursor-not-allowed focus:outline-none">
@@ -631,7 +737,6 @@ function openEditModal(firebaseKey) {
             </div>
         `;
     } else if (window.currentTab === 'master_jasa') {
-        // Modal Edit khusus untuk tab Master Jasa
         fieldsContainer.innerHTML = `
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Tindakan Jasa</label>
@@ -640,6 +745,40 @@ function openEditModal(firebaseKey) {
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Biaya Standar Jasa (Rp)</label>
                 <input type="text" id="edit-biaya_jasa" value="${window.formatCurrencyInput(String(targetItem.biaya_jasa || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg">
+            </div>
+        `;
+    } else if (window.currentTab === 'katalog_produk') {
+        fieldsContainer.innerHTML = `
+            ${cabangEditHtml}
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Barang / Aksesoris</label><input type="text" id="edit-nama_barang" value="${targetItem.nama_barang || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Kategori</label><input type="text" id="edit-kategori" value="${targetItem.kategori || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Stok Fisik</label><input type="number" id="edit-stok" value="${targetItem.stok || '0'}" required class="w-full border p-2 text-sm rounded-lg"></div>
+                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Satuan</label><input type="text" id="edit-satuan" value="${targetItem.satuan || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            </div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Harga Modal (Rp)</label><input type="text" id="edit-harga_modal" value="${window.formatCurrencyInput(String(targetItem.harga_modal || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Harga Jual (Rp)</label><input type="text" id="edit-harga_jual" value="${window.formatCurrencyInput(String(targetItem.harga_jual || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
+        `;
+    } else if (window.currentTab === 'log_penjualan') {
+        window.editSelectedPenjualanItems = targetItem.items_terjual ? [...targetItem.items_terjual] : [];
+        fieldsContainer.innerHTML = `
+            ${cabangEditHtml}
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label><input type="text" id="edit-nama_pembeli" value="${targetItem.nama_pembeli || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Edit Item Penjualan (Tinjau Kuantitas)</label>
+                <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-lg max-h-48 overflow-y-auto custom-table-scrollbar">
+                    ${(targetItem.items_terjual || []).map((it, idx) => `
+                        <div class="flex items-center justify-between text-xs py-1.5 border-b">
+                            <span class="font-bold text-slate-800">${escapeHtml(it.name)} (Rp ${Number(it.price).toLocaleString('id-ID')})</span>
+                            <div class="flex items-center space-x-1">
+                                <span class="text-[10px] text-slate-400 font-bold uppercase">Qty</span>
+                                <input type="number" min="1" id="edit-sale-qty-${idx}" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white">
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
         `;
     } else if (window.currentTab === 'cctv') {
@@ -770,9 +909,8 @@ function openEditModal(firebaseKey) {
                     <option value="">(Memuat daftar server...)</option>
                 </select>
             </div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Name (Device)</label><input type="text" id="edit-name" value="${targetItem.name || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Name (Device / Identitas)</label><input type="text" id="edit-name" value="${targetItem.name || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
             
-            <!-- Wrapper Masa Aktif -->
             <div id="edit-masa-aktif-container" class="${targetItem.tipe_akun === 'Anggota' ? 'hidden' : ''}">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Masa Aktif</label>
                 <input type="text" id="edit-masa_aktif" value="${targetItem.masa_aktif || ''}" required class="w-full border p-2 text-sm rounded-lg">
@@ -833,6 +971,14 @@ function openEditModal(firebaseKey) {
                             <span>Master Jasa</span>
                         </label>
                         <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                            <input type="checkbox" id="edit-perm-katalog_produk" ${targetItem.permissions?.katalog_produk ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
+                            <span>Katalog Produk</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                            <input type="checkbox" id="edit-perm-log_penjualan" ${targetItem.permissions?.log_penjualan ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
+                            <span>Log Penjualan</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                             <input type="checkbox" id="edit-perm-list_office" ${targetItem.permissions?.list_office ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
                             <span>List Office</span>
                         </label>
@@ -863,6 +1009,10 @@ function openEditModal(firebaseKey) {
                         <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                             <input type="checkbox" id="edit-perm-delete" ${targetItem.permissions?.delete_data ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
                             <span>Hapus Data</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                            <input type="checkbox" id="edit-perm-cetak" ${targetItem.permissions?.cetak_nota ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
+                            <span>Cetak Nota</span>
                         </label>
                     </div>
                 </div>
@@ -1076,7 +1226,7 @@ function syncCheckboxState(cb) {
 
 function syncEditCheckboxState(cb) {
     const laptopKey = cb.getAttribute('data-key');
-    if (!window.editSelectedLaptopKeys) window.editSelectedLaptopKeys = [];
+    if (!window.editSelectedLaptopKeys) window.editSelectedPenjualanItems = [];
     
     if (cb.checked) {
         if (!window.editSelectedLaptopKeys.includes(laptopKey)) {
@@ -1159,6 +1309,361 @@ function deleteRow(firebaseKey) {
     }
 }
 
+// ==========================================================================
+// 1. DYNAMIC INJECTION FOR BAHAN / JASA INPUT FORM (EMBEDDED STYLE - GAMBAR 2)
+// ==========================================================================
+function ensureBahanJasaModalExists() {
+    if (document.getElementById('add-bahan-jasa-modal')) return;
+    const modalDiv = document.createElement('div');
+    modalDiv.innerHTML = `
+        <div id="add-bahan-jasa-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-xl shadow-xl border max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <header class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                    <h3 class="font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-cart-plus text-cyan-400"></i> Tambah Bahan atau Jasa
+                    </h3>
+                    <button type="button" onclick="window.closeAddBahanJasaModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </header>
+                <form id="add-bahan-jasa-form" onsubmit="window.saveBahanJasaItem(event)" class="p-6 space-y-4" autocomplete="off">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Jenis Item</label>
+                        <select id="bj-type" required onchange="window.onBahanJasaTypeChange()" class="w-full border p-2 text-sm rounded-lg bg-white">
+                            <option value="Jasa">Jasa / Tindakan</option>
+                            <option value="Produk">Bahan / Sparepart</option>
+                        </select>
+                    </div>
+                    <!-- SEARCH & STATIC SCROLLBOX CONTAINER (GAYA GAMBAR 2) -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Barang / Jasa</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                            <input type="text" id="bj-name" required oninput="window.onBahanJasaNameInput()" class="w-full pl-8 pr-4 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Ketik kata kunci untuk mencari...">
+                        </div>
+                        
+                        <!-- Box kontainer statis di dalam form flow (tidak menutupi elemen lain) -->
+                        <div id="bj-autocomplete-results" class="border border-gray-300 rounded-xl p-3 max-h-48 overflow-y-auto bg-white space-y-2 custom-table-scrollbar">
+                            <div class="text-center py-6 text-slate-400 text-xs italic">
+                                Ketik nama barang/jasa di kolom pencarian di atas...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Kuantitas (Qty)</label>
+                            <input type="number" id="bj-qty" min="1" value="1" required class="w-full border p-2 text-sm rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Harga Satuan (Rp)</label>
+                            <input type="text" id="bj-price" required oninput="this.value = window.formatCurrencyInput(this.value)" class="w-full border p-2 text-sm rounded-lg" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" onclick="window.closeAddBahanJasaModal()" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium transition">Batal</button>
+                        <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-check"></i> <span>Tambahkan</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalDiv.firstElementChild);
+}
+
+// ==========================================================================
+// 2. DIALOG OPERATIONAL HANDLERS FOR ADDING/DELETING TICKET MATERIALS
+// ==========================================================================
+window.openAddBahanJasaModal = function(ticketKey) {
+    ensureBahanJasaModalExists();
+    activeBahanJasaTicketKey = ticketKey;
+    
+    document.getElementById('add-bahan-jasa-form').reset();
+    window.onBahanJasaTypeChange();
+    
+    const modal = document.getElementById('add-bahan-jasa-modal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closeAddBahanJasaModal = function() {
+    const modal = document.getElementById('add-bahan-jasa-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+// ==========================================================================
+// 3. LOGIKA CUSTOM AUTOCOMPLETE PADA INPUT BAHAN / JASA (STOK OPNAME STYLE)
+// ==========================================================================
+
+window.onBahanJasaTypeChange = function() {
+    const nameInput = document.getElementById('bj-name');
+    const priceInput = document.getElementById('bj-price');
+    const resultsBox = document.getElementById('bj-autocomplete-results');
+    
+    if (nameInput) {
+        nameInput.value = '';
+        delete nameInput.dataset.productKey;
+    }
+    if (priceInput) {
+        priceInput.value = '';
+    }
+    if (resultsBox) {
+        resultsBox.innerHTML = `
+            <div class="text-center py-6 text-slate-400 text-xs italic">
+                Ketik nama barang/jasa di kolom pencarian di atas...
+            </div>
+        `;
+    }
+};
+
+window.onBahanJasaNameInput = function() {
+    const typeSelect = document.getElementById('bj-type');
+    const nameInput = document.getElementById('bj-name');
+    const resultsBox = document.getElementById('bj-autocomplete-results');
+    if (!typeSelect || !nameInput || !resultsBox) return;
+
+    const query = nameInput.value.toLowerCase().trim();
+    
+    // Jika kolom pencarian kosong, bersihkan dan tampilkan petunjuk
+    if (query.length < 1) {
+        resultsBox.innerHTML = `
+            <div class="text-center py-6 text-slate-400 text-xs italic">
+                Ketik nama barang/jasa di kolom pencarian di atas...
+            </div>
+        `;
+        return;
+    }
+
+    const type = typeSelect.value;
+    let html = '';
+
+    if (type === 'Jasa') {
+        const list = window.globalDataCloud['master_jasa'] || [];
+        const filtered = list.filter(item => (item.nama_jasa || '').toLowerCase().includes(query));
+        
+        if (filtered.length === 0) {
+            html = `<div class="p-4 text-center text-xs text-slate-400 italic">Jasa tidak ditemukan di database</div>`;
+        } else {
+            filtered.forEach(item => {
+                const name = item.nama_jasa;
+                const price = Number(item.biaya_jasa) || 0;
+                html += `
+                    <div onclick="window.selectBahanJasaAutocomplete(this, '${escapeHtml(name)}', ${price}, '')" 
+                         class="bj-item-card flex items-start space-x-3 p-3 bg-white border border-slate-200 hover:border-cyan-300 hover:bg-slate-50/50 rounded-xl transition cursor-pointer text-xs shadow-sm">
+                        <div class="flex-grow space-y-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-slate-800 text-sm">🛠️ ${escapeHtml(name)}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-semibold">
+                                Tindakan / Jasa Standar Toko
+                            </div>
+                        </div>
+                        <div class="text-right self-center">
+                            <span class="font-extrabold text-slate-700 text-sm font-mono">Rp ${price.toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    } else {
+        const list = window.globalDataCloud['katalog_produk'] || [];
+        const filtered = list.filter(item => (item.nama_barang || '').toLowerCase().includes(query));
+        
+        if (filtered.length === 0) {
+            html = `<div class="p-4 text-center text-xs text-slate-400 italic">Bahan/aksesoris tidak ditemukan di database</div>`;
+        } else {
+            filtered.forEach(item => {
+                const name = item.nama_barang;
+                const price = Number(item.harga_jual) || 0;
+                const stok = Number(item.stok) || 0;
+                const productKey = item._firebaseKey;
+                const isOutOfStock = stok <= 0;
+
+                html += `
+                    <div onclick="${isOutOfStock ? 'void(0)' : `window.selectBahanJasaAutocomplete(this, '${escapeHtml(name)}', ${price}, '${productKey}')`}" 
+                         class="bj-item-card flex items-start space-x-3 p-3 bg-white border border-slate-200 hover:border-cyan-300 hover:bg-slate-50/50 rounded-xl transition cursor-pointer text-xs shadow-sm ${isOutOfStock ? 'opacity-50 cursor-not-allowed bg-rose-50/20' : ''}">
+                        <div class="flex-grow space-y-1">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-extrabold text-slate-800 text-sm">📦 ${escapeHtml(name)}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${isOutOfStock ? 'bg-rose-100 text-rose-800 border-rose-200/40' : 'bg-emerald-100 text-emerald-800 border-emerald-200/40'}">
+                                    Stok: ${stok} ${escapeHtml(item.satuan)}
+                                </span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-semibold">
+                                Kategori: <span class="text-slate-700 font-bold">${escapeHtml(item.kategori || 'Suku Cadang')}</span>
+                            </div>
+                        </div>
+                        <div class="text-right self-center">
+                            <span class="font-extrabold text-slate-700 text-sm font-mono">Rp ${price.toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    }
+
+    resultsBox.innerHTML = html;
+};
+
+window.selectBahanJasaAutocomplete = function(element, name, price, productKey) {
+    const nameInput = document.getElementById('bj-name');
+    const priceInput = document.getElementById('bj-price');
+
+    if (nameInput) {
+        nameInput.value = name;
+        if (productKey) {
+            nameInput.dataset.productKey = productKey;
+        } else {
+            delete nameInput.dataset.productKey;
+        }
+    }
+    if (priceInput) {
+        priceInput.value = window.formatCurrencyInput(String(price));
+    }
+
+    // Bersihkan highlight aktif pada seluruh kartu di dalam kontainer
+    const allCards = document.querySelectorAll('.bj-item-card');
+    allCards.forEach(card => {
+        card.classList.remove('bg-cyan-50/70', 'border-cyan-400', 'ring-1', 'ring-cyan-400');
+        card.classList.add('bg-white', 'border-slate-200');
+    });
+
+    // Berikan efek highlight aktif biru toska pada kartu yang diklik
+    if (element) {
+        element.classList.remove('bg-white', 'border-slate-200');
+        element.classList.add('bg-cyan-50/70', 'border-cyan-400', 'ring-1', 'ring-cyan-400');
+    }
+};
+
+// Deteksi klik di luar (Modifikasi agar kontainer statis tidak ikut tersembunyi)
+document.addEventListener('click', function(e) {
+    // Kontainer hasil pencarian bahan/jasa dibiarkan statis mengikuti alur form
+    // Jadi tidak disembunyikan lewat klik luar, mirip seperti list pada gambar 2.
+});
+
+// ==========================================================================
+// 4. PENYIMPANAN DATA BAHAN / JASA (DENGAN VALIDASI VALID MATCHING)
+// ==========================================================================
+window.saveBahanJasaItem = function(event) {
+    event.preventDefault();
+    if (!activeBahanJasaTicketKey) return;
+    
+    const typeSelect = document.getElementById('bj-type');
+    const nameInput = document.getElementById('bj-name');
+    const qtyInput = document.getElementById('bj-qty');
+    const priceInput = document.getElementById('bj-price');
+    
+    if (!typeSelect || !nameInput || !qtyInput || !priceInput) return;
+    
+    const type = typeSelect.value;
+    const name = nameInput.value;
+    const qtyValue = Number(qtyInput.value) || 1;
+    const priceValue = Number(priceInput.value.replace(/\D/g, '')) || 0;
+    
+    const services = window.globalDataCloud['services'] || [];
+    const ticket = services.find(item => item._firebaseKey === activeBahanJasaTicketKey);
+    if (!ticket) return;
+    
+    const newItem = {
+        name: name,
+        type: type,
+        qty: qtyValue,
+        price: priceValue
+    };
+
+    // Validasi ketat: Tidak boleh menulis nama baru secara bebas (harus dari database) [3]
+    if (type === 'Produk') {
+        const productKey = nameInput.dataset.productKey;
+        const katalog = window.globalDataCloud['katalog_produk'] || [];
+        const matchProd = katalog.find(item => item.nama_barang === name && item._firebaseKey === productKey);
+        
+        if (!matchProd) {
+            alert("Galat: Nama produk harus dipilih dari hasil pencarian katalog yang terdaftar!");
+            return;
+        }
+
+        const currentStok = Number(matchProd.stok) || 0;
+        if (currentStok < qtyValue) {
+            if (!confirm(`Peringatan: Stok fisik hanya tersisa ${currentStok} unit. Tetap lanjutkan?`)) {
+                return;
+            }
+        }
+        newItem._productKey = matchProd._firebaseKey;
+
+        if (window.adjustKatalogStock) {
+            window.adjustKatalogStock(matchProd._firebaseKey, -qtyValue);
+        }
+    } else { // Jasa
+        const list = window.globalDataCloud['master_jasa'] || [];
+        const matchJasa = list.find(item => item.nama_jasa === name);
+
+        if (!matchJasa) {
+            alert("Galat: Nama tindakan jasa harus dipilih dari hasil pencarian master jasa yang terdaftar!");
+            return;
+        }
+    }
+    
+    const updatedItems = [...(ticket.items_terpakai || []), newItem];
+    const newTotalBiaya = updatedItems.reduce((sum, it) => sum + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0);
+    
+    const ticketRef = ref(db, `services/${activeBahanJasaTicketKey}`);
+    update(ticketRef, {
+        items_terpakai: updatedItems,
+        biaya: String(newTotalBiaya)
+    }).then(() => {
+        if (window.showToast) window.showToast("Bahan/Jasa berhasil ditambahkan!");
+        window.closeAddBahanJasaModal();
+        window.openEditModal(activeBahanJasaTicketKey);
+    }).catch(err => {
+        alert("Gagal menambahkan rincian item: " + err.message);
+    });
+};
+
+window.removeBahanJasaFromTicket = function(ticketKey, index) {
+    if (!confirm("Apakah Anda yakin ingin menghapus item ini dari rincian pengerjaan?")) return;
+    
+    const services = window.globalDataCloud['services'] || [];
+    const ticket = services.find(item => item._firebaseKey === ticketKey);
+    if (!ticket || !ticket.items_terpakai) return;
+    
+    const itemToRemove = ticket.items_terpakai[index];
+    
+    if (itemToRemove && itemToRemove.type === 'Produk') {
+        const prodKey = itemToRemove._productKey || itemToRemove.productKey;
+        if (prodKey && window.adjustKatalogStock) {
+            window.adjustKatalogStock(prodKey, (Number(itemToRemove.qty) || 1));
+        } else {
+            const katalog = window.globalDataCloud['katalog_produk'] || [];
+            const matchProd = katalog.find(item => item.nama_barang === itemToRemove.name);
+            if (matchProd && window.adjustKatalogStock) {
+                window.adjustKatalogStock(matchProd._firebaseKey, (Number(itemToRemove.qty) || 1));
+            }
+        }
+    }
+    
+    const updatedItems = [...ticket.items_terpakai];
+    updatedItems.splice(index, 1);
+    const newTotalBiaya = updatedItems.reduce((sum, it) => sum + ((Number(it.qty) || 1) * (Number(it.price) || 0)), 0);
+    
+    const ticketRef = ref(db, `services/${ticketKey}`);
+    update(ticketRef, {
+        items_terpakai: updatedItems,
+        biaya: String(newTotalBiaya)
+    }).then(() => {
+        if (window.showToast) window.showToast("Item berhasil dihapus.");
+        window.openEditModal(ticketKey);
+    }).catch(err => {
+        alert("Gagal menghapus item: " + err.message);
+    });
+};
+
+window.updateEditSaleQty = function(idx, val) {
+    if (window.editSelectedPenjualanItems && window.editSelectedPenjualanItems[idx]) {
+        window.editSelectedPenjualanItems[idx].qty = Math.max(1, Number(val) || 1);
+        window.editSelectedPenjualanItems[idx].subtotal = window.editSelectedPenjualanItems[idx].qty * window.editSelectedPenjualanItems[idx].price;
+    }
+};
+
 window.handleEditStatusChange = function(statusValue) {
     const container = document.getElementById('tgl-selesai-container');
     const input = document.getElementById('edit-tgl-selesai');
@@ -1173,412 +1678,6 @@ window.handleEditStatusChange = function(statusValue) {
             input.value = '';
         }
     }
-};
-
-// ==========================================================================
-// PEREKAYASAAN SISTEM TAMBAH BAHAN & JASA DINAMIS (EDIT SERVICES)
-// ==========================================================================
-function injectBahanJasaModal() {
-    let modal = document.getElementById('bahan-jasa-modal');
-    if (modal) return;
-    
-    modal = document.createElement('div');
-    modal.id = 'bahan-jasa-modal';
-    modal.className = 'hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50';
-    modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
-                <h3 class="font-bold flex items-center gap-2 text-sm md:text-base">
-                    <i class="fa-solid fa-circle-plus text-cyan-400"></i> Tambah Bahan / Jasa
-                </h3>
-                <button onclick="window.closeBahanJasaModal()" class="text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </header>
-            <div class="p-6 bg-slate-50 space-y-4">
-                <div>
-                    <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Jenis Item *</label>
-                    <select id="bj-jenis-select" onchange="window.handleB_J_JenisChange()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                        <option value="Produk">Produk (Dari Inventaris Gudang)</option>
-                        <option value="Jasa">Jasa (Dari Master Jasa Toko)</option>
-                    </select>
-                </div>
-                <div>
-                    <label id="bj-pilih-label" class="block text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-1.5 font-bold">Pilih Produk *</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
-                        <input type="text" id="bj-search-input" oninput="window.filterB_J_List()" placeholder="Ketik nama atau SKU untuk mencari..." class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white font-semibold text-slate-700">
-                    </div>
-                    <div id="bj-list-container" class="mt-2 border border-gray-200 rounded-lg bg-white max-h-32 overflow-y-auto p-1 space-y-1 custom-table-scrollbar text-xs">
-                        <span class="text-xs text-slate-400 italic block py-4 text-center">Menunggu pencarian...</span>
-                    </div>
-                    <input type="hidden" id="bj-selected-key">
-                    <input type="hidden" id="bj-selected-name">
-                    <input type="hidden" id="bj-selected-price">
-                </div>
-                <div id="bj-qty-container">
-                    <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Kuantitas Pemakaian *</label>
-                    <input type="number" id="bj-qty-input" value="1" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none text-center font-bold">
-                </div>
-            </div>
-            <div class="p-4 border-t bg-white flex justify-end space-x-3">
-                <button onclick="window.closeBahanJasaModal()" class="px-4 py-2 border rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 transition">Batal</button>
-                <button onclick="window.saveBahanJasaToTicket()" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-check"></i> Tambahkan
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
-window.openAddBahanJasaModal = function(firebaseKey) {
-    activeBahanJasaTicketKey = firebaseKey;
-    injectBahanJasaModal();
-    
-    // Reset form
-    document.getElementById('bj-jenis-select').value = "Produk";
-    document.getElementById('bj-search-input').value = "";
-    document.getElementById('bj-qty-input').value = "1";
-    document.getElementById('bj-qty-container').style.display = "";
-    document.getElementById('bj-selected-key').value = "";
-    document.getElementById('bj-selected-name').value = "";
-    document.getElementById('bj-selected-price').value = "";
-
-    const modal = document.getElementById('bahan-jasa-modal');
-    if (modal) modal.classList.remove('hidden');
-    
-    window.handleB_J_JenisChange();
-};
-
-window.closeBahanJasaModal = function() {
-    const modal = document.getElementById('bahan-jasa-modal');
-    if (modal) modal.classList.add('hidden');
-};
-
-window.handleB_J_JenisChange = function() {
-    const jenis = document.getElementById('bj-jenis-select').value;
-    const label = document.getElementById('bj-pilih-label');
-    const qtyContainer = document.getElementById('bj-qty-container');
-    const searchInput = document.getElementById('bj-search-input');
-
-    searchInput.value = "";
-    document.getElementById('bj-selected-key').value = "";
-    document.getElementById('bj-selected-name').value = "";
-    document.getElementById('bj-selected-price').value = "";
-
-    if (jenis === 'Produk') {
-        label.innerText = "Pilih Produk dari Inventaris Gudang *";
-        qtyContainer.style.display = "";
-    } else {
-        label.innerText = "Pilih Tindakan dari Master Jasa Toko *";
-        qtyContainer.style.display = "none"; 
-    }
-
-    window.filterB_J_List();
-};
-
-window.filterB_J_List = function() {
-    const jenis = document.getElementById('bj-jenis-select').value;
-    const searchVal = document.getElementById('bj-search-input').value.toLowerCase().trim();
-    const container = document.getElementById('bj-list-container');
-    if (!container) return;
-
-    container.innerHTML = "";
-    
-    if (jenis === 'Produk') {
-        const inventaris = window.globalDataCloud.inventaris || [];
-        const filtered = inventaris.filter(item => {
-            if (item.kondisi !== 'Baik' || (Number(item.stok) || 0) <= 0) return false;
-            const searchStr = `${item.nama_barang || ''} ${item.kode_barang || ''} ${item.kategori || ''}`.toLowerCase();
-            return searchStr.includes(searchVal);
-        });
-
-        if (filtered.length === 0) {
-            container.innerHTML = `<span class="text-xs text-slate-400 italic block py-3 text-center">Produk tidak ditemukan / Stok habis</span>`;
-            return;
-        }
-
-        filtered.forEach(it => {
-            container.innerHTML += `
-                <button type="button" onclick="window.selectB_J_Item('${it._firebaseKey}', '${escapeHtml(it.nama_barang)}', 0)" class="w-full text-left p-1.5 hover:bg-slate-50 border-b last:border-0 font-semibold block transition">
-                    📦 ${escapeHtml(it.nama_barang)} <span class="text-[10px] text-slate-500 font-mono">(${escapeHtml(it.kode_barang)})</span> <span class="ml-1 text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-extrabold">Stok: ${it.stok}</span>
-                </button>
-            `;
-        });
-    } else {
-        // Jasa
-        const masterJasa = window.globalDataCloud.master_jasa || [];
-        const filtered = masterJasa.filter(item => {
-            const searchStr = `${item.nama_jasa || ''}`.toLowerCase();
-            return searchStr.includes(searchVal);
-        });
-
-        if (filtered.length === 0) {
-            container.innerHTML = `<span class="text-xs text-slate-400 italic block py-3 text-center">Tindakan jasa tidak ditemukan</span>`;
-            return;
-        }
-
-        filtered.forEach(it => {
-            container.innerHTML += `
-                <button type="button" onclick="window.selectB_J_Item('${it._firebaseKey}', '${escapeHtml(it.nama_jasa)}', ${it.biaya_jasa})" class="w-full text-left p-1.5 hover:bg-slate-50 border-b last:border-0 font-semibold block transition flex justify-between items-center">
-                    <span>🛠️ ${escapeHtml(it.nama_jasa)}</span>
-                    <span class="text-[10px] font-bold text-cyan-600 font-mono">Rp ${Number(it.biaya_jasa).toLocaleString('id-ID')}</span>
-                </button>
-            `;
-        });
-    }
-};
-
-window.selectB_J_Item = function(key, name, price) {
-    document.getElementById('bj-selected-key').value = key;
-    document.getElementById('bj-selected-name').value = name;
-    document.getElementById('bj-selected-price').value = price;
-    document.getElementById('bj-search-input').value = name;
-
-    const container = document.getElementById('bj-list-container');
-    if (container) container.innerHTML = `<div class="p-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded border border-emerald-100 text-center">✓ Item dipilih: ${name}</div>`;
-    
-    const jenis = document.getElementById('bj-jenis-select').value;
-    if (jenis === 'Produk') {
-        const inputHargaProduk = prompt(`Masukkan Harga Jual Produk / Suku Cadang "${name}" untuk Servisan Ini (Rp):`, "0");
-        if (inputHargaProduk !== null) {
-            const cleanPrice = Number(inputHargaProduk.replace(/\D/g, '')) || 0;
-            document.getElementById('bj-selected-price').value = cleanPrice;
-            if (container) {
-                container.innerHTML += `<div class="p-1 mt-1 bg-cyan-50 text-cyan-700 text-[10px] font-bold rounded border border-cyan-100 text-center">✓ Harga diset: Rp ${cleanPrice.toLocaleString('id-ID')}</div>`;
-            }
-        }
-    }
-};
-
-window.saveBahanJasaToTicket = function() {
-    const key = document.getElementById('bj-selected-key').value;
-    const name = document.getElementById('bj-selected-name').value;
-    const price = Number(document.getElementById('bj-selected-price').value) || 0;
-    const jenis = document.getElementById('bj-jenis-select').value;
-    const qty = jenis === 'Produk' ? (Number(document.getElementById('bj-qty-input').value) || 1) : 1;
-
-    if (!key || !name) {
-        alert("Silakan pilih item (produk/jasa) terlebih dahulu!");
-        return;
-    }
-
-    const ticketKey = activeBahanJasaTicketKey;
-    const ticket = (window.globalDataCloud.services || []).find(t => t._firebaseKey === ticketKey);
-    if (!ticket) return;
-
-    if (jenis === 'Produk') {
-        const part = (window.globalDataCloud.inventaris || []).find(p => p._firebaseKey === key);
-        if (part) {
-            const currentStock = Number(part.stok) || 0;
-            if (currentStock < qty) {
-                alert(`Peringatan ERP: Stok barang tidak mencukupi!\nStok Sistem: ${currentStock} ${part.satuan}\nPermintaan: ${qty} ${part.satuan}`);
-                return;
-            }
-            
-            const newStock = currentStock - qty;
-            const inventarisRef = ref(db, `inventaris/${key}`);
-            update(inventarisRef, { stok: newStock });
-        }
-    }
-
-    const itemsTerpakai = ticket.items_terpakai ? [...ticket.items_terpakai] : [];
-    itemsTerpakai.push({
-        key: key,
-        type: jenis,
-        name: name,
-        qty: qty,
-        price: price
-    });
-
-    let totalBiaya = 0;
-    itemsTerpakai.forEach(it => {
-        totalBiaya += (Number(it.qty) || 1) * (Number(it.price) || 0);
-    });
-
-    const ticketRef = ref(db, `services/${ticketKey}`);
-    update(ticketRef, {
-        items_terpakai: itemsTerpakai,
-        biaya: String(totalBiaya) 
-    }).then(() => {
-        if (window.logActivity) window.logActivity('Ubah', 'services', `Menambahkan bahan/jasa pada servisan ID #${ticket.id}: ${name} (${qty} x Rp ${price.toLocaleString('id-ID')}).`);
-        window.closeBahanJasaModal();
-        
-        openEditModal(ticketKey);
-    });
-};
-
-window.removeBahanJasaFromTicket = function(ticketKey, itemIndex) {
-    const ticket = (window.globalDataCloud.services || []).find(t => t._firebaseKey === ticketKey);
-    if (!ticket || !ticket.items_terpakai) return;
-
-    if (confirm("Apakah Anda yakin ingin menghapus bahan/jasa terpasang ini?")) {
-        const itemsTerpakai = [...ticket.items_terpakai];
-        const targetItem = itemsTerpakai[itemIndex];
-
-        if (targetItem.type === 'Produk') {
-            const part = (window.globalDataCloud.inventaris || []).find(p => p._firebaseKey === targetItem.key);
-            if (part) {
-                const currentStock = Number(part.stok) || 0;
-                const restoredStock = currentStock + (Number(targetItem.qty) || 1);
-                const inventarisRef = ref(db, `inventaris/${targetItem.key}`);
-                update(inventarisRef, { stok: restoredStock });
-            }
-        }
-
-        itemsTerpakai.splice(itemIndex, 1);
-
-        let totalBiaya = 0;
-        itemsTerpakai.forEach(it => {
-            totalBiaya += (Number(it.qty) || 1) * (Number(it.price) || 0);
-        });
-
-        const ticketRef = ref(db, `services/${ticketKey}`);
-        update(ticketRef, {
-            items_terpakai: itemsTerpakai,
-            biaya: String(totalBiaya) 
-        }).then(() => {
-            if (window.logActivity) window.logActivity('Ubah', 'services', `Menghapus bahan/jasa pada servisan ID #${ticket.id}: ${targetItem.name}.`);
-            
-            openEditModal(ticketKey);
-        });
-    }
-};
-
-// ==========================================================================
-// FITUR CETAK NOTA STRUK TRANSAKSI LOG SERVICES
-// ==========================================================================
-window.printServiceNota = function(firebaseKey) {
-    const perms = window.currentUser.permissions || {};
-    const isSuperadmin = (window.currentUser && window.currentUser.email === 'superadmin@wanasatria.com');
-    const canPrint = isSuperadmin || perms.cetak_nota === true || perms.cetak_nota === 'true';
-
-    if (!canPrint) {
-        alert("Maaf, Anda tidak memiliki izin akses untuk mencetak nota.");
-        return;
-    }
-
-    const ticket = (window.globalDataCloud.services || []).find(t => t._firebaseKey === firebaseKey);
-    if (!ticket) return;
-
-    let printArea = document.getElementById('invoice-print-area');
-    if (printArea) printArea.remove();
-
-    printArea = document.createElement('div');
-    printArea.id = 'invoice-print-area';
-    printArea.className = 'hidden';
-
-    const srvId = ticket.no_ref || `SRV/Legacy/#${ticket.id}`;
-    const itemsTerpakai = ticket.items_terpakai || [];
-    let itemsHtml = '';
-    
-    if (itemsTerpakai.length === 0) {
-        itemsHtml = `<tr><td colspan="4" style="text-align:center; padding: 10px 0; font-style:italic;">-- Tidak ada bahan / jasa --</td></tr>`;
-    } else {
-        itemsTerpakai.forEach(it => {
-            const subtotal = (Number(it.qty) || 1) * (Number(it.price) || 0);
-            itemsHtml += `
-                <tr>
-                    <td style="padding: 5px 0; text-align: left;">${escapeHtml(it.name)} (${it.type})</td>
-                    <td style="padding: 5px 0; text-align: center;">${it.qty}</td>
-                    <td style="padding: 5px 0; text-align: right;">Rp ${Number(it.price).toLocaleString('id-ID')}</td>
-                    <td style="padding: 5px 0; text-align: right; font-weight: bold;">Rp ${subtotal.toLocaleString('id-ID')}</td>
-                </tr>
-            `;
-        });
-    }
-
-    printArea.innerHTML = `
-        <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #ddd; background: #fff; font-family: 'Courier New', Courier, monospace; color: #000; line-height: 1.4;">
-            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 15px;">
-                <h2 style="margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Wana Satria Komputer</h2>
-                <p style="margin: 4px 0; font-size: 11px;">Menerima Jual-Beli, Sewa, Sparepart & Service Laptop / PC</p>
-                <p style="margin: 4px 0; font-size: 11px; font-weight: bold;">Cabang: ${escapeHtml(ticket.cabang || 'Head Office')}</p>
-                <p style="margin: 4px 0; font-size: 11px;">Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            </div>
-
-            <div style="margin-bottom: 15px; font-size: 12px;">
-                <table style="width: 100%; text-align: left;">
-                    <tr>
-                        <td style="width: 40%; font-weight: bold; vertical-align: top;">No. Referensi</td>
-                        <td style="width: 5%; vertical-align: top;">:</td>
-                        <td style="width: 55%; font-weight: bold; font-size:13px; font-family: monospace;">${escapeHtml(srvId)}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: bold; vertical-align: top;">Nama Pelanggan</td>
-                        <td style="vertical-align: top;">:</td>
-                        <td style="vertical-align: top;">${escapeHtml(ticket.pelanggan)}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: bold; vertical-align: top;">No. WhatsApp</td>
-                        <td style="vertical-align: top;">:</td>
-                        <td style="vertical-align: top;">${escapeHtml(ticket.no_wa || '-')}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: bold; vertical-align: top;">Unit / Perangkat</td>
-                        <td style="vertical-align: top;">:</td>
-                        <td style="vertical-align: top;">${escapeHtml(ticket.perangkat)}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: bold; vertical-align: top;">Teknisi PJ</td>
-                        <td style="vertical-align: top;">:</td>
-                        <td style="vertical-align: top;">${escapeHtml(ticket.teknisi || 'Belum Ditentukan')}</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div style="margin-bottom: 15px; font-size: 11px;">
-                <p style="margin: 0 0 5px 0; font-weight: bold; text-decoration: underline;">Keluhan / Kendala Unit:</p>
-                <p style="margin: 0; padding-left: 10px; font-style: italic; white-space: pre-wrap;">${escapeHtml(ticket.kerusakan)}</p>
-            </div>
-
-            <div style="margin-top: 15px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; text-transform: uppercase; font-size: 13px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px;">Rincian Bahan & Jasa Pengerjaan</h4>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                    <thead>
-                        <tr style="border-bottom: 1px dashed #000; font-weight: bold;">
-                            <th style="padding: 5px 0; text-align: left;">Nama</th>
-                            <th style="padding: 5px 0; text-align: center;">Qty</th>
-                            <th style="padding: 5px 0; text-align: right;">Satuan</th>
-                            <th style="padding: 5px 0; text-align: right;">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itemsHtml}
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="border-top: 2px dashed #000; padding-top: 15px; font-size: 14px; text-align: right; margin-bottom: 25px;">
-                <span style="font-weight: bold; text-transform: uppercase; margin-right: 15px;">Total Tagihan Servis:</span>
-                <span style="font-weight: black; font-size: 16px; font-family: monospace; border: 1px solid #000; padding: 4px 8px; background: #f9f9f9;">Rp ${Number(ticket.biaya || 0).toLocaleString('id-ID')}</span>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 30px; text-align: center;">
-                <div style="width: 45%;">
-                    <p style="margin-bottom: 55px;">Hormat Kami, (Kasir/Teknisi)</p>
-                    <p style="margin: 0; border-top: 1px solid #000; display: inline-block; width: 140px; font-weight: bold;">${escapeHtml(window.currentUser.name || 'Kasir Toko')}</p>
-                </div>
-                <div style="width: 45%;">
-                    <p style="margin-bottom: 55px;">Pelanggan,</p>
-                    <p style="margin: 0; border-top: 1px solid #000; display: inline-block; width: 140px; font-weight: bold;">${escapeHtml(ticket.pelanggan)}</p>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; border-top: 1px dashed #000; padding-top: 15px; font-size: 10px; font-style: italic;">
-                <p style="margin: 2px 0;">Terima kasih atas kepercayaan Anda mempercayakan servis komputer pada kami!</p>
-                <p style="margin: 2px 0;">* Barang yang sudah diservis wajib diambil dalam waktu maksimal 30 hari.</p>
-                <p style="margin: 2px 0;">* Wana Satria Komputer - Online Real-time Cloud Invoice</p>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(printArea);
-
-    setTimeout(() => {
-        window.print();
-    }, 250);
 };
 
 window.nextPage = function() {

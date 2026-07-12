@@ -33,21 +33,96 @@
     to { transform: rotate(360deg); }
 }
 
-/* Print Invoice Stylesheet */
+/* ==========================================================================
+   Print Stylesheet (Struk Thermal 80mm/58mm & Lembar Kerja A5)
+   ========================================================================== */
 @media print {
+    /* Sembunyikan seluruh elemen halaman web utama */
     body * {
         visibility: hidden;
     }
-    #invoice-print-area, #invoice-print-area * {
+
+    /* Izinkan elemen Struk Thermal DAN Lembar Kerja A5 terlihat di mode cetak */
+    #invoice-print-area, #invoice-print-area *,
+    #label-print-area, #label-print-area * {
         visibility: visible;
     }
+
+    /* 1. Pengaturan Cetak Struk Thermal (Bukti Pelanggan) */
     #invoice-print-area {
+        display: block !important;
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
+        max-width: 80mm;
         color: #000;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 12px;
+        font-size: 11px;
+    }
+
+    /* 2. Pengaturan Cetak Lembar Kerja A5 (Label Laptop) */
+    #label-print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 148mm;  /* Lebar Kertas A5 */
+        height: 210mm; /* Tinggi Kertas A5 */
+        color: #000;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        background: #fff;
+    }
+}
+
+/* ==========================================================================
+   Print Stylesheet (Bersih & Bebas Konflik Ukuran Kertas)
+   ========================================================================== */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+    }
+
+    /* Sembunyikan seluruh elemen halaman web utama */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Tampilkan hanya area cetak Struk Thermal atau Lembar Kerja A5 */
+    #invoice-print-area, #invoice-print-area *,
+    #label-print-area, #label-print-area * {
+        visibility: visible;
+    }
+
+    /* Tata Letak Struk Kasir Pelanggan */
+    #invoice-print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 80mm; /* Sesuai gulungan kertas thermal */
+        color: #000;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 11px;
+        margin: 0;
+    }
+
+    /* Tata Letak Lembar Kerja Laptop A5 Landscape */
+    #label-print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 210mm;
+        height: 148mm;
+        color: #000;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        background: #fff;
+        margin: 0;
     }
 }

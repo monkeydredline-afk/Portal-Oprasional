@@ -32,14 +32,16 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // ==========================================================================
 // IMPORT MODUL EKSTERNAL BARU (Terintegrasi Otomatis via ES Modules)
 // ==========================================================================
-import './ui-handlers.js';    // Modul Navigasi & Dropdown Visual
-import './table.js';          // Modul rendering tabel & data
-import './dashboard.js';      // Modul statistik eksekutif & diagram
-import './opname.js';         // Modul checklist audit fisik
-import './excel.js';          // Modul transfer data XLSX biner
-import './forms.js';          // Modul formulir transaksi & ERP
-import './admin-utils.js';    // Modul backup & pemeliharaan database admin
-import './jasa.js';           // Modul Master Jasa & Perawatan Data Tindakan Toko
+import './ui-handlers.js';       // Modul Navigasi & Dropdown Visual
+import './table.js';             // Modul rendering tabel & data
+import './dashboard.js';         // Modul statistik eksekutif & diagram
+import './opname.js';            // Modul checklist audit fisik
+import './excel.js';             // Modul transfer data XLSX biner
+import './forms.js';             // Modul formulir transaksi & ERP
+import './admin-utils.js';       // Modul backup & pemeliharaan database admin
+import './jasa.js';              // Modul Master Jasa & Perawatan Data Tindakan Toko
+import './cetak.js';             // Modul cetak dokumen & laporan PDF
+import './katalog-penjualan.js'; // Modul Katalog Produk & Log Penjualan Baru
 
 // ==========================================================================
 // INISIALISASI STATUS GLOBAL WINDOW (Diakses oleh seluruh modul eksternal)
@@ -48,6 +50,8 @@ window.currentTab = 'services';
 window.currentSubTab = ''; 
 window.selectedLaptopKeys = []; 
 window.editSelectedLaptopKeys = [];
+window.selectedPenjualanItems = []; // Menyimpan item keranjang belanja penjualan aktif
+
 window.globalDataCloud = {
     services: [],
     penyewaan: [],
@@ -55,7 +59,9 @@ window.globalDataCloud = {
     list_laptop: [],
     laptop_display: [],
     inventaris: [], 
-    master_jasa: [], // Node Master Jasa Global Baru
+    master_jasa: [],
+    katalog_produk: [], // Node Katalog Produk Global Baru
+    log_penjualan: [],  // Node Log Penjualan Global Baru
     list_office: [],
     user_management: [],
     activity_logs: []
@@ -212,6 +218,8 @@ function applyRoleBasedAccess() {
     const btnLaptopDisplay = document.getElementById('btn-laptop_display');
     const btnInventaris = document.getElementById('btn-inventaris'); 
     const btnMasterJasa = document.getElementById('btn-master_jasa'); 
+    const btnKatalogProduk = document.getElementById('btn-katalog_produk'); 
+    const btnLogPenjualan = document.getElementById('btn-log_penjualan'); 
     const btnListOffice = document.getElementById('btn-list_office');
     const btnUserManagement = document.getElementById('btn-user_management');
     const btnActivityLogs = document.getElementById('btn-activity_logs');
@@ -248,6 +256,14 @@ function applyRoleBasedAccess() {
     if (btnMasterJasa) {
         if (isPermitted(perms.master_jasa)) btnMasterJasa.classList.remove('hidden');
         else btnMasterJasa.classList.add('hidden');
+    }
+    if (btnKatalogProduk) {
+        if (isPermitted(perms.katalog_produk)) btnKatalogProduk.classList.remove('hidden');
+        else btnKatalogProduk.classList.add('hidden');
+    }
+    if (btnLogPenjualan) {
+        if (isPermitted(perms.log_penjualan)) btnLogPenjualan.classList.remove('hidden');
+        else btnLogPenjualan.classList.add('hidden');
     }
     if (btnListOffice) {
         if (isPermitted(perms.list_office)) btnListOffice.classList.remove('hidden');
@@ -297,7 +313,7 @@ function applyRoleBasedAccess() {
         }
     }
 
-    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office', 'user_management', 'activity_logs'];
+    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
     for (let t of tabsOrder) {
         if (isPermitted(perms[t])) {
             return t;
@@ -443,7 +459,7 @@ window.switchTab = switchTab;
 function switchTab(tabName) {
     const perms = window.currentUser.permissions || {};
     if (tabName !== 'login' && !isPermitted(perms[tabName])) {
-        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office', 'user_management', 'activity_logs'];
+        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
         const firstAllowed = tabsOrder.find(t => isPermitted(perms[t]));
 
         if (!firstAllowed) {
@@ -478,6 +494,8 @@ function switchTab(tabName) {
         laptop_display: "Manajemen List Laptop Display (Etalase Toko)",
         inventaris: "Manajemen Inventaris Suku Cadang, Alat & Part",
         master_jasa: "Manajemen Master Jasa & Tindakan Toko",
+        katalog_produk: "Manajemen Katalog Produk Jual (Toko)",
+        log_penjualan: "Input Log Penjualan Produk & Aksesoris",
         list_office: "Manajemen Akun dan Lisensi Office",
         user_management: "User Management (Kontrol Akun & Hak Akses)",
         activity_logs: "Riwayat Aktivitas & Audit Log Operasional"
@@ -492,6 +510,8 @@ function switchTab(tabName) {
         laptop_display: "Kosongkan List Laptop Display",
         inventaris: "Kosongkan List Inventaris",
         master_jasa: "Kosongkan Data Jasa",
+        katalog_produk: "Kosongkan Katalog Produk",
+        log_penjualan: "Kosongkan Log Penjualan",
         list_office: "Kosongkan Data Office",
         user_management: "Kosongkan Data Users",
         activity_logs: "Kosongkan Log Aktivitas"
@@ -560,6 +580,11 @@ function switchTab(tabName) {
         setTimeout(() => { refreshServerFilterOptions(); }, 60);
     }
 
+    if (tabName === 'log_penjualan') {
+        window.selectedPenjualanItems = [];
+        setTimeout(() => { window.populatePenjualanCart(); }, 50);
+    }
+
     const searchBar = document.getElementById('search-bar');
     if (searchBar) searchBar.value = ''; 
 
@@ -605,7 +630,7 @@ function switchTab(tabName) {
 
     const branchContainer = document.getElementById('branch-filter-container');
     if (branchContainer) {
-        const nonBranchTabs = ['list_laptop', 'laptop_display', 'inventaris', 'master_jasa'];
+        const nonBranchTabs = ['list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan'];
         if (nonBranchTabs.includes(tabName) && !window.userBranch) {
             branchContainer.classList.remove('hidden');
         } else {
@@ -645,6 +670,8 @@ function switchTab(tabName) {
             laptop_display: "Laptop Display",
             inventaris: "List Inventaris",
             master_jasa: "Data Jasa",
+            katalog_produk: "Katalog Produk",
+            log_penjualan: "Log Penjualan",
             list_office: "Data Office",
             user_management: "Data Users",
             activity_logs: "Log Aktivitas"
@@ -654,7 +681,7 @@ function switchTab(tabName) {
     
     applyRoleBasedAccess();
     
-    ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office','user_management', 'activity_logs'].forEach(tab => {
+    ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'].forEach(tab => {
         const btn = document.getElementById(`btn-${tab}`);
         if(btn) {
             if(tab === tabName) {
@@ -784,7 +811,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: true, services: true, penyewaan: true, cctv: true,
-                    list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, list_office: true, user_management: true,
+                    list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, katalog_produk: true, log_penjualan: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
                     export_excel: true, import_excel: true, edit_data: true, delete_data: true, cetak_nota: true
                 };
@@ -803,7 +830,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: false, services: false, penyewaan: false, cctv: false,
-                    list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, list_office: false, user_management: false,
+                    list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, katalog_produk: false, log_penjualan: false, list_office: false, user_management: false,
                     activity_logs: false, backup_database: false,
                     export_excel: false, import_excel: false, edit_data: true, delete_data: false
                 };
@@ -818,7 +845,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: true, services: true, penyewaan: true, cctv: true,
-                    list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, list_office: true, user_management: true,
+                    list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, katalog_produk: true, log_penjualan: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
                     export_excel: true, import_excel: true, edit_data: true, delete_data: true
                 };
@@ -828,7 +855,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
                     dashboard: false, services: false, penyewaan: false, cctv: false,
-                    list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, list_office: false, user_management: false,
+                    list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, katalog_produk: false, log_penjualan: false, list_office: false, user_management: false,
                     activity_logs: false, backup_database: false,
                     export_excel: false, import_excel: false, edit_data: true, delete_data: false
                 };
@@ -863,6 +890,8 @@ onAuthStateChanged(auth, async (user) => {
             laptop_display: [],
             inventaris: [],
             master_jasa: [],
+            katalog_produk: [],
+            log_penjualan: [],
             list_office: [],
             user_management: [],
             activity_logs: []
@@ -879,6 +908,30 @@ onAuthStateChanged(auth, async (user) => {
         };
     }
 });
+
+// Fungsi pembantu mengekstrak spesifikasi display laptop harian
+function parseDisplaySpecs(spekStr) {
+    let cpu = '';
+    let ram = '';
+    let ssd = '';
+    let vga = '';
+    if (spekStr) {
+        const lines = spekStr.split('\n');
+        lines.forEach(line => {
+            const clean = line.trim();
+            if (/^cpu:/i.test(clean)) {
+                cpu = clean.replace(/^cpu:\s*/i, '').trim();
+            } else if (/^ram:/i.test(clean)) {
+                ram = clean.replace(/^ram:\s*/i, '').trim();
+            } else if (/^(ssd\/hdd|storage):/i.test(clean)) {
+                ssd = clean.replace(/^(ssd\/hdd|storage):\s*/i, '').trim();
+            } else if (/^(vga\/layar|vga|layar):/i.test(clean)) {
+                vga = clean.replace(/^(vga\/layar|vga|layar):\s*/i, '').trim();
+            }
+        });
+    }
+    return { cpu, ram, ssd, vga };
+}
 
 function initApp() {
     activeFirebaseListeners.forEach(unsubscribe => {
@@ -907,16 +960,34 @@ function initApp() {
     switchTab(defaultTab);
     if (window.syncHamburgerIcon) window.syncHamburgerIcon();
 
-    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'list_office','user_management', 'activity_logs'];
-    allnodes.forEach(node => {
-        if (!db) return;
-        
-        if (node !== 'user_management' && !isPermitted(perms[node])) {
-            return; 
-        }
-        if (node === 'user_management' && !isPermitted(perms.user_management)) {
-            return;
-        }
+    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
+    // --- KODE BARU (Bebas Galat & Sesuai Hak Akses) ---
+allnodes.forEach(node => {
+    if (!db) return;
+    
+    // Periksa izin dasar untuk node saat ini
+    let permitSync = isPermitted(perms[node]);
+
+    // PILAR INTEGRASI: Izinkan sinkronisasi latar belakang jika ada ketergantungan (dependency)
+    // 1. Katalog Produk diperlukan untuk input "Bahan" di Log Services dan Log Penjualan
+    if (node === 'katalog_produk' && (isPermitted(perms.services) || isPermitted(perms.log_penjualan))) {
+        permitSync = true;
+    }
+
+    // 2. Master Jasa diperlukan untuk input "Jasa" di Log Services
+    if (node === 'master_jasa' && isPermitted(perms.services)) {
+        permitSync = true;
+    }
+
+    // Aturan khusus untuk user_management
+    if (node === 'user_management' && !isPermitted(perms.user_management)) {
+        permitSync = false;
+    }
+
+    // Jika tidak diizinkan sinkronisasi, hentikan proses untuk node ini
+    if (!permitSync) {
+        return; 
+    }
 
         let nodeRef;
         const branch = window.currentUser.branch;
@@ -927,7 +998,7 @@ function initApp() {
         const hasBranchRestriction = (branch && branch !== 'Head Office' && email !== 'superadmin@wanasatria.com');
 
         // Modul-modul yang datanya disaring spesifik berdasarkan cabang operator
-        const filterableNodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris'];
+        const filterableNodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'katalog_produk', 'log_penjualan'];
 
         if (filterableNodes.includes(node) && !isAdmin && hasBranchRestriction) {
             nodeRef = query(ref(db, node), orderByChild('cabang'), equalTo(branch));
@@ -943,6 +1014,9 @@ function initApp() {
 
             if (window.currentTab === node) {
                 if (window.renderTable) window.renderTable(); 
+            }
+            if ((node === 'katalog_produk' || node === 'laptop_display') && window.currentTab === 'log_penjualan') {
+                window.populatePenjualanCart();
             }
             if (node === 'list_laptop' || node === 'laptop_display') {
                 if (window.updateDashboardBranchFilters) window.updateDashboardBranchFilters();
@@ -1017,6 +1091,195 @@ function refreshServerFilterOptions() {
         window.updateFilterBadgeCount();
     };
 }
+
+// ==========================================================================
+// D. HELPER KERANJANG BELANJA LOG PENJUALAN
+// ==========================================================================
+
+window.populatePenjualanCart = function() {
+    const container = document.getElementById('keranjang-penjualan-container');
+    if (!container) return;
+
+    const katalog = window.globalDataCloud['katalog_produk'] || [];
+    const displays = window.globalDataCloud['laptop_display'] || [];
+
+    if (katalog.length === 0 && displays.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Katalog produk dan display kosong</p>`;
+        return;
+    }
+
+    const searchInput = document.getElementById('search-katalog-produk');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    // 1. Petakan Katalog Produk
+    const mappedProducts = katalog.map(item => ({
+        _firebaseKey: item._firebaseKey,
+        nama_barang: item.nama_barang || '-',
+        harga_jual: Number(item.harga_jual) || 0,
+        stok: Number(item.stok) || 0,
+        satuan: item.satuan || 'Pcs',
+        kategori: item.kategori || 'Produk',
+        isDisplay: false
+    }));
+
+    // 2. Akumulasi & Kelompokkan Laptop Display (Name + CPU + RAM + SSD + VGA/Layar)
+    const laptopGroups = {};
+    displays.forEach(item => {
+        const isReady = (item.status === 'Ready' || !item.status);
+        if (!isReady) return; // Hanya tampilkan unit display yang siap dijual
+
+        const name = `${item.merk || ''} ${item.tipe || ''}`.trim() || 'Laptop Display';
+        const specs = parseDisplaySpecs(item.spek_singkat || '');
+        const groupKey = `${name}_${specs.cpu}_${specs.ram}_${specs.ssd}_${specs.vga}`.toLowerCase();
+
+        if (!laptopGroups[groupKey]) {
+            laptopGroups[groupKey] = {
+                _firebaseKeys: [],
+                nama_barang: name,
+                harga_jual: Number(item.harga_jual) || 0,
+                cpu: specs.cpu,
+                ram: specs.ram,
+                ssd: specs.ssd,
+                vga: specs.vga,
+                satuan: 'Unit',
+                kategori: 'Laptop Display',
+                isDisplay: true
+            };
+        }
+        laptopGroups[groupKey]._firebaseKeys.push(item._firebaseKey);
+    });
+
+    const mappedLaptops = Object.values(laptopGroups).map(group => ({
+        _firebaseKey: group._firebaseKeys[0], // Ambil key pertama sebagai rujukan checklist
+        _firebaseKeys: group._firebaseKeys,
+        nama_barang: group.nama_barang,
+        harga_jual: group.harga_jual,
+        stok: group._firebaseKeys.length, // Total kuantitas unit ready
+        satuan: group.satuan,
+        kategori: group.kategori,
+        isDisplay: true,
+        cpu: group.cpu,
+        ram: group.ram,
+        ssd: group.ssd,
+        vga: group.vga
+    }));
+
+    const unifiedList = [...mappedProducts, ...mappedLaptops];
+
+    // Saring data berdasarkan kata kunci (pencarian spesifikasi cerdas terintegrasi)
+    const filtered = unifiedList.filter(item => {
+        const searchTarget = item.isDisplay 
+            ? `${item.nama_barang} ${item.cpu} ${item.ram} ${item.ssd} ${item.vga}`.toLowerCase()
+            : `${item.nama_barang} ${item.kategori}`.toLowerCase();
+        return searchTarget.includes(query);
+    });
+
+    let displayHtml = '';
+    let productHtml = '';
+
+    filtered.forEach(item => {
+        const isChecked = window.selectedPenjualanItems.some(it => it.productKey === item._firebaseKey);
+        const qtyObj = window.selectedPenjualanItems.find(it => it.productKey === item._firebaseKey);
+        const qtyVal = qtyObj ? qtyObj.qty : 1;
+        const isOutOfStock = (Number(item.stok) || 0) <= 0;
+
+        if (item.isDisplay) {
+            const specsInline = [item.cpu, item.ram, item.ssd, item.vga].filter(Boolean).join(' | ');
+            const specsText = specsInline ? `<span class="block text-[10px] text-slate-500 font-mono italic mt-0.5 mb-0.5">${escapeHtml(specsInline)}</span>` : '';
+            
+            displayHtml += `
+                <div class="flex items-start justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-cyan-300 transition text-xs">
+                    <div class="flex items-start space-x-2.5">
+                        <input type="checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.nama_barang)}" data-price="${item.harga_jual}" ${isChecked ? 'checked' : ''} ${isOutOfStock ? 'disabled' : ''} onchange="window.togglePenjualanItem(this)" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500">
+                        <div>
+                            <span class="font-bold text-slate-800">${escapeHtml(item.nama_barang)}</span>
+                            <span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 rounded text-[10px] font-bold border ml-1">${escapeHtml(item.kategori)}</span>
+                            ${specsText}
+                            <span class="block text-[11px] text-slate-500 mt-0.5">
+                                Stok: <span class="font-extrabold ${isOutOfStock ? 'text-rose-600' : 'text-emerald-600'}">${item.stok} ${escapeHtml(item.satuan)}</span> | Harga: <span class="font-bold text-slate-700">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                            </span>
+                        </div>
+                    </div>
+                    ${isChecked ? `
+                        <div class="flex items-center space-x-1">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
+                            <input type="number" min="1" max="${item.stok}" value="${qtyVal}" data-key="${item._firebaseKey}" oninput="window.updatePenjualanQty(this)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white">
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            productHtml += `
+                <div class="flex items-start justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-cyan-300 transition text-xs">
+                    <div class="flex items-start space-x-2.5">
+                        <input type="checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.nama_barang)}" data-price="${item.harga_jual}" ${isChecked ? 'checked' : ''} ${isOutOfStock ? 'disabled' : ''} onchange="window.togglePenjualanItem(this)" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500">
+                        <div>
+                            <span class="font-bold text-slate-800">${escapeHtml(item.nama_barang)}</span>
+                            <span class="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border ml-1">${escapeHtml(item.kategori)}</span>
+                            <span class="block text-[11px] text-slate-500 mt-0.5">
+                                Stok: <span class="font-extrabold ${isOutOfStock ? 'text-rose-600' : 'text-emerald-600'}">${item.stok} ${escapeHtml(item.satuan)}</span> | Harga: <span class="font-bold text-slate-700">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                            </span>
+                        </div>
+                    </div>
+                    ${isChecked ? `
+                        <div class="flex items-center space-x-1">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
+                            <input type="number" min="1" max="${item.stok}" value="${qtyVal}" data-key="${item._firebaseKey}" oninput="window.updatePenjualanQty(this)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white">
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+    });
+
+    let finalHtml = '';
+    if (displayHtml) {
+        finalHtml += `
+            <div class="px-3 py-1.5 bg-purple-50 text-purple-700 font-extrabold text-[10px] uppercase tracking-wider rounded-lg mb-2 border border-purple-200/50 select-none">
+                ── LAPTOP DISPLAY ─────────────────────────
+            </div>
+            <div class="space-y-2 mb-4">${displayHtml}</div>
+        `;
+    }
+    if (productHtml) {
+        finalHtml += `
+            <div class="px-3 py-1.5 bg-cyan-50 text-cyan-700 font-extrabold text-[10px] uppercase tracking-wider rounded-lg mb-2 border border-cyan-200/50 select-none">
+                ── KATALOG PRODUK ─────────────────────────
+            </div>
+            <div class="space-y-2">${productHtml}</div>
+        `;
+    }
+
+    if (!displayHtml && !productHtml) {
+        finalHtml = `<p class="text-xs text-slate-400 italic text-center py-4">Produk tidak ditemukan</p>`;
+    }
+
+    container.innerHTML = finalHtml;
+};
+
+window.togglePenjualanItem = function(checkbox) {
+    const productKey = checkbox.getAttribute('data-key');
+    const name = checkbox.getAttribute('data-name');
+    const price = Number(checkbox.getAttribute('data-price')) || 0;
+
+    if (checkbox.checked) {
+        if (!window.selectedPenjualanItems.some(it => it.productKey === productKey)) {
+            window.selectedPenjualanItems.push({ productKey, name, qty: 1, price });
+        }
+    } else {
+        window.selectedPenjualanItems = window.selectedPenjualanItems.filter(it => it.productKey !== productKey);
+    }
+    window.populatePenjualanCart();
+};
+
+window.updatePenjualanQty = function(input) {
+    const productKey = input.getAttribute('data-key');
+    const val = Math.max(1, Number(input.value) || 1);
+    const obj = window.selectedPenjualanItems.find(it => it.productKey === productKey);
+    if (obj) {
+        obj.qty = val;
+    }
+};
 
 // Bind fungsi pembantu ke window agar diakses file table.js / opname.js / forms.js / excel.js / admin-utils.js
 window.logActivity = logActivity;
