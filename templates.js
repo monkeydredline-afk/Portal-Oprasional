@@ -591,7 +591,7 @@ export const fieldsTemplate = {
 
 export const tableHeaders = {
     services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Status', 'Aksi'],
-    penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Biaya', 'Status', 'Aksi'],
+    penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Unit', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
@@ -606,7 +606,7 @@ export const tableHeaders = {
 
 export const dataKeysMapping = {
     services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'status'],
-    penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_biaya', 'status'],
+    penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_unit', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['id', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],

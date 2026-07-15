@@ -56,6 +56,19 @@ function closeOpnameModal() {
     if (modal) modal.classList.add('hidden');
 }
 
+function updateOpnameCheckedCount() {
+    const checkedCountInfo = document.getElementById('opname-checked-count-info');
+    if (!checkedCountInfo) return;
+
+    if (window.currentTab === 'list_laptop' || window.currentTab === 'laptop_display') {
+        const totalChecked = document.querySelectorAll('input[name="opname_checkbox"]:checked').length;
+        checkedCountInfo.innerText = `Terpilih: ${totalChecked} Unit`;
+        checkedCountInfo.classList.remove('hidden');
+    } else {
+        checkedCountInfo.classList.add('hidden');
+    }
+}
+
 function renderOpnameItems(isFullRebuild = false) {
     const container = document.getElementById('opname-list-container');
     const countEl = document.getElementById('opname-count-info');
@@ -76,6 +89,10 @@ function renderOpnameItems(isFullRebuild = false) {
                 </div>
             `;
             if (countEl) countEl.innerText = "Total: 0 Barang";
+            
+            // Sembunyikan live counter terpilih jika cabang belum dipilih
+            const checkedCountInfo = document.getElementById('opname-checked-count-info');
+            if (checkedCountInfo) checkedCountInfo.classList.add('hidden');
             return;
         }
 
@@ -109,6 +126,9 @@ function renderOpnameItems(isFullRebuild = false) {
                 </div>
             `;
             if (countEl) countEl.innerText = "Total: 0 Barang";
+            
+            const checkedCountInfo = document.getElementById('opname-checked-count-info');
+            if (checkedCountInfo) checkedCountInfo.classList.add('hidden');
             return;
         }
 
@@ -137,7 +157,7 @@ function renderOpnameItems(isFullRebuild = false) {
 
                 html += `
                     <label data-search-text="${escapeHtml(searchableText)}" class="flex items-start space-x-3.5 p-4 bg-white border border-slate-200 hover:border-cyan-300 hover:bg-slate-50/50 rounded-xl transition cursor-pointer text-xs shadow-sm">
-                        <input type="checkbox" name="opname_checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.merk + ' ' + item.tipe)}" data-sn="${escapeHtml(item.sn)}" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300 w-4.5 h-4.5 cursor-pointer">
+                        <input type="checkbox" name="opname_checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.merk + ' ' + item.tipe)}" data-sn="${escapeHtml(item.sn)}" onchange="window.updateOpnameCheckedCount()" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300 w-4.5 h-4.5 cursor-pointer">
                         <div class="flex-grow space-y-2">
                             <div class="flex items-center flex-wrap gap-1">
                                 <span class="font-extrabold text-slate-800 text-sm">${escapeHtml(item.merk)} ${escapeHtml(item.tipe)}</span>
@@ -199,6 +219,9 @@ function renderOpnameItems(isFullRebuild = false) {
     }
 
     if (countEl) countEl.innerText = `Total: ${visibleCount} Barang`;
+    
+    // Hitung ulang centang terpilih
+    updateOpnameCheckedCount();
 }
 
 function submitOpname() {
@@ -314,3 +337,4 @@ window.openOpnameModal = openOpnameModal;
 window.closeOpnameModal = closeOpnameModal;
 window.renderOpnameItems = renderOpnameItems;
 window.submitOpname = submitOpname;
+window.updateOpnameCheckedCount = updateOpnameCheckedCount;

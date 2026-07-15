@@ -118,6 +118,8 @@ function updateFilterBadgeCount() {
     const branchEl = document.getElementById('branch-filter');
     const statusEl = document.getElementById('status-filter');
     const serverEl = document.getElementById('server-filter');
+    const typeEl = document.getElementById('secondary-filter');
+    
     const badge = document.getElementById('filter-active-count');
     if (!badge) return;
 
@@ -138,6 +140,12 @@ function updateFilterBadgeCount() {
         if (serverEl && serverEl.value) activeCount++;
     }
 
+    // Hitung filter tipe laptop / kategori sekunder jika aktif
+    const typeContainer = document.getElementById('secondary-filter-container');
+    if (typeContainer && !typeContainer.classList.contains('hidden')) {
+        if (typeEl && typeEl.value) activeCount++;
+    }
+
     // Perbarui lencana visual
     if (activeCount > 0) {
         badge.innerText = activeCount;
@@ -151,10 +159,12 @@ function resetAllFilters() {
     const branchEl = document.getElementById('branch-filter');
     const statusEl = document.getElementById('status-filter');
     const serverEl = document.getElementById('server-filter');
+    const typeEl = document.getElementById('secondary-filter');
 
     if (branchEl) branchEl.value = '';
     if (statusEl) statusEl.value = '';
     if (serverEl) serverEl.value = '';
+    if (typeEl) typeEl.value = '';
     
     window.currentServerFilter = ''; // Reset filter server global
 

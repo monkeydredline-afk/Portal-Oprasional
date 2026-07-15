@@ -582,7 +582,19 @@ function switchTab(tabName) {
 
     if (tabName === 'log_penjualan') {
         window.selectedPenjualanItems = [];
-        setTimeout(() => { window.populatePenjualanCart(); }, 50);
+        setTimeout(() => { 
+            window.populatePenjualanCart(); 
+
+            // Sinkronisasi dinamis dropdown cabang dengan list belanjaan
+            const form = document.getElementById('operational-form');
+            const branchSelect = form ? form.querySelector('[name="cabang"]') : null;
+            if (branchSelect) {
+                branchSelect.addEventListener('change', () => {
+                    window.selectedPenjualanItems = []; // reset belanjaan agar tidak tercampur cabang lain
+                    window.populatePenjualanCart();
+                });
+            }
+        }, 50);
     }
 
     const searchBar = document.getElementById('search-bar');
@@ -695,6 +707,7 @@ function switchTab(tabName) {
     });
 
     if (window.renderTableHeader) window.renderTableHeader();
+    if (window.updateSecondaryFilterDropdown) window.updateSecondaryFilterDropdown();
     
     isTabLoadingState = true;
     showTableLoading("Mengambil & Menyinkronkan Data Cloud...");
@@ -962,32 +975,32 @@ function initApp() {
 
     const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
     // --- KODE BARU (Bebas Galat & Sesuai Hak Akses) ---
-allnodes.forEach(node => {
-    if (!db) return;
-    
-    // Periksa izin dasar untuk node saat ini
-    let permitSync = isPermitted(perms[node]);
+    allnodes.forEach(node => {
+        if (!db) return;
+        
+        // Periksa izin dasar untuk node saat ini
+        let permitSync = isPermitted(perms[node]);
 
-    // PILAR INTEGRASI: Izinkan sinkronisasi latar belakang jika ada ketergantungan (dependency)
-    // 1. Katalog Produk diperlukan untuk input "Bahan" di Log Services dan Log Penjualan
-    if (node === 'katalog_produk' && (isPermitted(perms.services) || isPermitted(perms.log_penjualan))) {
-        permitSync = true;
-    }
+        // PILAR INTEGRASI: Izinkan sinkronisasi latar belakang jika ada ketergantungan (dependency)
+        // 1. Katalog Produk diperlukan untuk input "Bahan" di Log Services dan Log Penjualan
+        if (node === 'katalog_produk' && (isPermitted(perms.services) || isPermitted(perms.log_penjualan))) {
+            permitSync = true;
+        }
 
-    // 2. Master Jasa diperlukan untuk input "Jasa" di Log Services
-    if (node === 'master_jasa' && isPermitted(perms.services)) {
-        permitSync = true;
-    }
+        // 2. Master Jasa diperlukan untuk input "Jasa" di Log Services
+        if (node === 'master_jasa' && isPermitted(perms.services)) {
+            permitSync = true;
+        }
 
-    // Aturan khusus untuk user_management
-    if (node === 'user_management' && !isPermitted(perms.user_management)) {
-        permitSync = false;
-    }
+        // Aturan khusus untuk user_management
+        if (node === 'user_management' && !isPermitted(perms.user_management)) {
+            permitSync = false;
+        }
 
-    // Jika tidak diizinkan sinkronisasi, hentikan proses untuk node ini
-    if (!permitSync) {
-        return; 
-    }
+        // Jika tidak diizinkan sinkronisasi, hentikan proses untuk node ini
+        if (!permitSync) {
+            return; 
+        }
 
         let nodeRef;
         const branch = window.currentUser.branch;
@@ -1020,6 +1033,12 @@ allnodes.forEach(node => {
             }
             if (node === 'list_laptop' || node === 'laptop_display') {
                 if (window.updateDashboardBranchFilters) window.updateDashboardBranchFilters();
+            }
+
+            // Memicu pembaruan filter sekunder dinamis ketika data Cloud sinkron
+            const nodesWithFilters = ['list_laptop', 'laptop_display', 'services', 'inventaris', 'list_office', 'activity_logs'];
+            if (nodesWithFilters.includes(node)) {
+                if (window.updateSecondaryFilterDropdown) window.updateSecondaryFilterDropdown();
             }
             if (node === 'list_office') {
                 try { refreshServerOptions(); } catch(e) { }
@@ -1100,11 +1119,22 @@ window.populatePenjualanCart = function() {
     const container = document.getElementById('keranjang-penjualan-container');
     if (!container) return;
 
-    const katalog = window.globalDataCloud['katalog_produk'] || [];
-    const displays = window.globalDataCloud['laptop_display'] || [];
+    // Mendapatkan cabang transaksi aktif di form
+    const form = document.getElementById('operational-form');
+    const branchSelect = form ? form.querySelector('[name="cabang"]') : null;
+    const selectedBranch = branchSelect ? branchSelect.value : '';
+
+    let katalog = window.globalDataCloud['katalog_produk'] || [];
+    let displays = window.globalDataCloud['laptop_display'] || [];
+
+    // Menyaring data katalog dan display berdasarkan cabang transaksi
+    if (selectedBranch) {
+        katalog = katalog.filter(item => item.cabang === selectedBranch);
+        displays = displays.filter(item => item.cabang === selectedBranch);
+    }
 
     if (katalog.length === 0 && displays.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Katalog produk dan display kosong</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Katalog produk dan display kosong pada cabang ini</p>`;
         return;
     }
 
@@ -1251,7 +1281,7 @@ window.populatePenjualanCart = function() {
     }
 
     if (!displayHtml && !productHtml) {
-        finalHtml = `<p class="text-xs text-slate-400 italic text-center py-4">Produk tidak ditemukan</p>`;
+        finalHtml = `<p class="text-xs text-slate-400 italic text-center py-4">Produk tidak ditemukan pada cabang ini</p>`;
     }
 
     container.innerHTML = finalHtml;
@@ -1278,6 +1308,119 @@ window.updatePenjualanQty = function(input) {
     const obj = window.selectedPenjualanItems.find(it => it.productKey === productKey);
     if (obj) {
         obj.qty = val;
+    }
+};
+
+//Filter 
+
+window.updateSecondaryFilterDropdown = function() {
+    const select = document.getElementById('secondary-filter');
+    const label = document.getElementById('secondary-filter-label');
+    const container = document.getElementById('secondary-filter-container');
+    if (!select || !label || !container) return;
+
+    const currentTab = window.currentTab;
+
+    // Reset default
+    container.classList.add('hidden');
+    select.innerHTML = '<option value="">Semua</option>';
+
+    let uniqueValues = new Set();
+    let labelText = "Filter Tambahan";
+    let defaultOptionText = "Semua";
+
+    // 1. Kondisi Tab Laptop Gudang / Penyewaan (Hanya mengambil dari list_laptop)
+    if (currentTab === 'list_laptop') {
+        container.classList.remove('hidden');
+        labelText = "Tipe Laptop";
+        defaultOptionText = "Semua Tipe Laptop";
+        
+        const list = window.globalDataCloud['list_laptop'] || [];
+        list.forEach(lap => {
+            const merk = (lap.merk || '').trim();
+            const tipe = (lap.tipe || '').trim();
+            if (merk && tipe && merk !== '-' && tipe !== '-') {
+                uniqueValues.add(`${merk} ${tipe}`);
+            }
+        });
+    }
+    // 2. Kondisi Tab Laptop Display (Hanya mengambil dari laptop_display)
+    else if (currentTab === 'laptop_display') {
+        container.classList.remove('hidden');
+        labelText = "Tipe Laptop";
+        defaultOptionText = "Semua Tipe Laptop";
+        
+        const list = window.globalDataCloud['laptop_display'] || [];
+        list.forEach(lap => {
+            const merk = (lap.merk || '').trim();
+            const tipe = (lap.tipe || '').trim();
+            if (merk && tipe && merk !== '-' && tipe !== '-') {
+                uniqueValues.add(`${merk} ${tipe}`);
+            }
+        });
+    }
+    // 3. Kondisi Tab Log Services (Hanya mengambil perangkat dari pelanggan aktif)
+    else if (currentTab === 'services') {
+        container.classList.remove('hidden');
+        labelText = "Perangkat Pelanggan";
+        defaultOptionText = "Semua Perangkat";
+        
+        const list = window.globalDataCloud['services'] || [];
+        list.forEach(item => {
+            const perangkat = (item.perangkat || '').trim();
+            if (perangkat && perangkat !== '-') {
+                uniqueValues.add(perangkat);
+            }
+        });
+    }
+    // 4. Kondisi Tab Inventaris
+    else if (currentTab === 'inventaris') {
+        container.classList.remove('hidden');
+        labelText = "Kategori Barang";
+        defaultOptionText = "Semua Kategori";
+        
+        const list = window.globalDataCloud['inventaris'] || [];
+        list.forEach(item => {
+            if (item.kategori && item.kategori.trim()) {
+                uniqueValues.add(item.kategori.trim());
+            }
+        });
+    } 
+    // 5. Kondisi Tab Office
+    else if (currentTab === 'list_office') {
+        container.classList.remove('hidden');
+        labelText = "Tipe Akun";
+        defaultOptionText = "Semua Tipe Akun";
+        uniqueValues.add("Utama");
+        uniqueValues.add("Anggota");
+        uniqueValues.add("Personal");
+    } 
+    // 6. Kondisi Tab Log Aktivitas
+    else if (currentTab === 'activity_logs') {
+        container.classList.remove('hidden');
+        labelText = "Modul Terkait";
+        defaultOptionText = "Semua Modul";
+        
+        const list = window.globalDataCloud['activity_logs'] || [];
+        list.forEach(item => {
+            if (item.menu_display && item.menu_display.trim()) {
+                uniqueValues.add(item.menu_display.trim());
+            }
+        });
+    }
+
+    // Jika filter ini ditampilkan, perbarui teks label dan isinya
+    if (!container.classList.contains('hidden')) {
+        label.innerText = labelText;
+        const sortedValues = Array.from(uniqueValues).sort();
+        let html = `<option value="">${defaultOptionText}</option>`;
+        sortedValues.forEach(val => {
+            html += `<option value="${val}">${val}</option>`;
+        });
+
+        const previousSelection = select.value;
+        select.innerHTML = html;
+        select.value = previousSelection;
     }
 };
 

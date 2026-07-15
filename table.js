@@ -47,7 +47,8 @@ function renderTableHeader() {
             'Kode Toko', 'Harga Jual', 'Cabang', 'Masa Aktif', 'No. WhatsApp', 
             'Tanggal Invite', 'Tanggal Masuk', 'Tanggal Input', 'Tanggal', 
             'Spesifikasi Ringkas', 'Nama User', 'Serial Number (SN)', 'Pemulihan', 
-            'No. Referensi', 'No. WA', 'Akun', 'Status Display', 'Stok', 'Kondisi'
+            'No. Referensi', 'No. WA', 'Akun', 'Status Display', 'Stok', 'Kondisi',
+            'Total Unit'
         ];
         if (specialHeaders.includes(header)) {
             html += `<th class="px-4 py-3 font-semibold whitespace-nowrap">${header}</th>`;
@@ -103,7 +104,7 @@ function renderTable() {
     
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    } else if (window.currentTab === 'services') {
+    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan') {
         data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
     } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
         data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
@@ -114,6 +115,9 @@ function renderTable() {
     const statusFilter = document.getElementById('status-filter');
     const filterStatusValue = statusFilter ? statusFilter.value : '';
     const serverFilterValue = window.currentServerFilter || '';
+    
+    const secondaryFilter = document.getElementById('secondary-filter');
+    const filterSecondaryValue = secondaryFilter ? secondaryFilter.value : '';
     
     let branchFilterValue = window.userBranch || '';
     if (!branchFilterValue) {
@@ -135,6 +139,32 @@ function renderTable() {
                 if (item.kondisi !== filterStatusValue) return false;
             } else {
                 if (item.status !== filterStatusValue) return false;
+            }
+        }
+        
+        // Pengecekan Filter Sekunder Kontekstual Per Tab
+        if (filterSecondaryValue) {
+            const currentTab = window.currentTab;
+            if (currentTab === 'list_laptop' || currentTab === 'laptop_display') {
+                const itemType = `${item.merk || ''} ${item.tipe || ''}`.trim();
+                if (itemType !== filterSecondaryValue) return false;
+            } 
+            else if (currentTab === 'penyewaan') {
+                const unitString = (item.unit || '').toLowerCase();
+                if (!unitString.includes(filterSecondaryValue.toLowerCase())) return false;
+            } 
+            else if (currentTab === 'services') {
+                const deviceString = (item.perangkat || '').toLowerCase();
+                if (!deviceString.includes(filterSecondaryValue.toLowerCase())) return false;
+            }
+            else if (currentTab === 'inventaris') {
+                if ((item.kategori || '').trim() !== filterSecondaryValue) return false;
+            }
+            else if (currentTab === 'list_office') {
+                if ((item.tipe_akun || '').trim() !== filterSecondaryValue) return false;
+            }
+            else if (currentTab === 'activity_logs') {
+                if ((item.menu_display || '').trim() !== filterSecondaryValue) return false;
             }
         }
         
@@ -198,7 +228,7 @@ function renderTable() {
             const val = item[key] !== undefined ? item[key] : '-';
             
             if (key === 'id') {
-                const displayId = (window.currentTab === 'services' || window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') ? (startIndex + index + 1) : val;
+                const displayId = (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') ? (startIndex + index + 1) : val;
                 rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${displayId}</td>`;
             } else if (key === 'no_ref') {
                 const refDisplay = (val && val !== '-') ? val : `SRV-Legacy-#${item.id}`;
@@ -208,6 +238,9 @@ function renderTable() {
             } else if (key === 'tgl_mulai' && window.currentTab === 'penyewaan') {
                 const tglSelesai = item.tgl_selesai || '-';
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val} - ${tglSelesai}</span></td>`;
+            } else if (key === 'total_unit' && window.currentTab === 'penyewaan') {
+                const totalUnitCount = item._linkedLaptopKeys ? item._linkedLaptopKeys.length : (item.unit ? item.unit.split('•').length - 1 : 0);
+                rowHtml += `<td class="px-4 py-3 font-extrabold text-slate-800 text-center font-mono">${totalUnitCount} Unit</td>`;
             } else if ((key === 'biaya' || key === 'total_biaya' || key === 'harga_jual' || key === 'harga_modal' || key === 'display_harga_jual' || key === 'display_harga_modal' || key === 'total_bayar' || key === 'biaya_jasa') && window.currentTab !== 'list_laptop') {
                 rowHtml += `<td class="px-4 py-3 font-medium text-slate-900">Rp ${Number(val).toLocaleString('id-ID')}</td>`;
             } else if (key === 'akun' && window.currentTab === 'list_office') {
@@ -265,7 +298,7 @@ function renderTable() {
                 let displayVal = val;
                 
                 if (window.currentTab === 'list_office') {
-                    const expiredStr = item.workspace_aktif || item.workspace_expired || item.masa_aktif || '';
+                    const expiredStr = item.workspace_aktif || item.workspace_expired || item.workspace_expired || item.masa_aktif || '';
                     const expiredDate = parseFlexibleDate(expiredStr);
                     if (expiredDate) {
                         const today = new Date();
@@ -305,7 +338,7 @@ function renderTable() {
                 rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 uppercase text-[11px] tracking-wide">${val}</td>`;
             } else if (key === 'unit' && window.currentTab === 'penyewaan') {
                 const unitItems = val.split(', ').map(u => u.trim());
-                const unitHtml = unitItems.map(u => `<div class="flex gap-2 text-xs"><span>•</span><span class="font-mono text-cyan-700 font-medium">${u}</span></div>`).join('');
+                const unitHtml = unitItems.map(u => `<div class="flex gap-2 text-xs"><span class="font-mono text-cyan-700 font-medium">${u}</span></div>`).join('');
                 rowHtml += `
                     <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[220px]">
                         <div class="max-h-28 overflow-y-auto pr-2 space-y-1.5 custom-table-scrollbar">
@@ -849,7 +882,12 @@ function openEditModal(firebaseKey) {
             </div>
             
             <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
-                <label class="block text-xs font-semibold text-slate-500">Edit Unit Laptop (Bisa Centang Banyak)</label>
+                <div class="flex justify-between items-center">
+                    <label class="block text-xs font-semibold text-slate-500">Edit Unit Laptop (Bisa Centang Banyak)</label>
+                    <span id="edit-laptop-count-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-100 text-cyan-800">
+                        ${window.editSelectedLaptopKeys ? window.editSelectedLaptopKeys.length : 0} Unit Terpilih
+                    </span>
+                </div>
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
                     <input type="text" id="search-edit-laptop" oninput="window.populateEditLaptopCheckboxes()" placeholder="Ketik Merk, Tipe, SN, atau Kode Toko..." class="w-full pl-8 pr-4 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-cyan-500 focus:outline-none bg-slate-50">
@@ -924,7 +962,7 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Password Baru (Kosongkan jika tak diubah)</label><input type="password" id="edit-password-user" class="w-full border p-2 text-sm rounded-lg"></div>
             
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Posisi Struktural</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Posisi Utama</label>
                 <select id="edit-role-user" class="w-full border p-2 text-sm rounded-lg bg-white">
                     <option value="Sales Counter" ${targetItem.role === 'Sales Counter' ? 'selected' : ''}>Sales Counter</option>
                     <option value="Teknisi" ${targetItem.role === 'Teknisi' ? 'selected' : ''}>Teknisi (Sembunyikan Form)</option>
@@ -1106,6 +1144,19 @@ function populateLaptopCheckboxes() {
     const container = document.getElementById('checkbox-laptop-container');
     if(!container) return;
 
+    // Deteksi cabang yang sedang dipilih di form utama
+    const form = document.getElementById('operational-form');
+    const branchSelect = form ? form.querySelector('[name="cabang"]') : null;
+    const selectedBranch = branchSelect ? branchSelect.value : '';
+
+    // Daftarkan listener sekali saja agar mendeteksi jika cabang form utama diubah
+    if (branchSelect && !branchSelect.dataset.listenerAttached) {
+        branchSelect.dataset.listenerAttached = 'true';
+        branchSelect.addEventListener('change', () => {
+            populateLaptopCheckboxes();
+        });
+    }
+
     const masterLaptop = window.globalDataCloud['list_laptop'] || [];
     if(masterLaptop.length === 0) {
         container.innerHTML = `<span class="text-xs text-gray-400 italic">Tidak ada laptop di gudang (Isi di menu Laptop Penyewaan)</span>`;
@@ -1116,6 +1167,9 @@ function populateLaptopCheckboxes() {
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
 
     const filteredLaptop = masterLaptop.filter(lap => {
+        // Filter Cabang Isolasi
+        if (selectedBranch && lap.cabang !== selectedBranch) return false;
+
         const brand = (lap.merk || '').toLowerCase();
         const type = (lap.tipe || '').toLowerCase();
         const sn = (lap.sn || '').toLowerCase();
@@ -1125,7 +1179,7 @@ function populateLaptopCheckboxes() {
     });
 
     if(filteredLaptop.length === 0) {
-        container.innerHTML = `<span class="text-xs text-gray-400 italic block py-2 text-center">Unit laptop tidak ditemukan.</span>`;
+        container.innerHTML = `<span class="text-xs text-gray-400 italic block py-2 text-center">Unit laptop tidak ditemukan pada cabang ini.</span>`;
         return;
     }
 
@@ -1164,11 +1218,17 @@ function populateEditLaptopCheckboxes() {
     const container = document.getElementById('edit-checkbox-laptop-container');
     if(!container) return;
 
+    // Saring berdasarkan cabang aktif dari form edit
+    const selectedBranch = document.getElementById('edit-cabang')?.value || '';
+
     const masterLaptop = window.globalDataCloud['list_laptop'] || [];
     const searchInput = document.getElementById('search-edit-laptop');
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
     
     const filteredLaptop = masterLaptop.filter(lap => {
+        // Filter Cabang Isolasi
+        if (selectedBranch && lap.cabang !== selectedBranch) return false;
+
         const brand = (lap.merk || '').toLowerCase();
         const type = (lap.tipe || '').toLowerCase();
         const sn = (lap.sn || '').toLowerCase();
@@ -1178,7 +1238,7 @@ function populateEditLaptopCheckboxes() {
     });
 
     if(filteredLaptop.length === 0) {
-        container.innerHTML = `<span class="text-xs text-gray-400 italic block py-2 text-center">Unit laptop tidak ditemukan.</span>`;
+        container.innerHTML = `<span class="text-xs text-gray-400 italic block py-2 text-center">Unit laptop tidak ditemukan pada cabang ini.</span>`;
         return;
     }
 
@@ -1226,7 +1286,7 @@ function syncCheckboxState(cb) {
 
 function syncEditCheckboxState(cb) {
     const laptopKey = cb.getAttribute('data-key');
-    if (!window.editSelectedLaptopKeys) window.editSelectedPenjualanItems = [];
+    if (!window.editSelectedLaptopKeys) window.editSelectedLaptopKeys = [];
     
     if (cb.checked) {
         if (!window.editSelectedLaptopKeys.includes(laptopKey)) {
@@ -1234,6 +1294,12 @@ function syncEditCheckboxState(cb) {
         }
     } else {
         window.editSelectedLaptopKeys = window.editSelectedLaptopKeys.filter(key => key !== laptopKey);
+    }
+
+    // Perbarui lencana hitungan visual secara real-time saat dicentang/dilepas
+    const badge = document.getElementById('edit-laptop-count-badge');
+    if (badge) {
+        badge.innerText = `${window.editSelectedLaptopKeys.length} Unit Terpilih`;
     }
 }
 
@@ -1310,7 +1376,7 @@ function deleteRow(firebaseKey) {
 }
 
 // ==========================================================================
-// 1. DYNAMIC INJECTION FOR BAHAN / JASA INPUT FORM (EMBEDDED STYLE - GAMBAR 2)
+// 1. DYNAMIC INJECTION FOR BAHAN / JASA INPUT FORM (EMBEDDED STYLE)
 // ==========================================================================
 function ensureBahanJasaModalExists() {
     if (document.getElementById('add-bahan-jasa-modal')) return;
@@ -1334,7 +1400,7 @@ function ensureBahanJasaModalExists() {
                             <option value="Produk">Bahan / Sparepart</option>
                         </select>
                     </div>
-                    <!-- SEARCH & STATIC SCROLLBOX CONTAINER (GAYA GAMBAR 2) -->
+                    <!-- SEARCH & STATIC SCROLLBOX CONTAINER -->
                     <div class="space-y-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Barang / Jasa</label>
                         <div class="relative">
@@ -1342,7 +1408,7 @@ function ensureBahanJasaModalExists() {
                             <input type="text" id="bj-name" required oninput="window.onBahanJasaNameInput()" class="w-full pl-8 pr-4 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Ketik kata kunci untuk mencari...">
                         </div>
                         
-                        <!-- Box kontainer statis di dalam form flow (tidak menutupi elemen lain) -->
+                        <!-- Box kontainer statis di dalam form flow -->
                         <div id="bj-autocomplete-results" class="border border-gray-300 rounded-xl p-3 max-h-48 overflow-y-auto bg-white space-y-2 custom-table-scrollbar">
                             <div class="text-center py-6 text-slate-400 text-xs italic">
                                 Ketik nama barang/jasa di kolom pencarian di atas...
@@ -1392,7 +1458,7 @@ window.closeAddBahanJasaModal = function() {
 };
 
 // ==========================================================================
-// 3. LOGIKA CUSTOM AUTOCOMPLETE PADA INPUT BAHAN / JASA (STOK OPNAME STYLE)
+// 3. LOGIKA CUSTOM AUTOCOMPLETE PADA INPUT BAHAN / JASA
 // ==========================================================================
 
 window.onBahanJasaTypeChange = function() {
@@ -1424,7 +1490,6 @@ window.onBahanJasaNameInput = function() {
 
     const query = nameInput.value.toLowerCase().trim();
     
-    // Jika kolom pencarian kosong, bersihkan dan tampilkan petunjuk
     if (query.length < 1) {
         resultsBox.innerHTML = `
             <div class="text-center py-6 text-slate-400 text-xs italic">
@@ -1521,28 +1586,20 @@ window.selectBahanJasaAutocomplete = function(element, name, price, productKey) 
         priceInput.value = window.formatCurrencyInput(String(price));
     }
 
-    // Bersihkan highlight aktif pada seluruh kartu di dalam kontainer
     const allCards = document.querySelectorAll('.bj-item-card');
     allCards.forEach(card => {
         card.classList.remove('bg-cyan-50/70', 'border-cyan-400', 'ring-1', 'ring-cyan-400');
         card.classList.add('bg-white', 'border-slate-200');
     });
 
-    // Berikan efek highlight aktif biru toska pada kartu yang diklik
     if (element) {
         element.classList.remove('bg-white', 'border-slate-200');
         element.classList.add('bg-cyan-50/70', 'border-cyan-400', 'ring-1', 'ring-cyan-400');
     }
 };
 
-// Deteksi klik di luar (Modifikasi agar kontainer statis tidak ikut tersembunyi)
-document.addEventListener('click', function(e) {
-    // Kontainer hasil pencarian bahan/jasa dibiarkan statis mengikuti alur form
-    // Jadi tidak disembunyikan lewat klik luar, mirip seperti list pada gambar 2.
-});
-
 // ==========================================================================
-// 4. PENYIMPANAN DATA BAHAN / JASA (DENGAN VALIDASI VALID MATCHING)
+// 4. PENYIMPANAN DATA BAHAN / JASA
 // ==========================================================================
 window.saveBahanJasaItem = function(event) {
     event.preventDefault();
@@ -1571,7 +1628,6 @@ window.saveBahanJasaItem = function(event) {
         price: priceValue
     };
 
-    // Validasi ketat: Tidak boleh menulis nama baru secara bebas (harus dari database) [3]
     if (type === 'Produk') {
         const productKey = nameInput.dataset.productKey;
         const katalog = window.globalDataCloud['katalog_produk'] || [];
