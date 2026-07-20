@@ -536,13 +536,27 @@ function switchTab(tabName) {
 
         function handleTipeAkunChange() {
             const val = tipeSelect ? tipeSelect.value : '';
+            // Hubungkan ke elemen input masa_aktif
+            const masaAktifInput = document.querySelector('#form-fields input[name="masa_aktif"]');
+
             if (val === 'Anggota') {
                 if (serverContainer) serverContainer.classList.remove('hidden');
                 if (masaAktifContainer) masaAktifContainer.classList.add('hidden'); 
-                refreshServerOptions();
+                
+                // PERBAIKAN: Hapus atribut required saat disembunyikan
+                if (masaAktifInput) {
+                    masaAktifInput.removeAttribute('required');
+                    masaAktifInput.value = ''; // Kosongkan nilai jika ada
+                }
             } else {
                 if (serverContainer) serverContainer.classList.add('hidden');
                 if (masaAktifContainer) masaAktifContainer.classList.remove('hidden'); 
+                
+                // PERBAIKAN: Pasang kembali required saat ditampilkan
+                if (masaAktifInput) {
+                    masaAktifInput.setAttribute('required', 'required');
+                }
+                
                 if (serverSelect) serverSelect.value = '';
                 if (officeSelect) officeSelect.disabled = false;
             }

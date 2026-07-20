@@ -147,6 +147,7 @@ export const fieldsTemplate = {
             <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
                 <option value="Tersedia">Ready / Tersedia</option>
                 <option value="Disewa">Sedang Disewa</option>
+                <option value="Hilang">Hilang / Disesuaikan</option>
                 <option value="Maintenance">Perbaikan / Rusak</option>
                 <option value="Terjual">Sudah Terjual</option>
                 <option value="Staf">Digunakan Oleh Staf</option>
