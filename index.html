@@ -149,11 +149,14 @@
                                 </button>
                             </div>
                             <div class="py-1" id="dropdown-export-container">
-                                <button onclick="window.exportToExcel(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-semibold transition flex items-center gap-2">
+                                <button onclick="window.openExportOptionModal(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-semibold transition flex items-center gap-2">
                                     <i class="fa-solid fa-file-export text-emerald-500"></i> Export Excel
                                 </button>
                             </div>
                             <div class="py-1" id="dropdown-import-container">
+                                <button onclick="window.downloadExcelTemplate(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-semibold transition flex items-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-down text-cyan-500"></i> Unduh Template Excel
+                                </button>
                                 <label class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-semibold transition flex items-center gap-2 cursor-pointer">
                                     <i class="fa-solid fa-file-excel text-amber-500"></i> <span>Import Excel</span>
                                     <input type="file" accept=".xlsx, .xls, .csv" onchange="window.importSpreadsheet(event); window.toggleUtilityDropdown(event)" class="hidden">
@@ -811,6 +814,45 @@
             </div>
         </div>
     </div>
+    <!-- MODAL MELAYANG PILIHAN EKSPOR (HYBRID EXPORT) -->
+<div id="export-option-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full overflow-hidden">
+        <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
+            <h3 class="font-bold flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-file-export text-cyan-400"></i> Pilih Opsi Ekspor Data
+            </h3>
+            <button onclick="window.closeExportOptionModal()" class="text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </header>
+        <div class="p-5 bg-slate-50 space-y-4">
+            <p class="text-xs text-slate-500 leading-relaxed text-center">Silakan tentukan jenis format file pengeksporan Excel yang ingin Anda unduh dari sistem Cloud saat ini.</p>
+            
+            <div class="space-y-3">
+                <!-- Opsi 1: Laporan Lengkap -->
+                <button onclick="window.triggerExport(false)" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl hover:border-slate-400 transition hover:bg-slate-100/50 text-left flex items-start gap-3">
+                    <div class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-file-invoice text-base"></i></div>
+                    <div>
+                        <span class="block text-xs font-black text-slate-800">Ekspor Laporan (Lengkap)</span>
+                        <span class="block text-[10px] text-slate-500 mt-0.5">Berisi semua kolom tabel (termasuk ID & status penunjang) untuk arsip manajemen.</span>
+                    </div>
+                </button>
+
+                <!-- Opsi 2: Format Impor -->
+                <button onclick="window.triggerExport(true)" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl hover:border-cyan-400 transition hover:bg-cyan-50/20 text-left flex items-start gap-3">
+                    <div class="p-2 bg-cyan-100 text-cyan-600 rounded-lg"><i class="fa-solid fa-arrows-spin text-base"></i></div>
+                    <div>
+                        <span class="block text-xs font-black text-slate-800">Ekspor Format Impor (Edit & Upload)</span>
+                        <span class="block text-[10px] text-slate-500 mt-0.5">Hanya berisi kolom data murni yang siap diedit masal dan diimpor ulang tanpa error.</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+        <div class="p-3 bg-white border-t flex justify-end">
+            <button onclick="window.closeExportOptionModal()" class="px-4 py-2 border rounded-lg text-xs text-gray-600 hover:bg-gray-100 font-bold transition">Batal</button>
+        </div>
+    </div>
+</div>
 
     <div id="datalist-container"></div>
 </body>

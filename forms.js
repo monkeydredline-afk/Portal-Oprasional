@@ -192,7 +192,7 @@ function handleSubmit(e) {
         window.selectedLaptopKeys.forEach(key => {
             const targetLap = masterLaptop.find(l => l._firebaseKey === key);
             if (targetLap) {
-                listUnitSewa.push(`• ${targetLap.merk} ${targetLap.tipe} [SN: ${targetLap.sn || 'Tanpa SN'}]`);
+                listUnitSewa.push(`• ${targetLap.merk} ${targetLap.tipe} [SN: ${targetLap.sn || 'Tanpa SN'}] [Kode: ${targetLap.kode_toko || '-'}]`);
                 laptopKeysToUpdate.push(key);
             }
         });
@@ -577,7 +577,7 @@ function handleUpdateSubmit(e) {
         window.editSelectedLaptopKeys.forEach(key => {
             const targetLap = masterLaptop.find(l => l._firebaseKey === key);
             if (targetLap) {
-                listUnitSewa.push(`• ${targetLap.merk} ${targetLap.tipe} [SN: ${targetLap.sn || 'Tanpa SN'}]`);
+                listUnitSewa.push(`• ${targetLap.merk} ${targetLap.tipe} [SN: ${targetLap.sn || 'Tanpa SN'}] [Kode: ${targetLap.kode_toko || '-'}]`);
             }
         });
         updatedData.unit = listUnitSewa.join(', ');

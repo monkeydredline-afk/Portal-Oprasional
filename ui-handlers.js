@@ -98,6 +98,32 @@ function toggleUtilityDropdown(event) {
     }
 }
 
+// ==========================================================================
+// PENGENDALIAN MODAL PILIHAN EKSPOR HYBRID
+// ==========================================================================
+function openExportOptionModal() {
+    const modal = document.getElementById('export-option-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeExportOptionModal() {
+    const modal = document.getElementById('export-option-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function triggerExport(isCompatibleForImport) {
+    // Jalankan fungsi ekspor bawaan excel.js dengan filter parameter yang dipilih
+    if (window.exportToExcel) {
+        window.exportToExcel(isCompatibleForImport);
+    }
+    closeExportOptionModal();
+}
+
+// Ikat fungsi ke lingkup window agar dapat dieksekusi oleh elemen HTML
+window.openExportOptionModal = openExportOptionModal;
+window.closeExportOptionModal = closeExportOptionModal;
+window.triggerExport = triggerExport;
+
 /* ==========================================================================
    FUNGSI POPOVER & FILTER DATA TERPADU
    ========================================================================== */

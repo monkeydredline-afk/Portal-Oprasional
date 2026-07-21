@@ -1,13 +1,13 @@
 /* ==========================================================================
-   Teknisi Portal - excel.js (Modul Impor & Ekspor Spreadsheet Excel)
+   Teknisi Portal - excel.js (Robust Version - Strict Validation & Hybrid Export)
    ========================================================================== */
 import { db, ref, push, set } from './firebase-config.js';
-import { tableHeaders, dataKeysMapping } from './templates.js';
-import { parseDate } from './utils.js';
+import { tableHeaders, dataKeysMapping, importTemplatesHeaders, importTemplatesKeys } from './templates.js';
 
+// Fungsi pembantu konversi tanggal fleksibel dari Excel
 function parseFlexibleDate(dateStr) {
     if (!dateStr) return null;
-    const cleanStr = dateStr.trim();
+    const cleanStr = String(dateStr).trim();
     
     const dmyMatch = cleanStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (dmyMatch) {
@@ -26,20 +26,35 @@ function parseFlexibleDate(dateStr) {
     return null;
 }
 
-function exportToExcel() {
+// ==========================================================================
+// 1. FUNGSI EKSPOR HYBRID (DUA OPSI)
+// ==========================================================================
+function exportToExcel(isCompatibleForImport = false) {
     const data = window.globalDataCloud[window.currentTab] || [];
     if (data.length === 0) {
         if (window.showToast) window.showToast("Tidak ada data pada list ini untuk diekspor!", "warning");
         return;
     }
 
-    const headers = tableHeaders[window.currentTab];
-    const keys = dataKeysMapping[window.currentTab];
+    let headers = [];
+    let keys = [];
+
+    if (isCompatibleForImport) {
+        // Menggunakan kolom sekuensial bersih (Sesuai Blueprint Impor)
+        headers = importTemplatesHeaders[window.currentTab] || [];
+        keys = importTemplatesKeys[window.currentTab] || [];
+    } else {
+        // Menggunakan kolom lengkap tabel web asli (Termasuk ID & Aksi)
+        headers = tableHeaders[window.currentTab] || [];
+        keys = dataKeysMapping[window.currentTab] || [];
+    }
 
     const rows = data.map(item => {
         let row = {};
         headers.forEach((header, idx) => {
             const key = keys[idx];
+            if (!key) return;
+            
             let val = item[key];
             if (val === undefined || val === null) val = '-';
             
@@ -68,12 +83,36 @@ function exportToExcel() {
     XLSX.utils.book_append_sheet(workbook, worksheet, window.currentTab);
 
     const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(workbook, `Ekspor_${window.currentTab}_${dateStr}.xlsx`);
+    const filePrefix = isCompatibleForImport ? "Format_Impor" : "Laporan_Ekspor";
+    XLSX.writeFile(workbook, `${filePrefix}_${window.currentTab}_${dateStr}.xlsx`);
     
-    if (window.logActivity) window.logActivity('Lainnya', window.currentTab, `Melakukan ekspor data ke berkas Excel.`);
+    if (window.logActivity) window.logActivity('Lainnya', window.currentTab, `Melakukan ekspor data ke berkas Excel (${filePrefix}).`);
     if (window.showToast) window.showToast("Data berhasil diekspor ke Excel!");
 }
 
+// ==========================================================================
+// 2. FUNGSI UNDUH TEMPLATE KOSONG SEKUENSIL
+// ==========================================================================
+function downloadExcelTemplate() {
+    const headers = importTemplatesHeaders[window.currentTab];
+    if (!headers) {
+        if (window.showToast) window.showToast("Tidak ada template impor tersedia untuk tab ini.", "warning");
+        return;
+    }
+
+    // Membuat baris header tunggal kosong
+    const sheetData = [headers];
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Template_${window.currentTab}`);
+
+    XLSX.writeFile(workbook, `Template_Impor_${window.currentTab}.xlsx`);
+    if (window.showToast) window.showToast("Template berhasil diunduh!");
+}
+
+// ==========================================================================
+// 3. FUNGSI IMPOR DENGAN VALIDASI MUTLAK
+// ==========================================================================
 function importSpreadsheet(e) {
     const perms = window.currentUser.permissions || {};
     if (perms.import_excel !== true && perms.import_excel !== 'true') {
@@ -92,255 +131,118 @@ function importSpreadsheet(e) {
             const workbook = XLSX.read(data, { type: 'binary' });
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            const excelRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
             
-            if (excelRows.length === 0) {
-                if (window.showToast) window.showToast("File spreadsheet kosong atau format salah", "error");
+            // Baca baris pertama secara mentah untuk memverifikasi struktur header sekuensial
+            const headersRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] || [];
+            const cleanHeaders = headersRaw.map(h => String(h || '').trim());
+
+            const expectedHeaders = importTemplatesHeaders[window.currentTab] || [];
+            
+            // VERIFIKASI MUTLAK LAPIS 1: Jumlah Kolom
+            if (cleanHeaders.length !== expectedHeaders.length) {
+                alert(`⚠️ STRUKTUR KOLOM SALAH!\n\n` +
+                      `Sistem mendeteksi file Excel Anda memiliki ${cleanHeaders.length} kolom.\n` +
+                      `Seharusnya file berisi tepat ${expectedHeaders.length} kolom berikut:\n` +
+                      `[ ${expectedHeaders.join(' | ')} ]\n\n` +
+                      `Silakan unduh template resmi terlebih dahulu.`);
+                e.target.value = '';
                 return;
             }
 
-            const normalizeSpreadsheetKey = (key) =>
-                String(key || '')
-                    .trim()
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/_+/g, '_')
-                    .replace(/^_|_$/g, '');
+            // VERIFIKASI MUTLAK LAPIS 2 & 3: Nama Kolom & Urutan Sekuensial
+            for (let i = 0; i < expectedHeaders.length; i++) {
+                if (cleanHeaders[i] !== expectedHeaders[i]) {
+                    alert(`⚠️ URUTAN / NAMA KOLOM SALAH!\n\n` +
+                          `Ketidakcocokan terdeteksi pada Kolom ke-${i + 1}:\n` +
+                          `- File Anda: '${cleanHeaders[i] || '(Kosong/Tanpa Header)'}'\n` +
+                          `- Aturan Sistem: '${expectedHeaders[i]}'\n\n` +
+                          `File Excel untuk tab ini harus disusun secara urut. Silakan perbaiki urutan atau unduh template resmi.`);
+                    e.target.value = '';
+                    return;
+                }
+            }
 
-            const buildNormalizedRowMap = (row) =>
-                Object.keys(row).reduce((map, rowKey) => {
-                    map[normalizeSpreadsheetKey(rowKey)] = row[rowKey];
-                    return map;
-                }, {});
+            // Konversi sisa baris menjadi objek JSON
+            const excelRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+            if (excelRows.length === 0) {
+                if (window.showToast) window.showToast("File spreadsheet kosong (Tidak ada baris data).", "error");
+                e.target.value = '';
+                return;
+            }
 
-            const labelsMapping = {
+            const tabLabels = {
                 services: "Log Services",
                 penyewaan: "Data Penyewaan",
                 cctv: "Proyek CCTV",
-                list_laptop: "Laptop Penyewaan (Master)",
-                laptop_display: "Laptop Display (Etalase)",
-                inventaris: "Inventaris Suku Cadang & Alat",
+                list_laptop: "Laptop Penyewaan",
+                laptop_display: "Laptop Display",
+                inventaris: "Inventaris Suku Cadang",
                 list_office: "List Akun Office",
-                user_management: "User Management"
+                master_jasa: "Master Data Jasa",
+                katalog_produk: "Katalog Produk"
             };
 
-            const importFieldAliases = {
-                services: {
-                    pelanggan: ['pelanggan', 'nama pelanggan', 'nama'],
-                    no_wa: ['no_wa', 'whatsapp', 'no whatsapp', 'nomor whatsapp', 'telp', 'telepon'],
-                    perangkat: ['perangkat', 'device', 'unit'],
-                    kerusakan: ['kerusakan', 'gejala', 'keluhan'],
-                    biaya: ['biaya', 'estimasi_biaya', 'estimasi biaya', 'harga']
-                },
-                penyewaan: {
-                    penyewa: ['penyewa', 'nama penyewa', 'nama'],
-                    no_wa: ['no_wa', 'whatsapp', 'no whatsapp', 'nomor whatsapp', 'telp', 'telepon'],
-                    tgl_mulai: ['tgl_mulai', 'tanggal mulai', 'mulai_sewa', 'tgl mulai', 'tanggal_mulai'],
-                    tgl_selesai: ['tgl_selesai', 'tanggal selesai', 'selesai_sewa', 'tgl selesai', 'tanggal_selesai'],
-                    total_biaya: ['total_biaya', 'total biaya', 'biaya sewa', 'harga'],
-                    status: ['status', 'status_pembayaran', 'pembayaran'],
-                    unit: ['unit', 'unit_laptop', 'laptop']
-                },
-                cctv: {
-                    klien: ['klien', 'nama klien', 'nama_instansi', 'instansi'],
-                    lokasi: ['lokasi', 'lokasi pemasangan', 'alamat'],
-                    jumlah_cctv: ['jumlah_cctv', 'jumlah', 'kamera', 'jumlah kamera'],
-                    progres: ['progres', 'progres_kerja', 'status kerja'],
-                    status: ['status', 'status_proyek']
-                },
-                list_laptop: {
-                    kode_toko: ['kode_toko', 'kode toko', 'kode', 'kode_toko_unit'],
-                    merk: ['merk', 'brand'],
-                    tipe: ['tipe', 'model', 'tipe model', 'type'],
-                    sn: ['sn', 'serial_number', 'serial number', 'serial_number_sn', 'serial number sn'],
-                    spek: ['spek', 'spesifikasi', 'spesifikasi teknik', 'spesifikasi_teknik', 'spek_teknik'],
-                    status: ['status'],
-                    catatan: ['catatan', 'keterangan', 'notes']
-                },
-                laptop_display: {
-                    teknisi: ['teknisi', 'nama teknisi'],
-                    merk: ['merk', 'brand'],
-                    tipe: ['tipe', 'model', 'tipe model', 'type'],
-                    sn: ['sn', 'serial_number', 'serial number', 'serial_number_sn', 'serial number sn'],
-                    spek_singkat: ['spek_singkat', 'spesifikasi_ringkas', 'spesifikasi ringkas', 'spek', 'spesifikasi'],
-                    harga_jual: ['harga_jual', 'harga jual', 'harga'],
-                    status: ['status', 'status_display', 'status display'],
-                    catatan: ['catatan', 'keterangan', 'notes']
-                },
-                inventaris: {
-                    nama_barang: ['nama_barang', 'nama barang', 'nama', 'barang'],
-                    kode_barang: ['kode_barang', 'kode barang', 'kode', 'sku', 'part_number'],
-                    kategori: ['kategori', 'jenis', 'category'],
-                    stok: ['stok', 'jumlah', 'qty', 'quantity'],
-                    satuan: ['satuan', 'unit'],
-                    lokasi_rak: ['lokasi_rak', 'lokasi rak', 'rak', 'posisi'],
-                    kondisi: ['kondisi', 'condition'],
-                    catatan: ['catatan', 'keterangan', 'notes']
-                },
-                list_office: {
-                    nama_user: ['nama_user', 'nama user', 'user', 'nama'],
-                    akun: ['akun', 'email', 'gmail'],
-                    password: ['password', 'pass'],
-                    pemulihan: ['pemulihan', 'recovery', 'info pemulihan'],
-                    tipe_akun: ['tipe_akun', 'tipe akun', 'tipe'],
-                    office: ['office', 'jenis_office', 'lisensi'],
-                    workspace_expired: ['workspace_expired', 'workspace_expired', 'workspace_expired'],
-                    status: ['status', 'status_lisensi']
-                }
-            };
-
-            const requiredImportFields = {
-                services: ['pelanggan', 'no_wa', 'perangkat', 'kerusakan'],
-                penyewaan: ['penyewa', 'no_wa', 'tgl_mulai', 'tgl_selesai', 'total_biaya'],
-                cctv: ['klien', 'lokasi', 'jumlah_cctv'],
-                list_laptop: ['kode_toko', 'merk', 'tipe', 'sn'],
-                laptop_display: ['teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual'],
-                inventaris: ['nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan'],
-                list_office: ['nama_user', 'akun', 'password']
-            };
-
-            const headers = Object.keys(excelRows[0]).map(normalizeSpreadsheetKey);
-            const expected = requiredImportFields[window.currentTab] || [];
-            const matched = expected.filter(field => {
-                const aliases = (importFieldAliases[window.currentTab] && importFieldAliases[window.currentTab][field]) || [field];
-                return aliases.some(alias => headers.includes(normalizeSpreadsheetKey(alias)));
-            });
-            if (expected.length > 0 && matched.length < Math.min(2, expected.length)) {
-                const expectedHeaders = expected.map(field => {
-                    const aliases = (importFieldAliases[window.currentTab] && importFieldAliases[window.currentTab][field]) || [field];
-                    return aliases[0];
-                });
-                if (window.showToast) {
-                    window.showToast(
-                        `Format spreadsheet tidak cocok untuk tab [${labelsMapping[window.currentTab] || window.currentTab}]. ` +
-                        `Gunakan file yang diekspor dari tab yang sama. Contoh header yang dibutuhkan: ${expectedHeaders.join(', ')}.`,
-                        'error'
-                    );
-                }
+            const tabNameStr = tabLabels[window.currentTab] || window.currentTab;
+            if (!confirm(`Struktur Kolom Sesuai Standard (Mutlak)!\n\nApakah Anda yakin ingin mengimpor ${excelRows.length} baris data ke dalam tab [ ${tabNameStr} ]?`)) {
+                e.target.value = '';
                 return;
             }
-
-            const tabNameStr = labelsMapping[window.currentTab] || window.currentTab;
-            if (!confirm(`Ditemukan ${excelRows.length} baris data. Impor langsung ke cloud database pada list [${tabNameStr}]?`)) return;
 
             const targetNodeRef = ref(db, window.currentTab);
             const d = new Date();
             const tglInput = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
             
             const currentDataTab = window.globalDataCloud[window.currentTab] || [];
+            // ID database diisikan secara berurutan otomatis berbasis nilai maksimum yang ada di Firebase
             let currentMaxId = currentDataTab.length === 0 ? 0 : Math.max(...currentDataTab.map(l => Number(l.id) || 0));
+
+            const keys = importTemplatesKeys[window.currentTab];
 
             excelRows.forEach((row) => {
                 currentMaxId++;
                 
-                const normalizedRow = buildNormalizedRowMap(row);
-                const getVal = (possibleKeys, defaultVal = '-') => {
-                    const normalizedKeys = possibleKeys.map(normalizeSpreadsheetKey);
-
-                    for (let nk of normalizedKeys) {
-                        if (normalizedRow[nk] !== undefined) return normalizedRow[nk];
-                    }
-
-                    for (let normRowKey of Object.keys(normalizedRow)) {
-                        for (let nk of normalizedKeys) {
-                            if (normRowKey === nk || normRowKey.includes(nk) || nk.includes(normRowKey)) {
-                                return normalizedRow[normRowKey];
-                            }
-                        }
-                    }
-                    return defaultVal;
-                };
-
                 let newItemData = {
                     id: currentMaxId,
-                    tanggal: getVal(['tanggal', 'tanggal_input', 'tanggal_masuk', 'tgl', 'date'], tglInput),
-                    cabang: getVal(['cabang', 'cabang_toko'], window.currentUser.branch || 'Head Office')
+                    tanggal: tglInput, // Bawaan default jika tidak terisi
+                    cabang: window.currentUser.branch || 'Head Office'
                 };
 
-                if (window.currentTab === 'list_laptop') {
-                    let textSpek = getVal(['spek', 'spesifikasi', 'spek_teknik'], '');
-                    if(!textSpek && (row.processor || row.ram || row.storage)) {
-                        textSpek = `CPU: ${row.processor || '-'}\nRAM: ${row.ram || '-'}\nStorage: ${row.storage || '-'}\nVGA/Layar: ${row.vga || '-'} (Non-Touch)`;
+                // Map kolom dari file Excel sekuensial ke properti data Firebase secara otomatis
+                expectedHeaders.forEach((header, idx) => {
+                    const key = keys[idx];
+                    let rawVal = row[header];
+                    if (rawVal === undefined || rawVal === null) rawVal = '';
+                    
+                    if (key) {
+                        newItemData[key] = String(rawVal).trim();
                     }
-                    newItemData.cabang = getVal(['cabang', 'cabang_toko'], 'Monumen Emmy Saelan');
-                    newItemData.kode_toko = getVal(['kode_toko', 'kode'], '-');
-                    newItemData.merk = getVal(['merk', 'brand'], '-');
-                    newItemData.tipe = getVal(['tipe', 'model'], '-');
-                    newItemData.sn = String(getVal(['sn', 'serial_number', 'serial'], '-'));
-                    newItemData.spek = textSpek || '-';
-                    newItemData.status = getVal(['status'], 'Tersedia');
-                    newItemData.catatan = getVal(['catatan', 'keterangan'], '');
+                });
 
-                } else if (window.currentTab === 'laptop_display') {
-                    let textSpek = getVal(['spek_singkat', 'spesifikasi_ringkas', 'spek', 'spesifikasi'], '-');
-                    newItemData.cabang = getVal(['cabang', 'cabang_toko'], 'Monumen Emmy Saelan');
-                    newItemData.teknisi = getVal(['teknisi', 'nama_teknisi'], '-');
-                    newItemData.merk = getVal(['merk', 'brand'], '-');
-                    newItemData.tipe = getVal(['tipe', 'model', 'tipe_model'], '-');
-                    newItemData.sn = String(getVal(['sn', 'serial_number', 'serial', 'serial_number_sn'], '-'));
-                    newItemData.spek_singkat = textSpek;
-                    newItemData.harga_jual = getVal(['harga_jual', 'harga'], 0);
-                    newItemData.status = getVal(['status', 'status_display'], 'Ready');
-                    newItemData.catatan = getVal(['catatan', 'keterangan'], '');
+                // Pembersihan format nilai khusus tipe data numerik
+                if (newItemData.stok !== undefined) newItemData.stok = Number(newItemData.stok) || 0;
+                if (newItemData.biaya !== undefined) newItemData.biaya = String(newItemData.biaya).replace(/\D/g, '') || '0';
+                if (newItemData.total_biaya !== undefined) newItemData.total_biaya = String(newItemData.total_biaya).replace(/\D/g, '') || '0';
+                if (newItemData.harga_modal !== undefined) newItemData.harga_modal = String(newItemData.harga_modal).replace(/\D/g, '') || '0';
+                if (newItemData.harga_jual !== undefined) newItemData.harga_jual = String(newItemData.harga_jual).replace(/\D/g, '') || '0';
 
-                } else if (window.currentTab === 'inventaris') { 
-                    newItemData.nama_barang = getVal(['nama_barang', 'nama', 'barang'], '-');
-                    newItemData.kode_barang = getVal(['kode_barang', 'kode', 'sku', 'part_number'], '-');
-                    const kategoriValue = getVal(['kategori', 'jenis', 'category'], 'Sparepart Laptop');
-                    newItemData.kategori = kategoriValue;
-                    newItemData.stok = Number(getVal(['stok', 'jumlah', 'qty'], 0)) || 0;
-                    newItemData.satuan = getVal(['satuan', 'unit'], 'Pcs');
-                    newItemData.lokasi_rak = getVal(['lokasi_rak', 'rak', 'posisi'], '');
-                    newItemData.kondisi = getVal(['kondisi', 'condition'], 'Baik');
-                    newItemData.catatan = getVal(['catatan', 'keterangan', 'notes'], '');
-
-                } else if (window.currentTab === 'services') {
-                    newItemData.pelanggan = getVal(['pelanggan', 'nama_pelanggan', 'nama'], '-');
-                    newItemData.no_wa = getVal(['no_wa', 'whatsapp', 'telp'], '-');
-                    newItemData.perangkat = getVal(['perangkat', 'device', 'unit'], '-');
-                    newItemData.kerusakan = getVal(['kerusakan', 'gejala', 'keluhan'], '-');
-                    newItemData.biaya = getVal(['biaya', 'estimasi_biaya', 'harga'], 0);
-                    newItemData.status = getVal(['status'], 'Antrean');
-                    newItemData.teknisi = getVal(['teknisi', 'nama_teknisi'], 'Belum Ditentukan');
-                    newItemData.tindakan_teknisi = '';
-
-                } else if (window.currentTab === 'penyewaan') {
-                    newItemData.penyewa = getVal(['penyewa', 'nama_penyewa', 'nama'], '-');
-                    newItemData.no_wa = getVal(['no_wa', 'whatsapp', 'telp'], '-');
-                    newItemData.tgl_mulai = getVal(['tgl_mulai', 'mulai_sewa', 'tgl_sewa'], tglInput);
-                    newItemData.tgl_selesai = getVal(['tgl_selesai', 'selesai_sewa', 'tgl_kembali'], tglInput);
-                    newItemData.total_biaya = getVal(['total_biaya', 'biaya_sewa', 'harga'], 0);
-                    newItemData.status = getVal(['status', 'status_pembayaran'], 'Belum Bayar');
-                    newItemData.unit = getVal(['unit', 'unit_laptop', 'laptop'], '-');
-
-                } else if (window.currentTab === 'cctv') {
-                    newItemData.klien = getVal(['klien', 'nama_klien', 'instansi'], '-');
-                    newItemData.lokasi = getVal(['lokasi', 'lokasi_pemasangan', 'alamat'], '-');
-                    newItemData.jumlah_cctv = getVal(['jumlah_cctv', 'jumlah', 'kamera'], 0);
-                    newItemData.progres = getVal(['progres', 'progres_kerja'], 'Penarikan Kabel');
-                    newItemData.status = getVal(['status', 'status_proyek'], 'Survei');
-
-                } else if (window.currentTab === 'list_office') {
-                    newItemData.nama_user = getVal(['nama_user', 'user', 'nama'], '-');
-                    newItemData.akun = getVal(['akun', 'email', 'gmail'], '-');
-                    newItemData.password = getVal(['password', 'pass'], '-');
-                    newItemData.pemulihan = getVal(['pemulihan', 'info_pemulihan'], '-');
-                    newItemData.tipe_akun = getVal(['tipe_akun', 'tipe'], 'Anggota'); 
-                    newItemData.office = getVal(['office', 'jenis_office', 'lisensi'], '-');
-                    newItemData.name = getVal(['name', 'device', 'nama_pc'], '-');
-                    newItemData.workspace_expired = getVal(['workspace_expired', 'workspace_expired', 'workspace_expired'], '-');
-                    newItemData.status = getVal(['status', 'status_lisensi'], 'Aktif');
+                // Format Tanggal Excel jika berantakan
+                if (newItemData.tanggal && newItemData.tanggal.includes('-')) {
+                    const parts = newItemData.tanggal.split('-');
+                    if (parts[0] && parts[0].length === 4) {
+                        newItemData.tanggal = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
                 }
 
                 const newPostPushRef = push(targetNodeRef);
                 set(newPostPushRef, newItemData);
             });
 
-            if (window.logActivity) window.logActivity('Impor', window.currentTab, `Mengimpor sebanyak ${excelRows.length} baris data dari file spreadsheet.`);
-            if (window.showToast) window.showToast("Data spreadsheet berhasil diimpor!");
+            if (window.logActivity) window.logActivity('Impor', window.currentTab, `Berhasil mengimpor ${excelRows.length} baris data standar sekuensial.`);
+            if (window.showToast) window.showToast("Data standar berhasil diimpor!");
             e.target.value = ''; 
         } catch (err) {
-            alert("Gagal membaca dokumen spreadsheet: " + err.message);
+            alert("Gagal memproses dokumen spreadsheet: " + err.message);
+            e.target.value = '';
         }
     };
     reader.readAsBinaryString(file);
@@ -348,4 +250,5 @@ function importSpreadsheet(e) {
 
 // Kaitkan ke objek global window agar diakses oleh HTML event handler
 window.exportToExcel = exportToExcel;
+window.downloadExcelTemplate = downloadExcelTemplate;
 window.importSpreadsheet = importSpreadsheet;

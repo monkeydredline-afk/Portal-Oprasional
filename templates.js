@@ -634,3 +634,30 @@ export const filterOptionsTemplate = {
     user_management: ['Head Office', 'Monumen Emmy Saelan', 'Perintis'],
     activity_logs: ['Tambah', 'Ubah', 'Hapus', 'Kosongkan', 'Impor']
 };
+
+// --- BLUPRINT KOLOM KHUSUS IMPOR & EKSPOR HARMONIS (TANPA ID & AKSI) ---
+export const importTemplatesHeaders = {
+    services: ['Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Gejala / Kerusakan', 'Status'],
+    penyewaan: ['Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Tanggal Mulai', 'Tanggal Selesai', 'Total Biaya', 'Status', 'Unit & SN Laptop'],
+    cctv: ['Tanggal', 'Cabang', 'Klien / Instansi', 'Lokasi Pemasangan', 'Jumlah Kamera', 'Progres', 'Status Proyek'],
+    list_laptop: ['Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan'],
+    laptop_display: ['Tanggal Masuk', 'Cabang', 'Nama Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Harga Jual', 'Status Display', 'Catatan', 'Spesifikasi Pajangan'],
+    inventaris: ['Tanggal', 'Cabang', 'Nama Barang', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan'],
+    list_office: ['Tanggal', 'Nama User', 'Akun', 'Password', 'Pemulihan', 'Tipe Akun', 'Lisensi', 'Server Utama', 'Name', 'Masa Aktif', 'Status'],
+    master_jasa: ['Nama Jasa', 'Biaya Jasa'],
+    katalog_produk: ['Cabang', 'Nama Barang', 'Kategori', 'Stok', 'Satuan', 'Harga Beli', 'Harga Jual', 'Catatan'],
+    log_penjualan: ['Tanggal', 'Cabang', 'Pembeli', 'No. WA', 'Total Bayar']
+};
+
+export const importTemplatesKeys = {
+    services: ['tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'kerusakan', 'status'],
+    penyewaan: ['tanggal', 'cabang', 'penyewa', 'no_wa', 'tgl_mulai', 'tgl_selesai', 'total_biaya', 'status', 'unit'],
+    cctv: ['tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
+    list_laptop: ['tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
+    laptop_display: ['tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'harga_jual', 'status', 'catatan', 'spek_singkat'],
+    inventaris: ['tanggal', 'cabang', 'nama_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
+    list_office: ['tanggal', 'nama_user', 'akun', 'password', 'pemulihan', 'tipe_akun', 'office', 'server_utama', 'name', 'workspace_expired', 'status'],
+    master_jasa: ['nama_jasa', 'biaya_jasa'],
+    katalog_produk: ['cabang', 'nama_barang', 'kategori', 'stok', 'satuan', 'harga_modal', 'harga_jual', 'catatan'],
+    log_penjualan: ['tanggal', 'cabang', 'nama_pembeli', 'no_wa', 'total_bayar']
+};
