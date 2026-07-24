@@ -166,7 +166,12 @@ function calculateAndRenderStats() {
             filteredPenyewaan = filteredPenyewaan.filter(item => item?.cabang === window.userBranch);
         }
         let totalOmsetSewa = 0;
-        filteredPenyewaan.forEach(p => { totalOmsetSewa += (Number(p?.total_biaya) || 0); });
+        filteredPenyewaan.forEach(p => { 
+            // Abaikan transaksi yang berstatus Dibatalkan
+            if (p?.status !== 'Dibatalkan') {
+                totalOmsetSewa += (Number(p?.total_biaya) || 0); 
+            }
+        });
 
         setInnerText('stat-rent-omset', totalOmsetSewa.toLocaleString('id-ID'));
 

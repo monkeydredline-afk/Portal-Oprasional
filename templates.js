@@ -75,14 +75,6 @@ export const fieldsTemplate = {
             <label class="block text-sm font-medium text-gray-700 mb-1">Total Biaya Sewa (Rp)</label>
             <input type="text" name="total_biaya" oninput="this.value = window.formatCurrencyInput(this.value)" placeholder="Contoh: 150.000" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
-                <option value="Belum Bayar">Belum Bayar</option>
-                <option value="DP 50%">DP 50%</option>
-                <option value="Lunas">Lunas</option>
-            </select>
-        </div>
     `,
     cctv: `
         <div id="cabang-input-container">
@@ -622,7 +614,7 @@ export const dataKeysMapping = {
 
 export const filterOptionsTemplate = {
     services: ['Antrean', 'Proses', 'Selesai', 'Cancel'],
-    penyewaan: ['Belum Bayar', 'DP 50%', 'Lunas'],
+    penyewaan: ['Proses', 'Perpanjangan', 'Selesai', 'Dibatalkan'],
     cctv: ['Survei', 'Pengerjaan', 'Selesai'],
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],
     laptop_display: ['Ready', 'Terjual', 'Gudang'],

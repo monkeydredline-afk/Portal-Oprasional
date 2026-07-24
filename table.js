@@ -66,12 +66,10 @@ function renderTable() {
 
     let data = [];
     
-    // Logika Konsolidasi Katalog Produk + Laptop Display secara Real-time
     if (window.currentTab === 'katalog_produk') {
         const prodData = window.globalDataCloud['katalog_produk'] || [];
         const dispData = window.globalDataCloud['laptop_display'] || [];
 
-        // Petakan produk biasa ke struktur konsolidasi standar
         const mappedProducts = prodData.map(item => ({
             ...item,
             _sourceNode: 'katalog_produk',
@@ -84,7 +82,6 @@ function renderTable() {
             display_harga_jual: item.harga_jual || 0
         }));
 
-        // Petakan laptop display ke struktur konsolidasi standar
         const mappedLaptops = dispData.map(item => ({
             ...item,
             _sourceNode: 'laptop_display',
@@ -142,7 +139,6 @@ function renderTable() {
             }
         }
         
-        // Pengecekan Filter Sekunder Kontekstual Per Tab
         if (filterSecondaryValue) {
             const currentTab = window.currentTab;
             if (currentTab === 'list_laptop' || currentTab === 'laptop_display') {
@@ -175,7 +171,7 @@ function renderTable() {
         
         if (window.currentSubTab) {
             if (window.currentSubTab === 'Terlambat' && window.currentTab === 'penyewaan') {
-                if (item.status === 'Lunas') return false;
+                if (item.status === 'Selesai' || item.status === 'Dibatalkan') return false;
                 const dateSelesai = new Date(item.tgl_selesai);
                 const today = new Date();
                 today.setHours(0,0,0,0);
@@ -210,13 +206,16 @@ function renderTable() {
     paginatedData.forEach((item, index) => {
         const perms = window.currentUser.permissions || {};
         
+        // LOGIKA BARIS MERAH TERLAMBAT HANYA UNTUK SEWA AKTIF PASCA TANGGAL SELESAI
         let rowBgColor = '';
-        if (window.currentTab === 'penyewaan' && item.status !== 'Lunas') {
+        if (window.currentTab === 'penyewaan') {
             const dateSelesai = new Date(item.tgl_selesai);
             const today = new Date();
             today.setHours(0,0,0,0);
             
-            if (dateSelesai < today) {
+            const isActive = (item.status === 'Proses' || item.status === 'Perpanjangan');
+            
+            if (dateSelesai < today && isActive) {
                 rowBgColor = 'bg-rose-50/70 hover:bg-rose-100/80 transition-colors duration-150';
             }
         }
@@ -228,7 +227,6 @@ function renderTable() {
             const val = item[key] !== undefined ? item[key] : '-';
             
             if (key === 'id') {
-                // Semua tab kini menggunakan nomor urut dinamis berdasarkan halaman aktif
                 const displayId = startIndex + index + 1;
                 rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${displayId}</td>`;
             } else if (key === 'no_ref') {
@@ -299,7 +297,7 @@ function renderTable() {
                 let displayVal = val;
                 
                 if (window.currentTab === 'list_office') {
-                    const expiredStr = item.workspace_aktif || item.workspace_expired || item.workspace_expired || item.masa_aktif || '';
+                    const expiredStr = item.workspace_aktif || item.workspace_expired || item.masa_aktif || '';
                     const expiredDate = parseFlexibleDate(expiredStr);
                     if (expiredDate) {
                         const today = new Date();
@@ -320,12 +318,15 @@ function renderTable() {
                     }
                 }
 
-                if (val === 'Selesai' || displayVal === 'Lunas' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
+                // PEWARNAAN BADGE STATUS LENGKAP
+                if (val === 'Selesai' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
+                if (displayVal === 'Perpanjangan') badgeColor = "bg-purple-100 text-purple-800";
+                if (displayVal === 'Proses' || displayVal === 'Disewa') badgeColor = "bg-blue-100 text-blue-800";
+                if (displayVal === 'Dibatalkan' || displayVal === 'Maintenance' || displayVal === 'Cancel' || displayVal === 'Tidak Aktif' || displayVal === 'Rusak') badgeColor = "bg-rose-100 text-rose-800";
                 if (displayVal === 'Permanen') badgeColor = "bg-cyan-100 text-cyan-800";
-                if (displayVal === 'Belum Bayar' || displayVal === 'Maintenance' || displayVal === 'Gudang' || displayVal === 'Tidak Aktif' || displayVal === 'Rusak' || displayVal === 'Cancel') badgeColor = "bg-rose-100 text-rose-800";
-                if (displayVal === 'Disewa') badgeColor = "bg-blue-100 text-blue-800";
                 if (displayVal === 'Terjual') badgeColor = "bg-slate-200 text-slate-800";
                 if (displayVal === 'Staf') { badgeColor = "bg-indigo-100 text-indigo-800"; displayVal = "Digunakan Staf"; }
+
                 rowHtml += `<td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${badgeColor}">${displayVal}</span></td>`;
             } else if (key === 'action' && window.currentTab === 'activity_logs') {
                 let badgeColor = "bg-sky-100 text-sky-800";
@@ -362,7 +363,6 @@ function renderTable() {
                         </div>
                     </td>`;
             } else if (key === 'display_identitas' && window.currentTab === 'katalog_produk') {
-                // Tampilkan Serial Number (SN) dengan warna biru toska (cyan)
                 if (val.startsWith('SN:')) {
                     const cleanSn = val.replace('SN:', '').trim();
                     rowHtml += `<td class="px-4 py-3 font-mono font-bold text-cyan-600 whitespace-nowrap">${cleanSn}</td>`;
@@ -383,7 +383,6 @@ function renderTable() {
                     rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold border ${badgeColor}">${val}</span></td>`;
                 }
             } else if (key === 'display_detail' && window.currentTab === 'katalog_produk') {
-                // Deteksi spesifikasi laptop untuk format visual box
                 if (val.includes('CPU:') || val.includes('\n')) {
                     rowHtml += `
                         <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[240px]">
@@ -548,9 +547,9 @@ function renderTable() {
                     <div class="grid grid-cols-2 gap-1.5 w-max">
             `;
             
-            if (item.status !== 'Lunas' && item.status !== 'Selesai' && (perms.edit_data === true || perms.edit_data === 'true')) {
+            // TOMBOL VERIFIKASI SELESAI HANYA MUNCUL JIKA STATUS BUKAN SELESAI / DIBATALKAN
+            if (item.status !== 'Selesai' && item.status !== 'Dibatalkan' && (perms.edit_data === true || perms.edit_data === 'true')) {
                 rowHtml += `
-                    <!-- PERUBAHAN: Dialihkan ke modal kustom verifikasi -->
                     <button onclick="window.openPengembalianModal('${item._firebaseKey}')" 
                             class="w-8 h-8 flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition shadow-sm" 
                             title="Selesai / Kembalikan Unit">
@@ -729,7 +728,6 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Teknisi Penanggung Jawab</label><input type="text" id="edit-teknisi" value="${teknisiVal}" ${teknisiReadonlyAttr}></div>
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Analisa / Tindakan Teknisi</label><textarea id="edit-tindakan_teknisi" rows="2" placeholder="Tuliskan tindakan servis, perbaikan komponen, dll." class="w-full border p-2 text-sm rounded-lg">${targetItem.tindakan_teknisi || ''}</textarea></div>
             
-            <!-- SUB-TABEL BAHAN & JASA TERPAKAI -->
             <div class="md:col-span-2 border-t pt-3.5 space-y-2">
                 <div class="flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-boxes-packing text-cyan-600"></i> Bahan & Jasa Pengerjaan Terpakai</span>
@@ -874,6 +872,7 @@ function openEditModal(firebaseKey) {
     } else if (window.currentTab === 'penyewaan') {
         window.editSelectedLaptopKeys = targetItem._linkedLaptopKeys ? [...targetItem._linkedLaptopKeys] : [];
 
+        // OPSI MODAL EDIT PENYEWAAN: HANYA PROSES & DIBATALKAN
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Penyewa</label><input type="text" id="edit-penyewa" value="${targetItem.penyewa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -900,7 +899,13 @@ function openEditModal(firebaseKey) {
             </div>
 
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Total Biaya (Rp)</label><input type="text" id="edit-total_biaya" value="${window.formatCurrencyInput(String(targetItem.total_biaya || ''))}" oninput="this.value = window.formatCurrencyInput(this.value)" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Pembayaran</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Belum Bayar" ${targetItem.status === 'Belum Bayar' ? 'selected' : ''}>Belum Bayar</option><option value="DP 50%" ${targetItem.status === 'DP 50%' ? 'selected' : ''}>DP 50%</option><option value="Lunas" ${targetItem.status === 'Lunas' ? 'selected' : ''}>Lunas</option></select></div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Status Sewa</label>
+                <select id="edit-status" class="w-full border p-2 text-sm rounded-lg">
+                    <option value="Proses" ${targetItem.status === 'Proses' || targetItem.status === 'Perpanjangan' ? 'selected' : ''}>Proses</option>
+                    <option value="Dibatalkan" ${targetItem.status === 'Dibatalkan' ? 'selected' : ''}>Dibatalkan</option>
+                </select>
+            </div>
         `;
         
         setTimeout(() => { populateEditLaptopCheckboxes(); }, 50);
@@ -1098,26 +1103,20 @@ function openEditModal(firebaseKey) {
             if (!editTipe) return;
             const v = editTipe.value || '';
             const srvCont = document.getElementById('edit-server-container');
-            // Hubungkan ke elemen input edit-masa_aktif
             const editMasaAktifInput = document.getElementById('edit-masa_aktif');
 
             if (v === 'Anggota') {
                 if (srvCont) srvCont.style.display = '';
                 if (editMasaAktifCont) editMasaAktifCont.classList.add('hidden'); 
-                
-                // PERBAIKAN: Hapus atribut required saat disembunyikan
                 if (editMasaAktifInput) {
                     editMasaAktifInput.removeAttribute('required');
                 }
             } else {
                 if (srvCont) srvCont.style.display = 'none';
                 if (editMasaAktifCont) editMasaAktifCont.classList.remove('hidden'); 
-                
-                // PERBAIKAN: Pasang kembali required saat ditampilkan
                 if (editMasaAktifInput) {
                     editMasaAktifInput.setAttribute('required', 'required');
                 }
-                
                 if (editServerSelect) editServerSelect.value = '';
                 if (editOfficeSelect) editOfficeSelect.disabled = false;
             }
@@ -1160,12 +1159,10 @@ function populateLaptopCheckboxes() {
     const container = document.getElementById('checkbox-laptop-container');
     if(!container) return;
 
-    // Deteksi cabang yang sedang dipilih di form utama
     const form = document.getElementById('operational-form');
     const branchSelect = form ? form.querySelector('[name="cabang"]') : null;
     const selectedBranch = branchSelect ? branchSelect.value : '';
 
-    // Daftarkan listener sekali saja agar mendeteksi jika cabang form utama diubah
     if (branchSelect && !branchSelect.dataset.listenerAttached) {
         branchSelect.dataset.listenerAttached = 'true';
         branchSelect.addEventListener('change', () => {
@@ -1183,7 +1180,6 @@ function populateLaptopCheckboxes() {
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
 
     const filteredLaptop = masterLaptop.filter(lap => {
-        // Filter Cabang Isolasi
         if (selectedBranch && lap.cabang !== selectedBranch) return false;
 
         const brand = (lap.merk || '').toLowerCase();
@@ -1234,15 +1230,12 @@ function populateEditLaptopCheckboxes() {
     const container = document.getElementById('edit-checkbox-laptop-container');
     if(!container) return;
 
-    // Saring berdasarkan cabang aktif dari form edit
     const selectedBranch = document.getElementById('edit-cabang')?.value || '';
-
     const masterLaptop = window.globalDataCloud['list_laptop'] || [];
     const searchInput = document.getElementById('search-edit-laptop');
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
     
     const filteredLaptop = masterLaptop.filter(lap => {
-        // Filter Cabang Isolasi
         if (selectedBranch && lap.cabang !== selectedBranch) return false;
 
         const brand = (lap.merk || '').toLowerCase();
@@ -1312,7 +1305,6 @@ function syncEditCheckboxState(cb) {
         window.editSelectedLaptopKeys = window.editSelectedLaptopKeys.filter(key => key !== laptopKey);
     }
 
-    // Perbarui lencana hitungan visual secara real-time saat dicentang/dilepas
     const badge = document.getElementById('edit-laptop-count-badge');
     if (badge) {
         badge.innerText = `${window.editSelectedLaptopKeys.length} Unit Terpilih`;
@@ -1326,7 +1318,7 @@ function markAsSelesai(firebaseKey) {
         return;
     }
 
-    if(confirm("Apakah unit laptop sudah dikembalikan dan pembayaran lunas?")) {
+    if(confirm("Apakah unit laptop sudah dikembalikan dan transaksi selesai?")) {
         const sewaItem = (window.globalDataCloud['penyewaan'] || []).find(item => item._firebaseKey === firebaseKey);
         if (sewaItem) {
             if (sewaItem._linkedLaptopKeys) {
@@ -1336,9 +1328,9 @@ function markAsSelesai(firebaseKey) {
                 });
             }
             const sewaStatusRef = ref(db, `penyewaan/${firebaseKey}`);
-            update(sewaStatusRef, { status: "Lunas" }).then(() => {
+            update(sewaStatusRef, { status: "Selesai" }).then(() => {
                 if (window.logActivity) window.logActivity('Ubah', 'penyewaan', `Menyelesaikan pengembalian sewa unit ID #${sewaItem.id} atas nama ${sewaItem.penyewa}.`);
-                if (window.showToast) window.showToast("Status penyewaan diubah menjadi Lunas!");
+                if (window.showToast) window.showToast("Status penyewaan diubah menjadi Selesai!");
             });
         }
     }
@@ -1352,7 +1344,6 @@ function deleteRow(firebaseKey) {
     }
 
     let confirmationMessage = "Apakah Anda yakin ingin menghapus data ini secara permanen?";
-    
     if (window.currentTab === 'user_management') {
         confirmationMessage = "Hapus profil pengguna ini dari database?\n\nKredensial login disarankan juga dihapus secara manual di Firebase Console.";
     }
@@ -1364,7 +1355,7 @@ function deleteRow(firebaseKey) {
     if(confirm(confirmationMessage)) {
         if (window.currentTab === 'penyewaan') {
             const sewaItem = (window.globalDataCloud['penyewaan'] || []).find(item => item._firebaseKey === firebaseKey);
-            if (sewaItem && sewaItem._linkedLaptopKeys && sewaItem.status !== 'Lunas') {
+            if (sewaItem && sewaItem._linkedLaptopKeys && sewaItem.status !== 'Selesai') {
                 sewaItem._linkedLaptopKeys.forEach(laptopKey => {
                     const laptopStatusRef = ref(db, `list_laptop/${laptopKey}`);
                     update(laptopStatusRef, { status: "Tersedia" });
@@ -1391,9 +1382,7 @@ function deleteRow(firebaseKey) {
     }
 }
 
-// ==========================================================================
-// 1. DYNAMIC INJECTION FOR BAHAN / JASA INPUT FORM (EMBEDDED STYLE)
-// ==========================================================================
+// MODAL ADD BAHAN / JASA UNTUK SERVIS
 function ensureBahanJasaModalExists() {
     if (document.getElementById('add-bahan-jasa-modal')) return;
     const modalDiv = document.createElement('div');
@@ -1416,15 +1405,12 @@ function ensureBahanJasaModalExists() {
                             <option value="Produk">Bahan / Sparepart</option>
                         </select>
                     </div>
-                    <!-- SEARCH & STATIC SCROLLBOX CONTAINER -->
                     <div class="space-y-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Barang / Jasa</label>
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
                             <input type="text" id="bj-name" required oninput="window.onBahanJasaNameInput()" class="w-full pl-8 pr-4 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Ketik kata kunci untuk mencari...">
                         </div>
-                        
-                        <!-- Box kontainer statis di dalam form flow -->
                         <div id="bj-autocomplete-results" class="border border-gray-300 rounded-xl p-3 max-h-48 overflow-y-auto bg-white space-y-2 custom-table-scrollbar">
                             <div class="text-center py-6 text-slate-400 text-xs italic">
                                 Ketik nama barang/jasa di kolom pencarian di atas...
@@ -1454,16 +1440,11 @@ function ensureBahanJasaModalExists() {
     document.body.appendChild(modalDiv.firstElementChild);
 }
 
-// ==========================================================================
-// 2. DIALOG OPERATIONAL HANDLERS FOR ADDING/DELETING TICKET MATERIALS
-// ==========================================================================
 window.openAddBahanJasaModal = function(ticketKey) {
     ensureBahanJasaModalExists();
     activeBahanJasaTicketKey = ticketKey;
-    
     document.getElementById('add-bahan-jasa-form').reset();
     window.onBahanJasaTypeChange();
-    
     const modal = document.getElementById('add-bahan-jasa-modal');
     if (modal) modal.classList.remove('hidden');
 };
@@ -1472,10 +1453,6 @@ window.closeAddBahanJasaModal = function() {
     const modal = document.getElementById('add-bahan-jasa-modal');
     if (modal) modal.classList.add('hidden');
 };
-
-// ==========================================================================
-// 3. LOGIKA CUSTOM AUTOCOMPLETE PADA INPUT BAHAN / JASA
-// ==========================================================================
 
 window.onBahanJasaTypeChange = function() {
     const nameInput = document.getElementById('bj-name');
@@ -1486,15 +1463,9 @@ window.onBahanJasaTypeChange = function() {
         nameInput.value = '';
         delete nameInput.dataset.productKey;
     }
-    if (priceInput) {
-        priceInput.value = '';
-    }
+    if (priceInput) priceInput.value = '';
     if (resultsBox) {
-        resultsBox.innerHTML = `
-            <div class="text-center py-6 text-slate-400 text-xs italic">
-                Ketik nama barang/jasa di kolom pencarian di atas...
-            </div>
-        `;
+        resultsBox.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs italic">Ketik nama barang/jasa di kolom pencarian di atas...</div>`;
     }
 };
 
@@ -1505,13 +1476,8 @@ window.onBahanJasaNameInput = function() {
     if (!typeSelect || !nameInput || !resultsBox) return;
 
     const query = nameInput.value.toLowerCase().trim();
-    
     if (query.length < 1) {
-        resultsBox.innerHTML = `
-            <div class="text-center py-6 text-slate-400 text-xs italic">
-                Ketik nama barang/jasa di kolom pencarian di atas...
-            </div>
-        `;
+        resultsBox.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs italic">Ketik nama barang/jasa di kolom pencarian di atas...</div>`;
         return;
     }
 
@@ -1535,9 +1501,7 @@ window.onBahanJasaNameInput = function() {
                             <div class="flex items-center gap-1.5">
                                 <span class="font-extrabold text-slate-800 text-sm">🛠️ ${escapeHtml(name)}</span>
                             </div>
-                            <div class="text-[11px] text-slate-500 font-semibold">
-                                Tindakan / Jasa Standar Toko
-                            </div>
+                            <div class="text-[11px] text-slate-500 font-semibold">Tindakan / Jasa Standar Toko</div>
                         </div>
                         <div class="text-right self-center">
                             <span class="font-extrabold text-slate-700 text-sm font-mono">Rp ${price.toLocaleString('id-ID')}</span>
@@ -1570,9 +1534,7 @@ window.onBahanJasaNameInput = function() {
                                     Stok: ${stok} ${escapeHtml(item.satuan)}
                                 </span>
                             </div>
-                            <div class="text-[11px] text-slate-500 font-semibold">
-                                Kategori: <span class="text-slate-700 font-bold">${escapeHtml(item.kategori || 'Suku Cadang')}</span>
-                            </div>
+                            <div class="text-[11px] text-slate-500 font-semibold">Kategori: <span class="text-slate-700 font-bold">${escapeHtml(item.kategori || 'Suku Cadang')}</span></div>
                         </div>
                         <div class="text-right self-center">
                             <span class="font-extrabold text-slate-700 text-sm font-mono">Rp ${price.toLocaleString('id-ID')}</span>
@@ -1592,15 +1554,10 @@ window.selectBahanJasaAutocomplete = function(element, name, price, productKey) 
 
     if (nameInput) {
         nameInput.value = name;
-        if (productKey) {
-            nameInput.dataset.productKey = productKey;
-        } else {
-            delete nameInput.dataset.productKey;
-        }
+        if (productKey) nameInput.dataset.productKey = productKey;
+        else delete nameInput.dataset.productKey;
     }
-    if (priceInput) {
-        priceInput.value = window.formatCurrencyInput(String(price));
-    }
+    if (priceInput) priceInput.value = window.formatCurrencyInput(String(price));
 
     const allCards = document.querySelectorAll('.bj-item-card');
     allCards.forEach(card => {
@@ -1614,13 +1571,9 @@ window.selectBahanJasaAutocomplete = function(element, name, price, productKey) 
     }
 };
 
-// ==========================================================================
-// 4. LOGIKA MODAL KUSTOM VERIFIKASI PENGEMBALIAN LAPTOP & INTEGRASI DATABASE
-// ==========================================================================
+// MODAL VERIFIKASI PENGEMBALIAN LAPTOP SEWA
+let activeReturnKey = ''; 
 
-let activeReturnKey = ''; // Menyimpan kunci transaksi penyewaan aktif
-
-// Fungsi menyuntikkan HTML modal pengembalian ke dalam DOM secara dinamis jika belum ada
 function ensurePengembalianModalExists() {
     if (document.getElementById('modal-pengembalian-laptop')) return;
     
@@ -1646,23 +1599,19 @@ function ensurePengembalianModalExists() {
                         <label for="pengembalian-check-all" class="text-xs font-bold text-emerald-800 cursor-pointer select-none">Centang Semua (Semua Unit Kembali Aman)</label>
                     </div>
 
-                    <!-- List Unit Laptop -->
                     <div id="pengembalian-list-container" class="space-y-3"></div>
 
-                    <!-- Live Counter Indikator -->
                     <div class="bg-slate-50 p-2.5 rounded-lg border flex justify-between items-center text-xs font-bold text-slate-600">
                         <span>Fisik Terverifikasi Aman:</span>
                         <span id="pengembalian-live-counter" class="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">0 / 0 Unit</span>
                     </div>
 
-                    <!-- Pilihan Darurat Masalah (Pilihan A) -->
                     <div class="border-t pt-3 space-y-2">
                         <label class="flex items-center space-x-2 text-xs font-bold text-rose-600 cursor-pointer">
-                            <input type="checkbox" id="pengembalian-dilema-toggle" onchange="window.toggleDilemaBermasalah()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4/ cursor-pointer">
+                            <input type="checkbox" id="pengembalian-dilema-toggle" onchange="window.toggleDilemaBermasalah()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4 cursor-pointer">
                             <span>Ada Unit yang Kurang / Hilang / Rusak</span>
                         </label>
                         
-                        <!-- Kolom Catatan Masalah -->
                         <div id="pengembalian-catatan-container" class="hidden space-y-1">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase">Catatan Masalah & Detail Denda (Wajib Diisi - Min. 5 Karakter)</label>
                             <textarea id="pengembalian-catatan-input" rows="2" placeholder="Tuliskan detail masalah unit yang hilang, didenda, dsb..." class="w-full border p-2 text-xs rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
@@ -1680,14 +1629,12 @@ function ensurePengembalianModalExists() {
     `;
     document.body.appendChild(modalDiv.firstElementChild);
 
-    // Event listener input catatan untuk validasi instan
     const notesInput = document.getElementById('pengembalian-catatan-input');
     if (notesInput) {
         notesInput.addEventListener('input', window.onCheckboxPengembalianChange);
     }
 }
 
-// Membuka modal kustom dan merender unit laptop yang sedang disewa
 window.openPengembalianModal = function(firebaseKey) {
     ensurePengembalianModalExists();
     activeReturnKey = firebaseKey;
@@ -1695,7 +1642,6 @@ window.openPengembalianModal = function(firebaseKey) {
     const sewaItem = (window.globalDataCloud['penyewaan'] || []).find(item => item._firebaseKey === firebaseKey);
     if (!sewaItem) return;
 
-    // Reset Form Input di dalam Modal
     const dilemaToggle = document.getElementById('pengembalian-dilema-toggle');
     const catatanContainer = document.getElementById('pengembalian-catatan-container');
     const catatanInput = document.getElementById('pengembalian-catatan-input');
@@ -1707,14 +1653,11 @@ window.openPengembalianModal = function(firebaseKey) {
     }
     if (catatanContainer) catatanContainer.classList.add('hidden');
     const checkAllEl = document.getElementById('pengembalian-check-all');
-    if (checkAllEl) {
-        checkAllEl.checked = false;
-    }
+    if (checkAllEl) checkAllEl.checked = false;
 
     if (catatanInput) catatanInput.value = '';
     if (submitBtn) submitBtn.disabled = true;
 
-    // Render List Checkbox Laptop yang sedang Disewa
     const listContainer = document.getElementById('pengembalian-list-container');
     if (listContainer) {
         const masterLaptop = window.globalDataCloud['list_laptop'] || [];
@@ -1742,7 +1685,6 @@ window.openPengembalianModal = function(firebaseKey) {
                             </label>
                         </div>
                         
-                        <!-- Dropdown Status Khusus (Otomatis tersembunyi saat dicentang) -->
                         <div id="pengembalian-status-select-container-${index}" class="pl-6 space-y-1">
                             <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Jika Belum Kembali / Masalah:</label>
                             <select id="pengembalian-status-select-${index}" onchange="window.onCheckboxPengembalianChange()" class="w-full border p-1 text-[11px] rounded bg-slate-50 font-bold text-slate-600 focus:outline-none">
@@ -1760,17 +1702,15 @@ window.openPengembalianModal = function(firebaseKey) {
     const modal = document.getElementById('modal-pengembalian-laptop');
     if (modal) modal.classList.remove('hidden');
 
-    window.onCheckboxPengembalianChange(); // Kalkulasi awal
+    window.onCheckboxPengembalianChange();
 };
 
-// Menutup modal pengembalian
 window.closePengembalianModal = function() {
     const modal = document.getElementById('modal-pengembalian-laptop');
     if (modal) modal.classList.add('hidden');
     activeReturnKey = '';
 };
 
-// Logika Pendeteksi Perubahan Checkbox (Live Counter & Penguncian Tombol Selesai)
 window.onCheckboxPengembalianChange = function() {
     const checkboxes = document.querySelectorAll('input[name="pengembalian_checkbox"]');
     const total = checkboxes.length;
@@ -1779,7 +1719,6 @@ window.onCheckboxPengembalianChange = function() {
     checkboxes.forEach(cb => {
         const index = cb.getAttribute('data-index');
         const dropdownContainer = document.getElementById(`pengembalian-status-select-container-${index}`);
-        const dropdown = document.getElementById(`pengembalian-status-select-${index}`);
 
         if (cb.checked) {
             checkedCount++;
@@ -1790,14 +1729,10 @@ window.onCheckboxPengembalianChange = function() {
     });
 
     const counterEl = document.getElementById('pengembalian-live-counter');
-    if (counterEl) {
-        counterEl.innerText = `${checkedCount} / ${total} Unit`;
-    }
+    if (counterEl) counterEl.innerText = `${checkedCount} / ${total} Unit`;
 
     const checkAllEl = document.getElementById('pengembalian-check-all');
-    if (checkAllEl) {
-        checkAllEl.checked = (checkedCount === total && total > 0);
-    }
+    if (checkAllEl) checkAllEl.checked = (checkedCount === total && total > 0);
 
     const dilemaToggle = document.getElementById('pengembalian-dilema-toggle');
     const catatanInput = document.getElementById('pengembalian-catatan-input');
@@ -1806,23 +1741,18 @@ window.onCheckboxPengembalianChange = function() {
     if (!submitBtn) return;
 
     if (checkedCount === total) {
-        // Kondisi 1: Semua unit aman dikembalikan (Skenario Normal)
         submitBtn.disabled = false;
         if (dilemaToggle) {
             dilemaToggle.checked = false;
-            dilemaToggle.disabled = true; // Kunci checkbox dilema karena semua aman
+            dilemaToggle.disabled = true;
         }
         const catatanContainer = document.getElementById('pengembalian-catatan-container');
         if (catatanContainer) catatanContainer.classList.add('hidden');
     } else {
-        // Kondisi 2: Ada unit yang tidak dicentang (Bermasalah)
-        if (dilemaToggle) {
-            dilemaToggle.disabled = false;
-        }
+        if (dilemaToggle) dilemaToggle.disabled = false;
         const isDilemaActive = dilemaToggle ? dilemaToggle.checked : false;
         const textNotes = catatanInput ? catatanInput.value.trim() : '';
 
-        // Tombol aktif jika checkbox darurat dicentang DAN catatan diisi minimal 5 karakter
         if (isDilemaActive && textNotes.length >= 5) {
             submitBtn.disabled = false;
         } else {
@@ -1831,7 +1761,6 @@ window.onCheckboxPengembalianChange = function() {
     }
 };
 
-// Menampilkan / Menyembunyikan input Catatan Masalah
 window.toggleDilemaBermasalah = function() {
     const dilemaToggle = document.getElementById('pengembalian-dilema-toggle');
     const catatanContainer = document.getElementById('pengembalian-catatan-container');
@@ -1846,7 +1775,6 @@ window.toggleDilemaBermasalah = function() {
     window.onCheckboxPengembalianChange();
 };
 
-// Mengirim hasil verifikasi fisik pengembalian laptop terintegrasi ke database Cloud
 window.submitPengembalian = function() {
     if (!activeReturnKey) return;
     const sewaItem = (window.globalDataCloud['penyewaan'] || []).find(item => item._firebaseKey === activeReturnKey);
@@ -1868,27 +1796,23 @@ window.submitPengembalian = function() {
         const dropdown = document.getElementById(`pengembalian-status-select-${index}`);
 
         if (cb.checked) {
-            // Unit aman ➔ Kembalikan statusnya ke "Tersedia"
             updates[`/list_laptop/${laptopKey}/status`] = "Tersedia";
         } else {
-            // Unit bermasalah ➔ Ubah statusnya di master laptop sesuai pilihan dropdown
             const issueStatus = dropdown ? dropdown.value : 'Maintenance';
             updates[`/list_laptop/${laptopKey}/status`] = issueStatus;
             logDetailUnitBermasalah.push(`ID Aset: ${laptopKey} (Status diubah ke: ${issueStatus})`);
         }
     });
 
-    // Ubah status penyewaan transaksi di database menjadi Lunas (Selesai)
-    updates[`/penyewaan/${activeReturnKey}/status`] = "Lunas";
+    // UBAH STATUS PENYEWAAN MENJADI SELESAI
+    updates[`/penyewaan/${activeReturnKey}/status`] = "Selesai";
 
-    // Jika ada catatan masalah (Pilihan A), simpan ke kolom catatan transaksi penyewaan
     const dilemaToggle = document.getElementById('pengembalian-dilema-toggle');
     const catatanInput = document.getElementById('pengembalian-catatan-input');
     if (dilemaToggle && dilemaToggle.checked && catatanInput) {
         updates[`/penyewaan/${activeReturnKey}/catatan`] = "⚠️ MASALAH PENGEMBALIAN: " + catatanInput.value.trim();
     }
 
-    // Eksekusi update multi-path secara atomic ke Firebase Realtime Database
     const rootRef = ref(db);
     update(rootRef, updates)
         .then(() => {
@@ -1916,19 +1840,14 @@ window.submitPengembalian = function() {
         });
 };
 
-// Fungsi baru untuk mencentang atau melepas centang semua laptop sekaligus
 window.toggleSelectAllPengembalian = function(masterCb) {
     const checkboxes = document.querySelectorAll('input[name="pengembalian_checkbox"]');
     checkboxes.forEach(cb => {
         cb.checked = masterCb.checked;
     });
-    // Pemicu pembaruan status counter dan tombol submit
     window.onCheckboxPengembalianChange();
 };
 
-// ==========================================================================
-// 5. PENYIMPANAN DATA BAHAN / JASA
-// ==========================================================================
 window.saveBahanJasaItem = function(event) {
     event.preventDefault();
     if (!activeBahanJasaTicketKey) return;
@@ -1977,7 +1896,7 @@ window.saveBahanJasaItem = function(event) {
         if (window.adjustKatalogStock) {
             window.adjustKatalogStock(matchProd._firebaseKey, -qtyValue);
         }
-    } else { // Jasa
+    } else { 
         const list = window.globalDataCloud['master_jasa'] || [];
         const matchJasa = list.find(item => item.nama_jasa === name);
 

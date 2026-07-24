@@ -111,8 +111,8 @@ function handleSubmit(e) {
                     laptop_display: formData.get('perm_laptop_display') === 'true',
                     inventaris: formData.get('perm_inventaris') === 'true', 
                     master_jasa: formData.get('perm_master_jasa') === 'true',
-                    katalog_produk: formData.get('perm_katalog_produk') === 'true', // Menyimpan hak akses Katalog Produk
-                    log_penjualan: formData.get('perm_log_penjualan') === 'true',   // Menyimpan hak akses Log Penjualan
+                    katalog_produk: formData.get('perm_katalog_produk') === 'true',
+                    log_penjualan: formData.get('perm_log_penjualan') === 'true',
                     list_office: formData.get('perm_list_office') === 'true',
                     user_management: formData.get('perm_user_management') === 'true',
                     activity_logs: formData.get('perm_activity_logs') === 'true',
@@ -204,7 +204,8 @@ function handleSubmit(e) {
         
         newDataItem.total_biaya = String(formData.get('total_biaya') || '').replace(/\D/g, '');
         
-        newDataItem.status = formData.get('status');
+        // STATUS OTOMATIS PROSES PADA INPUT BARU
+        newDataItem.status = 'Proses';
         newDataItem.unit = listUnitSewa.join(', ');
         newDataItem._linkedLaptopKeys = laptopKeysToUpdate;
         logDetail = `Penyewa: ${newDataItem.penyewa} dengan unit sewa: ${newDataItem.unit} di cabang ${newDataItem.cabang}`;
@@ -265,7 +266,6 @@ function handleSubmit(e) {
         
         const rawKeluhan = formData.get('kerusakan') || '';
 
-        // Pembuatan No. Referensi Permanen Otomatis
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -275,10 +275,7 @@ function handleSubmit(e) {
         newDataItem.pelanggan = formData.get('pelanggan');
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.perangkat = formData.get('perangkat');
-        
-        // Penerimaan awal bernilai Rp 0 secara bawaan
         newDataItem.biaya = "0";
-        
         newDataItem.status = formData.get('status');
         newDataItem.teknisi = 'Belum Ditentukan';
         newDataItem.tindakan_teknisi = '';
@@ -317,7 +314,8 @@ function handleSubmit(e) {
                 if (window.refreshInventarisFieldOptions) window.refreshInventarisFieldOptions();
             }
 
-            if (window.currentTab === 'penyewaan' && laptopKeysToUpdate.length > 0 && newDataItem.status !== 'Lunas') {
+            // UBAH LAPTOP GUDANG MENJADI 'DISEWA'
+            if (window.currentTab === 'penyewaan' && laptopKeysToUpdate.length > 0) {
                 laptopKeysToUpdate.forEach(laptopKey => {
                     const laptopStatusRef = ref(db, `list_laptop/${laptopKey}`);
                     update(laptopStatusRef, { status: "Disewa" });
@@ -371,7 +369,6 @@ function handleUpdateSubmit(e) {
     const currentDataList = window.globalDataCloud[window.currentTab] || [];
     const targetItem = currentDataList.find(item => item._firebaseKey === firebaseKey);
 
-    // --- DELEGASI UPDATE KHUSUS MASTER JASA ---
     if (window.currentTab === 'master_jasa') {
         if (window.updateMasterJasa) {
             const compiledJasaData = {
@@ -389,7 +386,6 @@ function handleUpdateSubmit(e) {
         return;
     }
 
-    // --- DELEGASI UPDATE KHUSUS KATALOG PRODUK ---
     if (window.currentTab === 'katalog_produk') {
         if (window.updateKatalogProduk) {
             const compiledKatalogData = {
@@ -414,7 +410,6 @@ function handleUpdateSubmit(e) {
         return;
     }
 
-    // --- DELEGASI UPDATE KHUSUS LOG PENJUALAN ---
     if (window.currentTab === 'log_penjualan') {
         if (window.updateLogPenjualan) {
             let totalBayar = 0;
@@ -452,21 +447,17 @@ function handleUpdateSubmit(e) {
         updatedData.pelanggan = document.getElementById('edit-pelanggan').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
         updatedData.perangkat = document.getElementById('edit-perangkat').value;
-        
-        // Biaya Log Services dikunci dan diisi oleh total kalkulasi Bahan & Jasa yang tersimpan
         updatedData.biaya = targetItem?.biaya || "0";
         updatedData.items_terpakai = targetItem?.items_terpakai || [];
         
         const oldStatus = targetItem?.status || '';
         const newStatus = document.getElementById('edit-status').value;
         
-        // PEMBAHARUAN PILAR 3: Sinkronisasi pemulihan stok jika status diubah menjadi Cancel
         if (newStatus === 'Cancel' && oldStatus !== 'Cancel') {
             if (window.syncServiceMaterialStock) {
                 window.syncServiceMaterialStock(targetItem.items_terpakai || [], [], true);
             }
         } else if (newStatus !== 'Cancel' && oldStatus === 'Cancel') {
-            // Potong kembali stok jika servisan diaktifkan lagi dari status Cancel
             if (window.syncServiceMaterialStock) {
                 window.syncServiceMaterialStock([], targetItem.items_terpakai || [], false);
             }
@@ -552,14 +543,19 @@ function handleUpdateSubmit(e) {
             return;
         }
 
-        const newStatus = document.getElementById('edit-status').value;
+        let newStatus = document.getElementById('edit-status').value;
+        const oldTglSelesai = targetItem?.tgl_selesai;
+
+        // DETEKSI OTOMATIS PERPANJANGAN JIKA TANGGAL SELESAI DIPERPANJANG
+        if (newStatus !== 'Dibatalkan' && oldTglSelesai && new Date(tglSelesaiVal) > new Date(oldTglSelesai)) {
+            newStatus = 'Perpanjangan';
+        }
+
         updatedData.penyewa = document.getElementById('edit-penyewa').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
         updatedData.tgl_mulai = tglMulaiVal;
         updatedData.tgl_selesai = tglSelesaiVal;
-        
         updatedData.total_biaya = String(document.getElementById('edit-total_biaya').value || '').replace(/\D/g, '');
-        
         updatedData.status = newStatus;
         updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
 
@@ -588,7 +584,8 @@ function handleUpdateSubmit(e) {
         const oldKeys = sewaItem && sewaItem._linkedLaptopKeys ? sewaItem._linkedLaptopKeys : [];
         const newKeys = window.editSelectedLaptopKeys;
 
-        if (newStatus === 'Lunas' || newStatus === 'Selesai') {
+        // SINKRONISASI STATUS LAPTOP GUDANG
+        if (newStatus === 'Dibatalkan' || newStatus === 'Selesai') {
             const allKeys = new Set([...oldKeys, ...newKeys]);
             allKeys.forEach(key => {
                 const laptopStatusRef = ref(db, `list_laptop/${key}`);
@@ -603,10 +600,8 @@ function handleUpdateSubmit(e) {
             });
             
             newKeys.forEach(key => {
-                if (!oldKeys.includes(key)) {
-                    const laptopStatusRef = ref(db, `list_laptop/${key}`);
-                    update(laptopStatusRef, { status: "Disewa" });
-                }
+                const laptopStatusRef = ref(db, `list_laptop/${key}`);
+                update(laptopStatusRef, { status: "Disewa" });
             });
         }
     } else if (window.currentTab === 'list_office') {
@@ -643,8 +638,8 @@ function handleUpdateSubmit(e) {
             laptop_display: document.getElementById('edit-perm-laptop_display')?.checked || false,
             inventaris: document.getElementById('edit-perm-inventaris')?.checked || false, 
             master_jasa: document.getElementById('edit-perm-master_jasa')?.checked || false,
-            katalog_produk: document.getElementById('edit-perm-katalog_produk')?.checked || false, // Membaca pembaruan izin Katalog Produk
-            log_penjualan: document.getElementById('edit-perm-log_penjualan')?.checked || false,   // Membaca pembaruan izin Log Penjualan
+            katalog_produk: document.getElementById('edit-perm-katalog_produk')?.checked || false,
+            log_penjualan: document.getElementById('edit-perm-log_penjualan')?.checked || false,
             list_office: document.getElementById('edit-perm-list_office')?.checked || false,
             user_management: document.getElementById('edit-perm-user_management')?.checked || false,
             activity_logs: document.getElementById('edit-perm-activity_logs')?.checked || false,
@@ -683,6 +678,6 @@ function handleUpdateSubmit(e) {
         });
 }
 
-// Bind ke global window agar dapat dipanggil dari berkas lainnya
+// Bind ke global window
 window.handleSubmit = handleSubmit;
 window.handleUpdateSubmit = handleUpdateSubmit;
