@@ -373,6 +373,9 @@ function calculateAndRenderStats() {
             }
         }
 
+        // ==========================================================================
+        // AKUMULASI MODEL LAPTOP GUDANG BERDASARKAN 5 STATUS
+        // ==========================================================================
         let warehouseReady = {};
         let warehouseSewa = {};
         let warehouseMaintenance = {};
@@ -407,6 +410,7 @@ function calculateAndRenderStats() {
             }
         });
 
+        // 1. RENDER KONTEN MODE 1 (Tampilan Analitis List)
         const laptopContainer = document.getElementById('dashboard-laptop-models-container');
         if (laptopContainer) {
             laptopContainer.innerHTML = '';
@@ -415,11 +419,28 @@ function calculateAndRenderStats() {
             } else {
                 let finalHtml = '';
                 finalHtml += renderGroupCard('Tersedia di Gudang', warehouseReady, totalWhReady, '<i class="fa-solid fa-circle-check text-emerald-500"></i>', 'bg-emerald-100 text-emerald-800', 'bg-emerald-50/70', 'border-emerald-200');
-                finalHtml += renderGroupCard('Sedang Disewa', warehouseSewa, totalWhSewa, '<i class="fa-solid fa-boxes-packing text-indigo-500"></i>', 'bg-indigo-100 text-indigo-800', 'bg-indigo-50/70', 'border-indigo-200');
-                finalHtml += renderGroupCard('Maintenance / Perbaikan', warehouseMaintenance, totalWhMaintenance, '<i class="fa-solid fa-screwdriver-wrench text-rose-500"></i>', 'bg-rose-100 text-rose-800', 'bg-rose-50/70', 'border-rose-200');
-                finalHtml += renderGroupCard('Digunakan Staf', warehouseStaf, totalWhStaf, '<i class="fa-solid fa-user-tie text-blue-500"></i>', 'bg-blue-100 text-blue-800', 'bg-blue-50/70', 'border-blue-200');
+                finalHtml += renderGroupCard('Sedang Disewa', warehouseSewa, totalWhSewa, '<i class="fa-solid fa-boxes-packing text-amber-500"></i>', 'bg-amber-100 text-amber-800', 'bg-amber-50/70', 'border-amber-200');
+                finalHtml += renderGroupCard('Maintenance / Rusak', warehouseMaintenance, totalWhMaintenance, '<i class="fa-solid fa-screwdriver-wrench text-rose-500"></i>', 'bg-rose-100 text-rose-800', 'bg-rose-50/70', 'border-rose-200');
+                finalHtml += renderGroupCard('Digunakan Staf', warehouseStaf, totalWhStaf, '<i class="fa-solid fa-user-tie text-indigo-500"></i>', 'bg-indigo-100 text-indigo-800', 'bg-indigo-50/70', 'border-indigo-200');
                 finalHtml += renderGroupCard('Sudah Terjual', warehouseTerjual, totalWhTerjual, '<i class="fa-solid fa-hand-holding-dollar text-slate-500"></i>', 'bg-slate-200 text-slate-800', 'bg-slate-100', 'border-slate-200');
                 laptopContainer.innerHTML = finalHtml;
+            }
+        }
+
+        // 2. RENDER KONTEN MODE 2 (Tampilan Grid 5 Box Kategori Status)
+        const gridContainer = document.getElementById('laptop-5box-grid-container');
+        if (gridContainer) {
+            gridContainer.innerHTML = '';
+            if (filteredLaptop.length === 0) {
+                gridContainer.innerHTML = `<p class="col-span-full text-center text-xs text-gray-400 py-8 italic">Tidak ada unit laptop pada cabang ini</p>`;
+            } else {
+                let gridHtml = '';
+                gridHtml += renderGroupCard('🟢 Tersedia di Gudang', warehouseReady, totalWhReady, '', 'bg-emerald-100 text-emerald-800', 'bg-emerald-50', 'border-emerald-200');
+                gridHtml += renderGroupCard('🟡 Sedang Disewa', warehouseSewa, totalWhSewa, '', 'bg-amber-100 text-amber-800', 'bg-amber-50', 'border-amber-200');
+                gridHtml += renderGroupCard('🔴 Maintenance / Rusak', warehouseMaintenance, totalWhMaintenance, '', 'bg-rose-100 text-rose-800', 'bg-rose-50', 'border-rose-200');
+                gridHtml += renderGroupCard('🔵 Digunakan Staf', warehouseStaf, totalWhStaf, '', 'bg-indigo-100 text-indigo-800', 'bg-indigo-50', 'border-indigo-200');
+                gridHtml += renderGroupCard('⚪ Sudah Terjual', warehouseTerjual, totalWhTerjual, '', 'bg-slate-200 text-slate-800', 'bg-slate-100', 'border-slate-200');
+                gridContainer.innerHTML = gridHtml;
             }
         }
 
@@ -726,8 +747,145 @@ function calculateAndRenderStats() {
             console.warn("Gagal menggambar diagram garis proyek CCTV:", chartErr);
         }
 
+
         // ==========================================================================
-        // 6. RENDER DAFTAR DETAIL PEKERJAAN AKTIF (LIVE DETAILS TABLE)
+// KONTROL MASTER MENU POP-UP 3-IN-1 & SCREENSHOT LAPTOP GUDANG
+// ==========================================================================
+let activeLaptopGudangLayoutMode = 'analytics'; // Default: Tampilan Analitis
+
+// Toggle Buka/Tutup Pop-up Master Menu
+window.toggleLaptopMasterMenu = function(event) {
+    if (event) event.stopPropagation();
+    const popover = document.getElementById('popover-laptop-master');
+    if (popover) {
+        popover.classList.toggle('hidden');
+    }
+};
+
+// Pengatur Mode Tampilan (Analitis vs Grid 5-Box)
+window.setLaptopGudangLayout = function(mode) {
+    activeLaptopGudangLayoutMode = mode;
+    const analyticsEl = document.getElementById('laptop-layout-analytics');
+    const gridEl = document.getElementById('laptop-layout-grid');
+    
+    const btnAnalytics = document.getElementById('btn-layout-analytics');
+    const btnGrid = document.getElementById('btn-layout-grid');
+
+    if (mode === 'grid') {
+        if (analyticsEl) analyticsEl.classList.add('hidden');
+        if (gridEl) gridEl.classList.remove('hidden');
+
+        // Highlight Tombol Aktif
+        if (btnGrid) {
+            btnGrid.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-emerald-600 shadow-xs border border-slate-200";
+        }
+        if (btnAnalytics) {
+            btnAnalytics.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
+        }
+    } else {
+        if (analyticsEl) analyticsEl.classList.remove('hidden');
+        if (gridEl) gridEl.classList.add('hidden');
+
+        // Highlight Tombol Aktif
+        if (btnAnalytics) {
+            btnAnalytics.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-cyan-600 shadow-xs border border-slate-200";
+        }
+        if (btnGrid) {
+            btnGrid.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
+        }
+    }
+
+    // Render ulang konten sesuai mode pilihan
+    if (typeof calculateAndRenderStats === 'function') {
+        calculateAndRenderStats();
+    }
+};
+
+// Fungsi Tangkap Gambar Presisi (Clone Off-screen tanpa area putih kosong)
+window.captureLaptopGudangSection = function() {
+    const originalSection = document.getElementById('section-laptop-gudang');
+    const masterPopover = document.getElementById('popover-laptop-master');
+    if (!originalSection) return;
+
+    // Sembunyikan popover jika sedang terbuka
+    if (masterPopover) masterPopover.classList.add('hidden');
+
+    if (window.showToast) window.showToast("Mengambil gambar laporan presisi...", "info");
+
+    if (typeof html2canvas === 'undefined') {
+        alert("Library html2canvas belum dimuat. Pastikan koneksi internet Anda stabil.");
+        return;
+    }
+
+    // 1. Buat Salinan (Clone) Elemen ke Balik Layar
+    const clone = originalSection.cloneNode(true);
+
+    // Sembunyikan Pop-up Menu & Tombol pada Salinan
+    const clonePopover = clone.querySelector('#popover-laptop-master');
+    if (clonePopover) clonePopover.remove();
+
+    // 2. Buka Semua Scrollbar pada Salinan agar Konten Terbuka Utuh
+    const cloneScrollables = clone.querySelectorAll('.overflow-y-auto');
+    cloneScrollables.forEach(el => {
+        el.style.maxHeight = 'none';
+        el.style.height = 'auto';
+        el.style.overflow = 'visible';
+    });
+
+    // 3. Atur Ukuran Salinan Agar Pas Rapat dengan Konten (Tanpa Ruang Kosong di Bawah)
+    const actualWidth = originalSection.offsetWidth;
+    clone.style.position = 'absolute';
+    clone.style.left = '-9999px'; // Pindahkan ke luar layar
+    clone.style.top = '0';
+    clone.style.width = `${actualWidth}px`;
+    clone.style.height = 'auto'; // Paksa tinggi rapat presisi mengikuti isi
+    clone.style.boxSizing = 'border-box';
+    clone.style.margin = '0';
+
+    document.body.appendChild(clone);
+
+    // 4. Ambil Foto dari Salinan Presisi
+    html2canvas(clone, {
+        scale: 2, // Resolusi HD Tajam
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+    }).then(canvas => {
+        // Hapus salinan setelah selesai difoto
+        document.body.removeChild(clone);
+
+        const now = new Date();
+        const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const branchVal = window.userBranch || document.getElementById('filter-gudang-cabang')?.value || 'Semua_Cabang';
+        const cleanBranch = branchVal.replace(/\s+/g, '_');
+
+        const link = document.createElement('a');
+        link.download = `Laporan_Laptop_Gudang_${cleanBranch}_${formattedDate}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        if (window.showToast) window.showToast("Gambar presisi rapi berhasil diunduh!", "success");
+    }).catch(err => {
+        if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
+        }
+        console.error("Gagal capture gambar:", err);
+        if (window.showToast) window.showToast("Gagal mengunduh gambar: " + err.message, "error");
+    });
+};
+
+// Sembunyikan Pop-up jika pengguna mengeklik di luar area menu
+document.addEventListener('click', function(e) {
+    const popover = document.getElementById('popover-laptop-master');
+    if (popover && !popover.classList.contains('hidden')) {
+        const btn = e.target.closest('button[onclick*="toggleLaptopMasterMenu"]');
+        if (!btn && !popover.contains(e.target)) {
+            popover.classList.add('hidden');
+        }
+    }
+});
+        // ==========================================================================
+        // 7. RENDER DAFTAR DETAIL PEKERJAAN AKTIF (LIVE DETAILS TABLE)
         // ==========================================================================
         // Render Detail Antrean Servis Aktif (Antrean, Proses, Selesai & Cancel)
         const servicesDetailsBody = document.getElementById('dashboard-services-details');
