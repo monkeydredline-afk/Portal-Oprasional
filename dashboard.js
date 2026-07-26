@@ -1,13 +1,16 @@
 /* ==========================================================================
-   Teknisi Portal - dashboard.js (Modul Statistik & Visualisasi - Robust Version)
+   Teknisi Portal - dashboard.js (Modul Statistik & Visualisasi - Full Version)
    ========================================================================== */
 import { parseDate } from './utils.js';
 
 let chartServicesInstance = null;
-let chartServicesLineInstance = null; // Instansi diagram garis untuk Servis (Multi-Line)
+let chartServicesLineInstance = null; 
 let chartCctvInstance = null;
-let chartCctvLineInstance = null; // Instansi diagram garis untuk CCTV (Project Trend)
+let chartCctvLineInstance = null; 
 let chartLaptopStockInstance = null;
+let chartLaptopStockStackedInstance = null; 
+
+let activeLaptopGudangLayoutMode = 'analytics'; // Default: Tampilan Analitis
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -20,7 +23,6 @@ function escapeHtml(value) {
 
 function calculateAndRenderStats() {
     try {
-        // 1. Amankan inisialisasi awal data global
         if (!window.globalDataCloud) window.globalDataCloud = {};
         
         const nodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'list_office'];
@@ -40,17 +42,21 @@ function calculateAndRenderStats() {
 
         const filterDisplayCabang = document.getElementById('filter-display-cabang');
         const filterGudangCabang = document.getElementById('filter-gudang-cabang');
+        const filterInventarisCabang = document.getElementById('filter-inventaris-cabang');
 
         if (window.userBranch) {
             if (filterDisplayCabang) filterDisplayCabang.style.display = 'none';
             if (filterGudangCabang) filterGudangCabang.style.display = 'none';
+            if (filterInventarisCabang) filterInventarisCabang.style.display = 'none';
         } else {
             if (filterDisplayCabang) filterDisplayCabang.style.display = '';
             if (filterGudangCabang) filterGudangCabang.style.display = '';
+            if (filterInventarisCabang) filterInventarisCabang.style.display = '';
         }
 
         const displayBranchVal = window.userBranch || (filterDisplayCabang ? filterDisplayCabang.value : '');
         const gudangBranchVal = window.userBranch || (filterGudangCabang ? filterGudangCabang.value : '');
+        const inventarisBranchVal = window.userBranch || (filterInventarisCabang ? filterInventarisCabang.value : '');
         
         const startValEl = document.getElementById('filter-display-start');
         const endValEl = document.getElementById('filter-display-end');
@@ -58,7 +64,7 @@ function calculateAndRenderStats() {
         const endVal = endValEl ? endValEl.value : '';
 
         // ==========================================================================
-        // 2. SEKSI LOGIKA DYNAMIC FILTERING LOG SERVIS & KARTU UTAMA (Blok B)
+        // 2. SEKSI LOGIKA DYNAMIC FILTERING LOG SERVIS
         // ==========================================================================
         const filterServicesCabang = document.getElementById('filter-services-cabang');
         const filterServicesStart = document.getElementById('filter-services-start');
@@ -93,7 +99,6 @@ function calculateAndRenderStats() {
             });
         }
 
-        // Kalkulasi 4 Status Servis Mandiri
         const totalServicesCount = filteredServices.length;
         const sAntrean = filteredServices.filter(s => s?.status === 'Antrean').length;
         const sProses = filteredServices.filter(s => s?.status === 'Proses').length;
@@ -112,7 +117,7 @@ function calculateAndRenderStats() {
         setInnerText('stat-services-cancelled', sCancel);
 
         // ==========================================================================
-        // 3. SEKSI LOGIKA DYNAMIC FILTERING PROYEK CCTV & KARTU UTAMA (Blok B)
+        // 3. SEKSI LOGIKA DYNAMIC FILTERING PROYEK CCTV
         // ==========================================================================
         const filterCctvCabang = document.getElementById('filter-cctv-cabang');
         const filterCctvStart = document.getElementById('filter-cctv-start');
@@ -147,7 +152,6 @@ function calculateAndRenderStats() {
             });
         }
 
-        // Kalkulasi 3 Status CCTV Mandiri
         const totalCctvCount = filteredCctv.length;
         const cSurvei = filteredCctv.filter(c => c?.status === 'Survei').length;
         const cKerja = filteredCctv.filter(c => c?.status === 'Pengerjaan').length;
@@ -167,7 +171,6 @@ function calculateAndRenderStats() {
         }
         let totalOmsetSewa = 0;
         filteredPenyewaan.forEach(p => { 
-            // Abaikan transaksi yang berstatus Dibatalkan
             if (p?.status !== 'Dibatalkan') {
                 totalOmsetSewa += (Number(p?.total_biaya) || 0); 
             }
@@ -221,13 +224,18 @@ function calculateAndRenderStats() {
         setInnerText('stat-display-sold', dispSold);
         setInnerText('stat-display-off', dispOff);
 
-        const totalInventarisVariants = dataInventaris.length;
+        let filteredInventaris = dataInventaris;
+        if (inventarisBranchVal) {
+            filteredInventaris = filteredInventaris.filter(item => item?.cabang === inventarisBranchVal);
+        }
+
+        const totalInventarisVariants = filteredInventaris.length;
         let totalInventarisQty = 0;
         let lowStockCount = 0;
         let baikCount = 0;
         let rusakCount = 0;
 
-        dataInventaris.forEach(item => {
+        filteredInventaris.forEach(item => {
             const stokVal = Number(item?.stok) || 0;
             totalInventarisQty += stokVal;
             if (stokVal <= 3) {
@@ -250,7 +258,7 @@ function calculateAndRenderStats() {
         let totalInvBaik = 0;
         let totalInvRusak = 0;
 
-        dataInventaris.forEach(item => {
+        filteredInventaris.forEach(item => {
             let namaText = (item?.nama_barang || '').trim();
             if (!namaText) namaText = "Barang Tanpa Nama";
             
@@ -269,7 +277,7 @@ function calculateAndRenderStats() {
         const inventarisContainer = document.getElementById('dashboard-inventaris-models-container');
         if (inventarisContainer) {
             inventarisContainer.innerHTML = '';
-            if (dataInventaris.length === 0) {
+            if (filteredInventaris.length === 0) {
                 inventarisContainer.innerHTML = `<p class="text-center text-xs text-gray-400 py-6 italic">Tidak ada item inventaris kerja</p>`;
             } else {
                 let finalHtml = '';
@@ -281,7 +289,7 @@ function calculateAndRenderStats() {
 
         const criticalBody = document.getElementById('critical-stock-table-body');
         if (criticalBody) {
-            const lowStockItems = dataInventaris.filter(item => (Number(item?.stok) || 0) <= 3 && item?.kondisi === 'Baik');
+            const lowStockItems = filteredInventaris.filter(item => (Number(item?.stok) || 0) <= 3 && item?.kondisi === 'Baik');
             if (lowStockItems.length === 0) {
                 criticalBody.innerHTML = `<tr><td colspan="4" class="py-3 text-center text-slate-400 italic">Semua stok inventaris dalam kondisi aman harian.</td></tr>`;
             } else {
@@ -296,16 +304,31 @@ function calculateAndRenderStats() {
             }
         }
 
-        const servers = dataOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
+        let servers = dataOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
         const members = dataOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota');
 
-        const totalServersCount = servers.length;
+        const filterOfficeStatus = document.getElementById('filter-office-status')?.value || '';
+        if (filterOfficeStatus === 'available') {
+            servers = servers.filter(srv => {
+                const srvEmail = srv?.akun || '';
+                const count = dataOffice.filter(it => (it?.server_utama || '') === srvEmail && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
+                return count < 5;
+            });
+        } else if (filterOfficeStatus === 'full') {
+            servers = servers.filter(srv => {
+                const srvEmail = srv?.akun || '';
+                const count = dataOffice.filter(it => (it?.server_utama || '') === srvEmail && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
+                return count >= 5;
+            });
+        }
+
+        const totalServersCount = dataOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama').length;
         const totalMembersCount = members.length;
 
         let filledSlots = 0;
         let fullServersCount = 0;
 
-        servers.forEach(srv => {
+        dataOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama').forEach(srv => {
             const srvEmail = srv?.akun || '';
             const linkedMembers = dataOffice.filter(it => (it?.server_utama || '') === srvEmail && (it?.tipe_akun || '').toString().toLowerCase() === 'anggota').length;
             filledSlots += linkedMembers;
@@ -326,7 +349,7 @@ function calculateAndRenderStats() {
         if (officeGrid) {
             officeGrid.innerHTML = '';
             if (servers.length === 0) {
-                officeGrid.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-4 italic">Belum ada Server Utama terdaftar di database.</p>`;
+                officeGrid.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-4 italic">Tidak ada Server Utama yang sesuai filter.</p>`;
             } else {
                 let gridHtml = '';
                 servers.forEach(server => {
@@ -339,7 +362,7 @@ function calculateAndRenderStats() {
                                 <span class="text-xs font-extrabold text-purple-700 truncate block max-w-[180px]" title="${escapeHtml(hostEmail)}">
                                     <i class="fa-solid fa-server mr-1"></i> ${escapeHtml(hostEmail)}
                                 </span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${linkedMembers.length >= 5 ? 'bg-rose-100 text-rose-800' : 'bg-purple-100 text-purple-800'}">
                                     ${linkedMembers.length}/5 Slot Terisi
                                 </span>
                             </div>
@@ -410,7 +433,7 @@ function calculateAndRenderStats() {
             }
         });
 
-        // 1. RENDER KONTEN MODE 1 (Tampilan Analitis List)
+        // MODE 1: ANALITIS
         const laptopContainer = document.getElementById('dashboard-laptop-models-container');
         if (laptopContainer) {
             laptopContainer.innerHTML = '';
@@ -427,7 +450,7 @@ function calculateAndRenderStats() {
             }
         }
 
-        // 2. RENDER KONTEN MODE 2 (Tampilan Grid 5 Box Kategori Status)
+        // MODE 2: GRID 5-BOX
         const gridContainer = document.getElementById('laptop-5box-grid-container');
         if (gridContainer) {
             gridContainer.innerHTML = '';
@@ -442,6 +465,76 @@ function calculateAndRenderStats() {
                 gridHtml += renderGroupCard('⚪ Sudah Terjual', warehouseTerjual, totalWhTerjual, '', 'bg-slate-200 text-slate-800', 'bg-slate-100', 'border-slate-200');
                 gridContainer.innerHTML = gridHtml;
             }
+        }
+
+        // MODE 3: FULL LAPORAN (Grid 3 Kolom & Otomatis Tanpa Scrollbar)
+        const stackedContainer = document.getElementById('dashboard-laptop-models-stacked-container');
+        if (stackedContainer) {
+            stackedContainer.innerHTML = '';
+            if (filteredLaptop.length === 0) {
+                stackedContainer.innerHTML = `<p class="col-span-full text-center text-xs text-gray-400 py-6 italic">Tidak ada unit laptop pada cabang ini</p>`;
+            } else {
+                let stackedHtml = '';
+                
+                if (totalWhReady > 0) {
+                    stackedHtml += renderGroupCard('Tersedia di Gudang', warehouseReady, totalWhReady, '<i class="fa-solid fa-circle-check text-emerald-500"></i>', 'bg-emerald-100 text-emerald-800', 'bg-emerald-50/70', 'border-emerald-200');
+                }
+                
+                if (totalWhSewa > 0) {
+                    stackedHtml += renderGroupCard('Sedang Disewa', warehouseSewa, totalWhSewa, '<i class="fa-solid fa-boxes-packing text-amber-500"></i>', 'bg-amber-100 text-amber-800', 'bg-amber-50/70', 'border-amber-200');
+                }
+
+                if (totalWhMaintenance > 0) {
+                    stackedHtml += renderGroupCard('Maintenance / Rusak', warehouseMaintenance, totalWhMaintenance, '<i class="fa-solid fa-screwdriver-wrench text-rose-500"></i>', 'bg-rose-100 text-rose-800', 'bg-rose-50/70', 'border-rose-200');
+                }
+
+                if (totalWhStaf > 0) {
+                    stackedHtml += renderGroupCard('Digunakan Staf', warehouseStaf, totalWhStaf, '<i class="fa-solid fa-user-tie text-indigo-500"></i>', 'bg-indigo-100 text-indigo-800', 'bg-indigo-50/70', 'border-indigo-200');
+                }
+
+                if (totalWhTerjual > 0) {
+                    stackedHtml += renderGroupCard('Sudah Terjual', warehouseTerjual, totalWhTerjual, '<i class="fa-solid fa-hand-holding-dollar text-slate-500"></i>', 'bg-slate-200 text-slate-800', 'bg-slate-100', 'border-slate-200');
+                }
+
+                stackedContainer.innerHTML = stackedHtml;
+            }
+        }
+
+        // RENDER CHART DONAT MODE STACKED
+        try {
+            const stackedStockCanvas = document.getElementById('chartLaptopStockStacked');
+            if (stackedStockCanvas && typeof Chart !== 'undefined') {
+                const ctxStacked = stackedStockCanvas.getContext('2d');
+                if (chartLaptopStockStackedInstance !== null) chartLaptopStockStackedInstance.destroy();
+
+                chartLaptopStockStackedInstance = new Chart(ctxStacked, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [
+                            'Tersedia ('+lapReady+')', 
+                            'Disewa ('+lapSewa+')', 
+                            'Maintenance ('+lapRusak+')', 
+                            'Staf ('+lapStaf+')', 
+                            'Terjual ('+lapTerjual+')'
+                        ],
+                        datasets: [{
+                            data: [lapReady, lapSewa, lapRusak, lapStaf, lapTerjual],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#64748b'],
+                            borderWidth: 2,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+        } catch (chartErr) {
+            console.warn("Gagal menggambar diagram stok laptop mode stacked:", chartErr);
         }
 
         let displayCountsReady = {};
@@ -485,9 +578,8 @@ function calculateAndRenderStats() {
         }
 
         // ==========================================================================
-        // 5. VISUALISASI DUA GRAFIK (MERK PERANGKAT & TREN PENERIMAAN SERVISAN)
+        // 5. VISUALISASI GRAFIK SERVIS & CCTV
         // ==========================================================================
-        // Render Grafik Distribusi Merk / Tipe Laptop yang Diservis (Doughnut)
         try {
             const servicesCanvas = document.getElementById('chartServicesProgress');
             const servicesChartsContainer = document.getElementById('services-charts-container');
@@ -500,7 +592,6 @@ function calculateAndRenderStats() {
                 const ctxServices = servicesCanvas.getContext('2d');
                 if (chartServicesInstance !== null) chartServicesInstance.destroy();
 
-                // Fungsi pembantu ekstraksi merk dari input teks perangkat
                 const extractBrand = (perangkatStr) => {
                     if (!perangkatStr) return 'Lainnya';
                     const clean = perangkatStr.trim().toLowerCase();
@@ -522,7 +613,6 @@ function calculateAndRenderStats() {
                     return 'Lainnya';
                 };
 
-                // Hitung frekuensi masing-masing merk dari data servisan aktif
                 const brandCounts = {};
                 filteredServices.forEach(item => {
                     const brand = extractBrand(item?.perangkat || '');
@@ -534,15 +624,15 @@ function calculateAndRenderStats() {
                 const doughnutData = sortedBrands.map(brand => brandCounts[brand]);
 
                 const presetColors = {
-                    'Lenovo': '#f59e0b', // Orange/Amber
-                    'Asus': '#3b82f6',   // Blue
-                    'Acer': '#10b981',   // Emerald Green
-                    'HP': '#8b5cf6',     // Violet
-                    'Dell': '#06b6d4',   // Cyan
-                    'Apple': '#6b7280',  // Slate Gray
-                    'Axioo': '#ec4899',  // Pink
-                    'MSI': '#ef4444',    // Red
-                    'Lainnya': '#cbd5e1' // Light Gray
+                    'Lenovo': '#f59e0b',
+                    'Asus': '#3b82f6',
+                    'Acer': '#10b981',
+                    'HP': '#8b5cf6',
+                    'Dell': '#06b6d4',
+                    'Apple': '#6b7280',
+                    'Axioo': '#ec4899',
+                    'MSI': '#ef4444',
+                    'Lainnya': '#cbd5e1'
                 };
                 const backgroundColors = sortedBrands.map(brand => presetColors[brand] || '#' + Math.floor(Math.random()*16777215).toString(16));
 
@@ -570,14 +660,12 @@ function calculateAndRenderStats() {
             console.warn("Gagal menggambar diagram merk perangkat servis:", chartErr);
         }
 
-        // Render Grafik Tren Garis (Line Chart) Log Servisan Berdasarkan Merk/Tipe Perangkat
         try {
             const servicesLineCanvas = document.getElementById('chartServicesLine');
             if (servicesLineCanvas && typeof Chart !== 'undefined') {
                 const ctxServicesLine = servicesLineCanvas.getContext('2d');
                 if (chartServicesLineInstance !== null) chartServicesLineInstance.destroy();
 
-                // 1. Ekstraksi semua tanggal unik secara urut kronologis (Sumbu X)
                 const datesSet = new Set();
                 filteredServices.forEach(item => {
                     if (item?.tanggal) {
@@ -591,7 +679,6 @@ function calculateAndRenderStats() {
                     return dateA - dateB;
                 });
 
-                // 2. Fungsi pembantu pencari merk perangkat
                 const extractBrand = (perangkatStr) => {
                     if (!perangkatStr) return 'Lainnya';
                     const clean = perangkatStr.trim().toLowerCase();
@@ -607,11 +694,9 @@ function calculateAndRenderStats() {
                     return 'Lainnya';
                 };
 
-                // 3. Definisikan merk utama yang ingin dipantau garis trennya
                 const trackedBrands = ['Lenovo', 'Asus', 'Acer', 'HP', 'Lainnya'];
                 const brandDateCounts = {};
 
-                // Inisialisasi counter per merk per tanggal dengan nilai 0
                 trackedBrands.forEach(brand => {
                     brandDateCounts[brand] = {};
                     sortedServicesDates.forEach(tgl => {
@@ -619,7 +704,6 @@ function calculateAndRenderStats() {
                     });
                 });
 
-                // Akumulasikan data jumlah unit masuk
                 filteredServices.forEach(item => {
                     const brand = extractBrand(item?.perangkat || '');
                     const tgl = item?.tanggal || '';
@@ -629,16 +713,14 @@ function calculateAndRenderStats() {
                     }
                 });
 
-                // 4. Konfigurasi warna garis agar senada dan kontras
                 const brandColors = {
-                    'Lenovo': '#f59e0b', // Amber
-                    'Asus': '#3b82f6',   // Blue
-                    'Acer': '#10b981',   // Emerald
-                    'HP': '#8b5cf6',     // Violet
-                    'Lainnya': '#94a3b8' // Slate/Gray
+                    'Lenovo': '#f59e0b',
+                    'Asus': '#3b82f6',
+                    'Acer': '#10b981',
+                    'HP': '#8b5cf6',
+                    'Lainnya': '#94a3b8'
                 };
 
-                // Susun dataset multi-garis untuk Chart.js
                 const lineDatasets = trackedBrands.map(brand => {
                     return {
                         label: brand,
@@ -669,10 +751,7 @@ function calculateAndRenderStats() {
                             }
                         },
                         scales: {
-                            y: { 
-                                beginAtZero: true, 
-                                ticks: { precision: 0 } 
-                            }
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
                         }
                     }
                 });
@@ -681,24 +760,12 @@ function calculateAndRenderStats() {
             console.warn("Gagal menggambar diagram garis tren merk servis:", chartErr);
         }
 
-        // Render Grafik Status Proyek CCTV (Hanya Diagram Garis - Doughnut CCTV Dihapus)
-        try {
-            const cctvChartsContainer = document.getElementById('cctv-charts-container');
-            if (cctvChartsContainer) {
-                cctvChartsContainer.classList.remove('hidden');
-            }
-        } catch (err) {
-            console.warn(err);
-        }
-
-        // Render Grafik Tren Garis (Line Chart) Proyek CCTV
         try {
             const cctvLineCanvas = document.getElementById('chartCctvLine');
             if (cctvLineCanvas && typeof Chart !== 'undefined') {
                 const ctxCctvLine = cctvLineCanvas.getContext('2d');
                 if (chartCctvLineInstance !== null) chartCctvLineInstance.destroy();
 
-                // Kelompokkan proyek CCTV berdasarkan tanggal untuk Diagram Garis
                 const cctvByDate = {};
                 filteredCctv.forEach(item => {
                     let tgl = item?.tanggal || '';
@@ -734,12 +801,8 @@ function calculateAndRenderStats() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { beginAtZero: true, ticks: { precision: 0 } }
-                        }
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
                     }
                 });
             }
@@ -747,147 +810,7 @@ function calculateAndRenderStats() {
             console.warn("Gagal menggambar diagram garis proyek CCTV:", chartErr);
         }
 
-
-        // ==========================================================================
-// KONTROL MASTER MENU POP-UP 3-IN-1 & SCREENSHOT LAPTOP GUDANG
-// ==========================================================================
-let activeLaptopGudangLayoutMode = 'analytics'; // Default: Tampilan Analitis
-
-// Toggle Buka/Tutup Pop-up Master Menu
-window.toggleLaptopMasterMenu = function(event) {
-    if (event) event.stopPropagation();
-    const popover = document.getElementById('popover-laptop-master');
-    if (popover) {
-        popover.classList.toggle('hidden');
-    }
-};
-
-// Pengatur Mode Tampilan (Analitis vs Grid 5-Box)
-window.setLaptopGudangLayout = function(mode) {
-    activeLaptopGudangLayoutMode = mode;
-    const analyticsEl = document.getElementById('laptop-layout-analytics');
-    const gridEl = document.getElementById('laptop-layout-grid');
-    
-    const btnAnalytics = document.getElementById('btn-layout-analytics');
-    const btnGrid = document.getElementById('btn-layout-grid');
-
-    if (mode === 'grid') {
-        if (analyticsEl) analyticsEl.classList.add('hidden');
-        if (gridEl) gridEl.classList.remove('hidden');
-
-        // Highlight Tombol Aktif
-        if (btnGrid) {
-            btnGrid.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-emerald-600 shadow-xs border border-slate-200";
-        }
-        if (btnAnalytics) {
-            btnAnalytics.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
-        }
-    } else {
-        if (analyticsEl) analyticsEl.classList.remove('hidden');
-        if (gridEl) gridEl.classList.add('hidden');
-
-        // Highlight Tombol Aktif
-        if (btnAnalytics) {
-            btnAnalytics.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-cyan-600 shadow-xs border border-slate-200";
-        }
-        if (btnGrid) {
-            btnGrid.className = "py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
-        }
-    }
-
-    // Render ulang konten sesuai mode pilihan
-    if (typeof calculateAndRenderStats === 'function') {
-        calculateAndRenderStats();
-    }
-};
-
-// Fungsi Tangkap Gambar Presisi (Clone Off-screen tanpa area putih kosong)
-window.captureLaptopGudangSection = function() {
-    const originalSection = document.getElementById('section-laptop-gudang');
-    const masterPopover = document.getElementById('popover-laptop-master');
-    if (!originalSection) return;
-
-    // Sembunyikan popover jika sedang terbuka
-    if (masterPopover) masterPopover.classList.add('hidden');
-
-    if (window.showToast) window.showToast("Mengambil gambar laporan presisi...", "info");
-
-    if (typeof html2canvas === 'undefined') {
-        alert("Library html2canvas belum dimuat. Pastikan koneksi internet Anda stabil.");
-        return;
-    }
-
-    // 1. Buat Salinan (Clone) Elemen ke Balik Layar
-    const clone = originalSection.cloneNode(true);
-
-    // Sembunyikan Pop-up Menu & Tombol pada Salinan
-    const clonePopover = clone.querySelector('#popover-laptop-master');
-    if (clonePopover) clonePopover.remove();
-
-    // 2. Buka Semua Scrollbar pada Salinan agar Konten Terbuka Utuh
-    const cloneScrollables = clone.querySelectorAll('.overflow-y-auto');
-    cloneScrollables.forEach(el => {
-        el.style.maxHeight = 'none';
-        el.style.height = 'auto';
-        el.style.overflow = 'visible';
-    });
-
-    // 3. Atur Ukuran Salinan Agar Pas Rapat dengan Konten (Tanpa Ruang Kosong di Bawah)
-    const actualWidth = originalSection.offsetWidth;
-    clone.style.position = 'absolute';
-    clone.style.left = '-9999px'; // Pindahkan ke luar layar
-    clone.style.top = '0';
-    clone.style.width = `${actualWidth}px`;
-    clone.style.height = 'auto'; // Paksa tinggi rapat presisi mengikuti isi
-    clone.style.boxSizing = 'border-box';
-    clone.style.margin = '0';
-
-    document.body.appendChild(clone);
-
-    // 4. Ambil Foto dari Salinan Presisi
-    html2canvas(clone, {
-        scale: 2, // Resolusi HD Tajam
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false
-    }).then(canvas => {
-        // Hapus salinan setelah selesai difoto
-        document.body.removeChild(clone);
-
-        const now = new Date();
-        const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-        const branchVal = window.userBranch || document.getElementById('filter-gudang-cabang')?.value || 'Semua_Cabang';
-        const cleanBranch = branchVal.replace(/\s+/g, '_');
-
-        const link = document.createElement('a');
-        link.download = `Laporan_Laptop_Gudang_${cleanBranch}_${formattedDate}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-
-        if (window.showToast) window.showToast("Gambar presisi rapi berhasil diunduh!", "success");
-    }).catch(err => {
-        if (document.body.contains(clone)) {
-            document.body.removeChild(clone);
-        }
-        console.error("Gagal capture gambar:", err);
-        if (window.showToast) window.showToast("Gagal mengunduh gambar: " + err.message, "error");
-    });
-};
-
-// Sembunyikan Pop-up jika pengguna mengeklik di luar area menu
-document.addEventListener('click', function(e) {
-    const popover = document.getElementById('popover-laptop-master');
-    if (popover && !popover.classList.contains('hidden')) {
-        const btn = e.target.closest('button[onclick*="toggleLaptopMasterMenu"]');
-        if (!btn && !popover.contains(e.target)) {
-            popover.classList.add('hidden');
-        }
-    }
-});
-        // ==========================================================================
-        // 7. RENDER DAFTAR DETAIL PEKERJAAN AKTIF (LIVE DETAILS TABLE)
-        // ==========================================================================
-        // Render Detail Antrean Servis Aktif (Antrean, Proses, Selesai & Cancel)
+        // RENDER DETAIL ANTREAN SERVIS & CCTV
         const servicesDetailsBody = document.getElementById('dashboard-services-details');
         if (servicesDetailsBody) {
             const activeServices = [...filteredServices]; 
@@ -903,7 +826,7 @@ document.addEventListener('click', function(e) {
                     const perangkatText = s.perangkat || '-';
                     const teknisiText = s.teknisi || 'Belum Ditentukan';
                     
-                    let statusColor = 'text-amber-600 bg-amber-50 border border-amber-100'; // Antrean
+                    let statusColor = 'text-amber-600 bg-amber-50 border border-amber-100';
                     if (s.status === 'Proses') {
                         statusColor = 'text-blue-600 bg-blue-50 border border-blue-100';
                     } else if (s.status === 'Selesai') {
@@ -925,7 +848,6 @@ document.addEventListener('click', function(e) {
             }
         }
 
-        // Render Detail Proyek CCTV Berjalan (Semua Status)
         const cctvDetailsBody = document.getElementById('dashboard-cctv-details');
         if (cctvDetailsBody) {
             const activeCctvList = [...filteredCctv]; 
@@ -940,7 +862,7 @@ document.addEventListener('click', function(e) {
                     const kameraText = c.jumlah_cctv || 0;
                     const progresText = c.progres || '-';
                     
-                    let statusColor = 'text-purple-600 bg-purple-50 border border-purple-100'; // Survei
+                    let statusColor = 'text-purple-600 bg-purple-50 border border-purple-100';
                     if (c.status === 'Pengerjaan') {
                         statusColor = 'text-cyan-600 bg-cyan-50 border border-cyan-100';
                     } else if (c.status === 'Selesai' || c.status === 'Selesai / Serah Terima') {
@@ -960,7 +882,7 @@ document.addEventListener('click', function(e) {
             }
         }
 
-        // Render Grafik Laptop Stok Gudang
+        // Render Grafik Laptop Stok Gudang Mode 1
         try {
             const laptopStockCanvas = document.getElementById('chartLaptopStock');
             if (laptopStockCanvas && typeof Chart !== 'undefined') {
@@ -1001,6 +923,180 @@ document.addEventListener('click', function(e) {
         console.error("Galat fatal pada calculateAndRenderStats():", globalErr);
     }
 }
+
+// ==========================================================================
+// KONTROL TOGGLE MASTER MENU POP-UP UNTUK SEMUA SEKSI
+// ==========================================================================
+
+function toggleMasterMenuHelper(popoverId, event) {
+    if (event) event.stopPropagation();
+    
+    const allPopovers = ['popover-services-master', 'popover-cctv-master', 'popover-display-master', 'popover-laptop-master', 'popover-inventaris-master', 'popover-office-master'];
+    allPopovers.forEach(id => {
+        if (id !== popoverId) {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        }
+    });
+
+    const popover = document.getElementById(popoverId);
+    if (popover) {
+        popover.classList.toggle('hidden');
+    }
+}
+
+window.toggleServicesMasterMenu = function(event) { toggleMasterMenuHelper('popover-services-master', event); };
+window.toggleCctvMasterMenu = function(event) { toggleMasterMenuHelper('popover-cctv-master', event); };
+window.toggleDisplayMasterMenu = function(event) { toggleMasterMenuHelper('popover-display-master', event); };
+window.toggleLaptopMasterMenu = function(event) { toggleMasterMenuHelper('popover-laptop-master', event); };
+window.toggleInventarisMasterMenu = function(event) { toggleMasterMenuHelper('popover-inventaris-master', event); };
+window.toggleOfficeMasterMenu = function(event) { toggleMasterMenuHelper('popover-office-master', event); };
+
+// Pengatur Mode Tampilan Laptop Gudang (3 Mode)
+window.setLaptopGudangLayout = function(mode) {
+    activeLaptopGudangLayoutMode = mode;
+    const analyticsEl = document.getElementById('laptop-layout-analytics');
+    const gridEl = document.getElementById('laptop-layout-grid');
+    const stackedEl = document.getElementById('laptop-layout-stacked');
+    
+    const btnAnalytics = document.getElementById('btn-layout-analytics');
+    const btnGrid = document.getElementById('btn-layout-grid');
+    const btnStacked = document.getElementById('btn-layout-stacked');
+
+    const defaultBtnClass = "py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
+
+    if (btnAnalytics) btnAnalytics.className = defaultBtnClass;
+    if (btnGrid) btnGrid.className = defaultBtnClass;
+    if (btnStacked) btnStacked.className = defaultBtnClass;
+
+    if (analyticsEl) analyticsEl.classList.add('hidden');
+    if (gridEl) gridEl.classList.add('hidden');
+    if (stackedEl) stackedEl.classList.add('hidden');
+
+    if (mode === 'grid') {
+        if (gridEl) gridEl.classList.remove('hidden');
+        if (btnGrid) btnGrid.className = "py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 bg-white text-emerald-600 shadow-xs border border-slate-200";
+    } else if (mode === 'stacked') {
+        if (stackedEl) stackedEl.classList.remove('hidden');
+        if (btnStacked) btnStacked.className = "py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 bg-white text-purple-600 shadow-xs border border-slate-200";
+    } else {
+        if (analyticsEl) analyticsEl.classList.remove('hidden');
+        if (btnAnalytics) btnAnalytics.className = "py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 bg-white text-cyan-600 shadow-xs border border-slate-200";
+    }
+
+    if (typeof calculateAndRenderStats === 'function') {
+        calculateAndRenderStats();
+    }
+};
+
+// ==========================================================================
+// ENGINE TANGKAP GAMBAR (SCREENSHOT) PRESISI UNTUK SETIAP SEKSI
+// ==========================================================================
+
+function captureSectionHelper(sectionId, popoverId, fileNamePrefix) {
+    const originalSection = document.getElementById(sectionId);
+    const masterPopover = document.getElementById(popoverId);
+    if (!originalSection) return;
+
+    if (masterPopover) masterPopover.classList.add('hidden');
+
+    if (window.showToast) window.showToast("Mengambil gambar laporan presisi...", "info");
+
+    if (typeof html2canvas === 'undefined') {
+        alert("Library html2canvas belum dimuat. Pastikan koneksi internet Anda stabil.");
+        return;
+    }
+
+    const clone = originalSection.cloneNode(true);
+
+    // KUNCI: Copy pixel data canvas dari asli ke clone agar Chart.js tidak putih polos
+    const originalCanvases = originalSection.querySelectorAll('canvas');
+    const cloneCanvases = clone.querySelectorAll('canvas');
+    originalCanvases.forEach((origCanvas, index) => {
+        const cloneCanvas = cloneCanvases[index];
+        if (cloneCanvas && origCanvas.width > 0 && origCanvas.height > 0) {
+            const ctx = cloneCanvas.getContext('2d');
+            cloneCanvas.width = origCanvas.width;
+            cloneCanvas.height = origCanvas.height;
+            ctx.drawImage(origCanvas, 0, 0);
+        }
+    });
+
+    const clonePopover = clone.querySelector(`#${popoverId}`);
+    if (clonePopover) clonePopover.remove();
+
+    const cloneScrollables = clone.querySelectorAll('.overflow-y-auto');
+    cloneScrollables.forEach(el => {
+        el.style.maxHeight = 'none';
+        el.style.height = 'auto';
+        el.style.overflow = 'visible';
+    });
+
+    const actualWidth = originalSection.offsetWidth;
+    clone.style.position = 'absolute';
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    clone.style.width = `${actualWidth}px`;
+    clone.style.height = 'auto';
+    clone.style.boxSizing = 'border-box';
+    clone.style.margin = '0';
+
+    document.body.appendChild(clone);
+
+    html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+    }).then(canvas => {
+        document.body.removeChild(clone);
+
+        const now = new Date();
+        const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        const link = document.createElement('a');
+        link.download = `${fileNamePrefix}_${formattedDate}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        if (window.showToast) window.showToast("Gambar presisi rapi berhasil diunduh!", "success");
+    }).catch(err => {
+        if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
+        }
+        console.error("Gagal capture gambar:", err);
+        if (window.showToast) window.showToast("Gagal mengunduh gambar: " + err.message, "error");
+    });
+}
+
+window.captureServicesSection = function() { captureSectionHelper('section-services', 'popover-services-master', 'Laporan_Antrean_Servis'); };
+window.captureCctvSection = function() { captureSectionHelper('section-cctv', 'popover-cctv-master', 'Laporan_Proyek_CCTV'); };
+window.captureDisplaySection = function() { captureSectionHelper('section-laptop-display', 'popover-display-master', 'Laporan_Laptop_Display'); };
+window.captureLaptopGudangSection = function() { captureSectionHelper('section-laptop-gudang', 'popover-laptop-master', 'Laporan_Laptop_Gudang'); };
+window.captureInventarisSection = function() { captureSectionHelper('section-inventaris', 'popover-inventaris-master', 'Laporan_Inventaris_Part'); };
+window.captureOfficeSection = function() { captureSectionHelper('section-office', 'popover-office-master', 'Laporan_Lisensi_Office'); };
+
+// Sembunyikan Pop-up jika pengguna mengeklik di luar area menu
+document.addEventListener('click', function(e) {
+    const allPopovers = [
+        { id: 'popover-services-master', btn: 'toggleServicesMasterMenu' },
+        { id: 'popover-cctv-master', btn: 'toggleCctvMasterMenu' },
+        { id: 'popover-display-master', btn: 'toggleDisplayMasterMenu' },
+        { id: 'popover-laptop-master', btn: 'toggleLaptopMasterMenu' },
+        { id: 'popover-inventaris-master', btn: 'toggleInventarisMasterMenu' },
+        { id: 'popover-office-master', btn: 'toggleOfficeMasterMenu' }
+    ];
+
+    allPopovers.forEach(item => {
+        const popover = document.getElementById(item.id);
+        if (popover && !popover.classList.contains('hidden')) {
+            const btn = e.target.closest(`button[onclick*="${item.btn}"]`);
+            if (!btn && !popover.contains(e.target)) {
+                popover.classList.add('hidden');
+            }
+        }
+    });
+});
 
 function renderGroupCard(title, dataObj, totalGroup, iconStr, badgeClass, bgClass, borderClass) {
     let keys = Object.keys(dataObj).sort();
@@ -1046,6 +1142,7 @@ function updateDashboardBranchFilters() {
         const mainBranchSelect = document.getElementById('branch-filter');
         const servicesSelect = document.getElementById('filter-services-cabang');
         const cctvSelect = document.getElementById('filter-cctv-cabang');
+        const inventarisSelect = document.getElementById('filter-inventaris-cabang');
         
         let optionsHtml = '<option value="">Semua Cabang</option>';
         [...branches].sort().forEach(b => {
@@ -1071,6 +1168,12 @@ function updateDashboardBranchFilters() {
             let currentCctv = cctvSelect.value;
             cctvSelect.innerHTML = optionsHtml;
             cctvSelect.value = currentCctv;
+        }
+
+        if (inventarisSelect) {
+            let currentInventaris = inventarisSelect.value;
+            inventarisSelect.innerHTML = optionsHtml;
+            inventarisSelect.value = currentInventaris;
         }
 
         if(mainBranchSelect) {
@@ -1128,7 +1231,7 @@ function closeDashboardModal() {
     }
 }
 
-// Ikat ke global window agar HTML dapat memanggil secara langsung
+// Ikat ke global window
 window.calculateAndRenderStats = calculateAndRenderStats;
 window.updateDashboardBranchFilters = updateDashboardBranchFilters;
 window.resetDisplayFilters = resetDisplayFilters;

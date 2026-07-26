@@ -227,7 +227,7 @@
                                 <input type="text" id="search-bar" oninput="resetPaginationAndRender()" placeholder="Cari data..." class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                             </div>
                             
-                            <!-- PANEL FILTER DATA TERPADU -->
+                            <!-- PANEL FILTER DATA TERPADU TABEL -->
                             <div class="relative inline-block text-left" id="filter-popover-container">
                                 <button id="filter-trigger-btn" onclick="window.toggleFilterPanel(event)" class="relative px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                     <i class="fa-solid fa-sliders text-cyan-500"></i>
@@ -253,7 +253,6 @@
                                         </select>
                                     </div>
 
-                                    <!-- FILTER SEKUNDER SERBAGUNA KONTEKSTUAL -->
                                     <div id="secondary-filter-container" class="hidden">
                                         <label id="secondary-filter-label" class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Filter Tambahan</label>
                                         <select id="secondary-filter" onchange="resetPaginationAndRender(); window.updateFilterBadgeCount();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-slate-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
@@ -328,22 +327,57 @@
             
             <div class="p-6 bg-slate-50 overflow-y-auto max-h-[85vh] space-y-8">
                 
-                <!-- SEKSI 1: MONITORING ANTRIAN SERVIS TOKO -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
-                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTRIAN SERVIS TOKO (TOTAL TICKET: <span id="stat-services-total" class="font-mono">0</span> TICKET)</span>
-                        <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
-                            <select id="filter-services-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                <option value="">Semua Cabang</option>
-                                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
-                                <option value="Perintis">Perintis</option>
-                            </select>
-                            <input type="date" id="filter-services-start" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                            <span class="text-gray-400">s/d</span>
-                            <input type="date" id="filter-services-end" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                            <button onclick="window.resetServicesFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold transition" title="Reset Filter Servis">
-                                <i class="fa-solid fa-arrows-rotate"></i>
+                <!-- SEKSI 1: MONITORING ANTREAN SERVIS TOKO -->
+                <div id="section-services" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
+                    <div class="flex items-center justify-between gap-2 border-b pb-2.5">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
+                            <i class="fa-solid fa-laptop-medical mr-1.5 text-cyan-500"></i> LIVE MONITOR ANTREAN SERVIS TOKO (TOTAL TICKET: <span id="stat-services-total" class="font-mono">0</span> TICKET)
+                        </span>
+                        
+                        <!-- TOMBOL MASTER POP-UP SERVIS -->
+                        <div class="relative inline-block text-left">
+                            <button type="button" onclick="window.toggleServicesMasterMenu(event)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm border border-slate-700">
+                                <i class="fa-solid fa-sliders text-xs"></i>
+                                <span>⚙️ Alat & Filter</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-cyan-500"></i>
                             </button>
+                            
+                            <div id="popover-services-master" class="hidden absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white shadow-2xl border border-slate-200 p-3 z-50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">🏢 Wilayah Cabang</label>
+                                    <select id="filter-services-cabang" onchange="calculateAndRenderStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                                        <option value="">Semua Cabang</option>
+                                        <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                        <option value="Perintis">Perintis</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📅 Rentang Tanggal</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <input type="date" id="filter-services-start" onchange="calculateAndRenderStats()" class="w-full border rounded-xl p-1.5 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                        <input type="date" id="filter-services-end" onchange="calculateAndRenderStats()" class="w-full border rounded-xl p-1.5 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="window.resetServicesFilters()" class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-arrows-rotate"></i> Reset Filter
+                                    </button>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📸 Ekspor Laporan</label>
+                                    <button type="button" onclick="window.captureServicesSection()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>Tangkap & Unduh Gambar (.PNG)</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -418,21 +452,56 @@
                 </div>
 
                 <!-- SEKSI 2: MONITORING INSTALASI PROYEK CCTV -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-1.5 flex-wrap">
-                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block"><i class="fa-solid fa-video mr-1.5 text-blue-500"></i> LIVE MONITOR PROYEK INSTALASI CCTV (TOTAL PROYEK: <span id="stat-cctv-total" class="font-mono">0</span> PROYEK)</span>
-                        <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
-                            <select id="filter-cctv-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                <option value="">Semua Cabang</option>
-                                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
-                                <option value="Perintis">Perintis</option>
-                            </select>
-                            <input type="date" id="filter-cctv-start" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                            <span class="text-gray-400">s/d</span>
-                            <input type="date" id="filter-cctv-end" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                            <button onclick="window.resetCctvFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold transition" title="Reset Filter CCTV">
-                                <i class="fa-solid fa-arrows-rotate"></i>
+                <div id="section-cctv" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
+                    <div class="flex items-center justify-between gap-2 border-b pb-2.5">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
+                            <i class="fa-solid fa-video mr-1.5 text-blue-500"></i> LIVE MONITOR PROYEK INSTALASI CCTV (TOTAL PROYEK: <span id="stat-cctv-total" class="font-mono">0</span> PROYEK)
+                        </span>
+                        
+                        <!-- TOMBOL MASTER POP-UP CCTV -->
+                        <div class="relative inline-block text-left">
+                            <button type="button" onclick="window.toggleCctvMasterMenu(event)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm border border-slate-700">
+                                <i class="fa-solid fa-sliders text-xs"></i>
+                                <span>⚙️ Alat & Filter</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-cyan-500"></i>
                             </button>
+                            
+                            <div id="popover-cctv-master" class="hidden absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white shadow-2xl border border-slate-200 p-3 z-50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">🏢 Wilayah Cabang</label>
+                                    <select id="filter-cctv-cabang" onchange="calculateAndRenderStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                                        <option value="">Semua Cabang</option>
+                                        <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                        <option value="Perintis">Perintis</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📅 Rentang Tanggal</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <input type="date" id="filter-cctv-start" onchange="calculateAndRenderStats()" class="w-full border rounded-xl p-1.5 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                        <input type="date" id="filter-cctv-end" onchange="calculateAndRenderStats()" class="w-full border rounded-xl p-1.5 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="window.resetCctvFilters()" class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-arrows-rotate"></i> Reset Filter
+                                    </button>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📸 Ekspor Laporan</label>
+                                    <button type="button" onclick="window.captureCctvSection()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>Tangkap & Unduh Gambar (.PNG)</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -494,9 +563,60 @@
                     </div>
                 </div>
 
-                <!-- MONITOR ETALASE TOKO (LAPTOP DISPLAY) -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block border-b pb-1.5"><i class="fa-solid fa-store mr-1.5 text-cyan-500"></i> Live Monitor Laptop Etalase / Display (Total Display: <span id="stat-display-total" class="font-mono">0</span> Unit)</span>
+                <!-- SEKSI 3: MONITOR ETALASE TOKO (LAPTOP DISPLAY) -->
+                <div id="section-laptop-display" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
+                    <div class="flex items-center justify-between gap-2 border-b pb-2.5">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
+                            <i class="fa-solid fa-store mr-1.5 text-cyan-500"></i> Live Monitor Laptop Etalase / Display (Total Display: <span id="stat-display-total" class="font-mono">0</span> Unit)
+                        </span>
+                        
+                        <!-- TOMBOL MASTER POP-UP DISPLAY -->
+                        <div class="relative inline-block text-left">
+                            <button type="button" onclick="window.toggleDisplayMasterMenu(event)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm border border-slate-700">
+                                <i class="fa-solid fa-sliders text-xs"></i>
+                                <span>⚙️ Alat & Filter</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-cyan-500"></i>
+                            </button>
+                            
+                            <div id="popover-display-master" class="hidden absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white shadow-2xl border border-slate-200 p-3 z-50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">🏢 Wilayah Cabang</label>
+                                    <select id="filter-display-cabang" onchange="calculateAndRenderStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                                        <option value="">Semua Cabang</option>
+                                        <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                        <option value="Perintis">Perintis</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📅 Rentang Tanggal</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <input type="date" id="filter-display-start" onchange="calculateAndRenderStats()" class="w-full border rounded-xl p-1.5 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                        <input type="date" id="filter-display-end" onchange="calculateAndRenderStats()" class="w-full border rounded-xl p-1.5 text-xs text-slate-600 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="window.resetDisplayFilters()" class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-arrows-rotate"></i> Reset Filter
+                                    </button>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📸 Ekspor Laporan</label>
+                                    <button type="button" onclick="window.captureDisplaySection()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>Tangkap & Unduh Gambar (.PNG)</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="bg-cyan-50/50 p-3 border border-cyan-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -520,25 +640,11 @@
                             <div class="text-emerald-500 text-lg"><i class="fa-solid fa-arrow-rotate-left"></i></div>
                         </div>
                     </div>
+
                     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b pb-2">
-                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
-                                <i class="fa-solid fa-store text-cyan-600"></i> Detail Distribusi Aset Display (Etalase)
-                            </h4>
-                            <div class="flex items-center gap-1 text-[11px] flex-wrap justify-end">
-                                <select id="filter-display-cabang" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                    <option value="">Semua Cabang</option>
-                                    <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
-                                    <option value="Perintis">Perintis</option>
-                                </select>
-                                <input type="date" id="filter-display-start" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                <span class="text-gray-400">s/d</span>
-                                <input type="date" id="filter-display-end" onchange="calculateAndRenderStats()" class="border rounded px-1.5 py-0.5 text-slate-600 bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                <button onclick="window.resetDisplayFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold transition" title="Reset Filter Semua Data">
-                                    <i class="fa-solid fa-arrows-rotate"></i>
-                                </button>
-                            </div>
-                        </div>
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1 mb-3 border-b pb-2">
+                            <i class="fa-solid fa-store text-cyan-600"></i> Detail Distribusi Aset Display (Etalase)
+                        </h4>
                         <div class="relative flex-1 overflow-y-auto custom-table-scrollbar min-h-[220px] max-h-[300px] p-1 mt-1">
                             <div id="dashboard-display-models-container" class="space-y-3">
                                 <p class="text-center text-xs text-gray-400 py-6 italic">Memproses data etalase...</p>
@@ -547,16 +653,14 @@
                     </div>
                 </div>
 
-                <!-- SEKSI MANAJEMEN ASET LAPTOP GUDANG -->
+                <!-- SEKSI 4: MANAJEMEN ASET LAPTOP GUDANG -->
                 <div id="section-laptop-gudang" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
-                    
-                    <!-- Header Seksi dengan 1 Tombol Utama Master Pop-up -->
                     <div class="flex items-center justify-between gap-2 border-b pb-2.5">
                         <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-warehouse text-emerald-600"></i> Monitoring Master Laptop Gudang (Total Aset: <span id="stat-laptop-total" class="font-mono">0</span> Unit)
                         </span>
                         
-                        <!-- HANYA 1 TOMBOL MASTER UTAMA DI POJOK KANAN -->
+                        <!-- TOMBOL MASTER POPUP LAPTOP GUDANG -->
                         <div class="relative inline-block text-left">
                             <button type="button" onclick="window.toggleLaptopMasterMenu(event)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm border border-slate-700">
                                 <i class="fa-solid fa-sliders text-xs"></i>
@@ -564,10 +668,7 @@
                                 <i class="fa-solid fa-chevron-down text-[9px] text-cyan-500"></i>
                             </button>
                             
-                            <!-- POP-UP MENU TERPADU 3-IN-1 -->
                             <div id="popover-laptop-master" class="hidden absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white shadow-2xl border border-slate-200 p-3 z-50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
-                                
-                                <!-- SEKSI 1: WILAYAH CABANG -->
                                 <div class="space-y-1">
                                     <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">🏢 Wilayah Cabang</label>
                                     <select id="filter-gudang-cabang" onchange="calculateAndRenderStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
@@ -579,22 +680,23 @@
 
                                 <div class="border-t border-slate-100"></div>
 
-                                <!-- SEKSI 2: MODE TAMPILAN (LAYOUT) -->
                                 <div class="space-y-1.5">
                                     <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📐 Mode Tampilan</label>
-                                    <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
-                                        <button type="button" id="btn-layout-analytics" onclick="window.setLaptopGudangLayout('analytics')" class="py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-cyan-600 shadow-xs border border-slate-200">
+                                    <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
+                                        <button type="button" id="btn-layout-analytics" onclick="window.setLaptopGudangLayout('analytics')" class="py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 bg-white text-cyan-600 shadow-xs border border-slate-200" title="Tampilan 2 Kolom Bersisian">
                                             <span>📊</span> Analitis
                                         </button>
-                                        <button type="button" id="btn-layout-grid" onclick="window.setLaptopGudangLayout('grid')" class="py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
-                                            <span>🔲</span> Grid 5-Box
+                                        <button type="button" id="btn-layout-grid" onclick="window.setLaptopGudangLayout('grid')" class="py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900" title="Tampilan Box Kategori">
+                                            <span>🔲</span> Grid
+                                        </button>
+                                        <button type="button" id="btn-layout-stacked" onclick="window.setLaptopGudangLayout('stacked')" class="py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900" title="Tampilan Atas-Bawah Laporan">
+                                            <span>📜</span> Full
                                         </button>
                                     </div>
                                 </div>
 
                                 <div class="border-t border-slate-100"></div>
 
-                                <!-- SEKSI 3: AKSI LAPORAN (CAPTURE) -->
                                 <div class="space-y-1">
                                     <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📸 Ekspor Laporan</label>
                                     <button type="button" onclick="window.captureLaptopGudangSection()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
@@ -602,12 +704,10 @@
                                         <span>Tangkap & Unduh Gambar (.PNG)</span>
                                     </button>
                                 </div>
-
                             </div>
                         </div>
                     </div>
 
-                    <!-- 5 Kartu Indikator Utama (Tetap Tampil Real-time di Semua Mode) -->
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                         <div class="bg-emerald-50/50 p-2.5 border border-emerald-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -646,7 +746,7 @@
                         </div>
                     </div>
 
-                    <!-- WADAH MODE 1: Tampilan Analitis (Grafik Donut + List) -->
+                    <!-- MODE 1: ANALITIS -->
                     <div id="laptop-layout-analytics" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start gap-3">
                             <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
@@ -668,20 +768,65 @@
                         </div>
                     </div>
 
-                    <!-- WADAH MODE 2: Tampilan Grid Distribusi (5 Box Kategori Status) -->
+                    <!-- MODE 2: GRID 5-BOX -->
                     <div id="laptop-layout-grid" class="hidden pt-2">
-                        <div id="laptop-5box-grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <!-- Box Kategori Status di-render otomatis oleh dashboard.js -->
+                        <div id="laptop-5box-grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                    </div>
+
+                    <!-- MODE 3: LAPORAN FULL -->
+                    <div id="laptop-layout-stacked" class="hidden pt-2 space-y-4">
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col items-center">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                <i class="fa-solid fa-chart-pie text-cyan-600"></i> Diagram Ketersediaan Aset Gudang
+                            </h4>
+                            <div class="relative w-full h-[220px] max-w-md">
+                                <canvas id="chartLaptopStockStacked"></canvas>
+                            </div>
                         </div>
+
+                        <div id="dashboard-laptop-models-stacked-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
                     </div>
 
                 </div>
 
-                <!-- MONITOR INVENTARIS SUKU CADANG & ALAT KERJA -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block border-b pb-1.5 flex items-center gap-1.5">
-                        <i class="fa-solid fa-toolbox text-blue-600"></i> Monitoring Suku Cadang & Inventaris Kerja
-                    </span>
+                <!-- SEKSI 5: MONITOR INVENTARIS SUKU CADANG & ALAT KERJA -->
+                <div id="section-inventaris" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
+                    <div class="flex items-center justify-between gap-2 border-b pb-2.5">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-toolbox text-blue-600"></i> Monitoring Suku Cadang & Inventaris Kerja
+                        </span>
+                        
+                        <!-- TOMBOL MASTER POP-UP INVENTARIS -->
+                        <div class="relative inline-block text-left">
+                            <button type="button" onclick="window.toggleInventarisMasterMenu(event)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm border border-slate-700">
+                                <i class="fa-solid fa-sliders text-xs"></i>
+                                <span>⚙️ Alat & Filter</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-cyan-500"></i>
+                            </button>
+                            
+                            <div id="popover-inventaris-master" class="hidden absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white shadow-2xl border border-slate-200 p-3 z-50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">🏢 Wilayah Cabang</label>
+                                    <select id="filter-inventaris-cabang" onchange="calculateAndRenderStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                                        <option value="">Semua Cabang</option>
+                                        <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                        <option value="Perintis">Perintis</option>
+                                    </select>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📸 Ekspor Laporan</label>
+                                    <button type="button" onclick="window.captureInventarisSection()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>Tangkap & Unduh Gambar (.PNG)</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
@@ -737,11 +882,9 @@
                             </div>
                         </div>
                         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col justify-start gap-4">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b pb-2">
-                                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
-                                    <i class="fa-solid fa-list-ol text-blue-600"></i> Detail Distribusi Suku Cadang & Alat
-                                </h4>
-                            </div>
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1 mb-1 border-b pb-2">
+                                <i class="fa-solid fa-list-ol text-blue-600"></i> Detail Distribusi Suku Cadang & Alat
+                            </h4>
                             <div class="relative flex-1 overflow-y-auto custom-table-scrollbar min-h-[200px] max-h-[280px] p-1 mt-1">
                                 <div id="dashboard-inventaris-models-container" class="space-y-3">
                                     <p class="text-center text-xs text-gray-400 py-6 italic">Memproses data inventaris...</p>
@@ -751,9 +894,44 @@
                     </div>
                 </div>
 
-                <!-- LISENSI & AKUN OFFICE -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block border-b pb-1.5"><i class="fa-brands fa-microsoft mr-1.5 text-purple-600"></i> Lisensi & Akun Office (M365 Server & Member)</span>
+                <!-- SEKSI 6: LISENSI & AKUN OFFICE -->
+                <div id="section-office" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
+                    <div class="flex items-center justify-between gap-2 border-b pb-2.5">
+                        <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
+                            <i class="fa-brands fa-microsoft mr-1.5 text-purple-600"></i> Lisensi & Akun Office (M365 Server & Member)
+                        </span>
+                        
+                        <!-- TOMBOL MASTER POP-UP OFFICE -->
+                        <div class="relative inline-block text-left">
+                            <button type="button" onclick="window.toggleOfficeMasterMenu(event)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm border border-slate-700">
+                                <i class="fa-solid fa-sliders text-xs"></i>
+                                <span>⚙️ Alat & Filter</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-cyan-500"></i>
+                            </button>
+                            
+                            <div id="popover-office-master" class="hidden absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white shadow-2xl border border-slate-200 p-3 z-50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">🎯 Filter Status Server</label>
+                                    <select id="filter-office-status" onchange="calculateAndRenderStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                                        <option value="">Semua Server</option>
+                                        <option value="available">Ada Slot Kosong</option>
+                                        <option value="full">Server Penuh (Full 5/5)</option>
+                                    </select>
+                                </div>
+
+                                <div class="border-t border-slate-100"></div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">📸 Ekspor Laporan</label>
+                                    <button type="button" onclick="window.captureOfficeSection()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>Tangkap & Unduh Gambar (.PNG)</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         <div class="bg-purple-50/50 p-3 border border-purple-100 rounded-xl flex items-center justify-between">
                             <div>
@@ -799,6 +977,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -875,45 +1054,44 @@
             </div>
         </div>
     </div>
-    <!-- MODAL MELAYANG PILIHAN EKSPOR (HYBRID EXPORT) -->
-<div id="export-option-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full overflow-hidden">
-        <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
-            <h3 class="font-bold flex items-center gap-2 text-sm">
-                <i class="fa-solid fa-file-export text-cyan-400"></i> Pilih Opsi Ekspor Data
-            </h3>
-            <button onclick="window.closeExportOptionModal()" class="text-slate-400 hover:text-white transition">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </header>
-        <div class="p-5 bg-slate-50 space-y-4">
-            <p class="text-xs text-slate-500 leading-relaxed text-center">Silakan tentukan jenis format file pengeksporan Excel yang ingin Anda unduh dari sistem Cloud saat ini.</p>
-            
-            <div class="space-y-3">
-                <!-- Opsi 1: Laporan Lengkap -->
-                <button onclick="window.triggerExport(false)" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl hover:border-slate-400 transition hover:bg-slate-100/50 text-left flex items-start gap-3">
-                    <div class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-file-invoice text-base"></i></div>
-                    <div>
-                        <span class="block text-xs font-black text-slate-800">Ekspor Laporan (Lengkap)</span>
-                        <span class="block text-[10px] text-slate-500 mt-0.5">Berisi semua kolom tabel (termasuk ID & status penunjang) untuk arsip manajemen.</span>
-                    </div>
-                </button>
 
-                <!-- Opsi 2: Format Impor -->
-                <button onclick="window.triggerExport(true)" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl hover:border-cyan-400 transition hover:bg-cyan-50/20 text-left flex items-start gap-3">
-                    <div class="p-2 bg-cyan-100 text-cyan-600 rounded-lg"><i class="fa-solid fa-arrows-spin text-base"></i></div>
-                    <div>
-                        <span class="block text-xs font-black text-slate-800">Ekspor Format Impor (Edit & Upload)</span>
-                        <span class="block text-[10px] text-slate-500 mt-0.5">Hanya berisi kolom data murni yang siap diedit masal dan diimpor ulang tanpa error.</span>
-                    </div>
+    <!-- MODAL MELAYANG PILIHAN EKSPOR -->
+    <div id="export-option-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full overflow-hidden">
+            <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
+                <h3 class="font-bold flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-file-export text-cyan-400"></i> Pilih Opsi Ekspor Data
+                </h3>
+                <button onclick="window.closeExportOptionModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
+            </header>
+            <div class="p-5 bg-slate-50 space-y-4">
+                <p class="text-xs text-slate-500 leading-relaxed text-center">Silakan tentukan jenis format file pengeksporan Excel yang ingin Anda unduh dari sistem Cloud saat ini.</p>
+                
+                <div class="space-y-3">
+                    <button onclick="window.triggerExport(false)" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl hover:border-slate-400 transition hover:bg-slate-100/50 text-left flex items-start gap-3">
+                        <div class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-file-invoice text-base"></i></div>
+                        <div>
+                            <span class="block text-xs font-black text-slate-800">Ekspor Laporan (Lengkap)</span>
+                            <span class="block text-[10px] text-slate-500 mt-0.5">Berisi semua kolom tabel (termasuk ID & status penunjang) untuk arsip manajemen.</span>
+                        </div>
+                    </button>
+
+                    <button onclick="window.triggerExport(true)" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl hover:border-cyan-400 transition hover:bg-cyan-50/20 text-left flex items-start gap-3">
+                        <div class="p-2 bg-cyan-100 text-cyan-600 rounded-lg"><i class="fa-solid fa-arrows-spin text-base"></i></div>
+                        <div>
+                            <span class="block text-xs font-black text-slate-800">Ekspor Format Impor (Edit & Upload)</span>
+                            <span class="block text-[10px] text-slate-500 mt-0.5">Hanya berisi kolom data murni yang siap diedit masal dan diimpor ulang tanpa error.</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="p-3 bg-white border-t flex justify-end">
+                <button onclick="window.closeExportOptionModal()" class="px-4 py-2 border rounded-lg text-xs text-gray-600 hover:bg-gray-100 font-bold transition">Batal</button>
             </div>
         </div>
-        <div class="p-3 bg-white border-t flex justify-end">
-            <button onclick="window.closeExportOptionModal()" class="px-4 py-2 border rounded-lg text-xs text-gray-600 hover:bg-gray-100 font-bold transition">Batal</button>
-        </div>
     </div>
-</div>
 
     <div id="datalist-container"></div>
 </body>
