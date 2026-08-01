@@ -831,7 +831,17 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Brand / Merk Laptop</label><input type="text" id="edit-merk" list="list-merk" value="${targetItem.merk || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tipe / Model Laptop</label><input type="text" id="edit-tipe" list="list-tipe" value="${targetItem.tipe || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Serial Number (SN)</label><input type="text" id="edit-sn" value="${targetItem.sn || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Ketersediaan</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Tersedia" ${targetItem.status === 'Tersedia' ? 'selected' : ''}>Ready / Tersedia</option><option value="Disewa" ${targetItem.status === 'Disewa' ? 'selected' : ''}>Sedang Disewa</option><option value="Maintenance" ${targetItem.status === 'Maintenance' ? 'selected' : ''}>Perbaikan / Rusak</option><option value="Terjual" ${targetItem.status === 'Terjual' ? 'selected' : ''}>Sudah Terjual</option><option value="Staf" ${targetItem.status === 'Staf' ? 'selected' : ''}>Digunakan Oleh Staf</option></select><option value="Hilang" ${targetItem.status === 'Hilang' ? 'selected' : ''}>Hilang / Disesuaikan</option></div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Status Ketersediaan</label>
+                <select id="edit-status" class="w-full border p-2 text-sm rounded-lg">
+                    <option value="Tersedia" ${targetItem.status === 'Tersedia' ? 'selected' : ''}>Ready / Tersedia</option>
+                    <option value="Disewa" ${targetItem.status === 'Disewa' ? 'selected' : ''}>Sedang Disewa</option>
+                    <option value="Maintenance" ${targetItem.status === 'Maintenance' ? 'selected' : ''}>Perbaikan / Rusak</option>
+                    <option value="Terjual" ${targetItem.status === 'Terjual' ? 'selected' : ''}>Sudah Terjual</option>
+                    <option value="Staf" ${targetItem.status === 'Staf' ? 'selected' : ''}>Digunakan Oleh Staf</option>
+                    <option value="Hilang" ${targetItem.status === 'Hilang' ? 'selected' : ''}>Hilang / Disesuaikan</option>
+                </select>
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
             <div class="md:col-span-2">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Spesifikasi Unit (Pisahkan dengan baris enter)</label>
@@ -1182,6 +1192,9 @@ function populateLaptopCheckboxes() {
     const filteredLaptop = masterLaptop.filter(lap => {
         if (selectedBranch && lap.cabang !== selectedBranch) return false;
 
+        // 🟢 HANYA TAMPILKAN LAPTOP YANG BERSTATUS "TERSEDIA" (READY)
+        if (lap.status !== 'Tersedia') return false;
+
         const brand = (lap.merk || '').toLowerCase();
         const type = (lap.tipe || '').toLowerCase();
         const sn = (lap.sn || '').toLowerCase();
@@ -1191,7 +1204,7 @@ function populateLaptopCheckboxes() {
     });
 
     if(filteredLaptop.length === 0) {
-        container.innerHTML = `<span class="text-xs text-gray-400 italic block py-2 text-center">Unit laptop tidak ditemukan pada cabang ini.</span>`;
+        container.innerHTML = `<span class="text-xs text-gray-400 italic block py-2 text-center">Tidak ada unit laptop yang tersedia (Ready) pada cabang ini.</span>`;
         return;
     }
 
@@ -1200,25 +1213,22 @@ function populateLaptopCheckboxes() {
         const snText = lap.sn ? lap.sn : 'Tanpa SN'; 
         const kdTokoText = lap.kode_toko ? lap.kode_toko : '-';
         const infoText = `${lap.merk} ${lap.tipe} [SN: ${snText}] [Kode: ${kdTokoText}]`;
-        const isDisabled = lap.status !== 'Tersedia';
         const isChecked = window.selectedLaptopKeys.includes(lap._firebaseKey) ? 'checked' : '';
         
         html += `
-            <label class="flex items-start space-x-3 p-1.5 hover:bg-slate-50 rounded-lg transition text-sm ${isDisabled ? 'text-gray-400 bg-gray-50' : 'cursor-pointer'}">
+            <label class="flex items-start space-x-3 p-1.5 hover:bg-slate-50 rounded-lg transition text-sm cursor-pointer">
                 <input type="checkbox" 
                        name="selected_laptops" 
                        value="${infoText}" 
                        data-key="${lap._firebaseKey}" 
-                       ${isDisabled ? 'disabled' : ''} 
                        ${isChecked}
                        onchange="window.syncCheckboxState(this)"
-                       class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 focus:outline-none border-gray-300 disabled:bg-gray-200">
+                       class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 focus:outline-none border-gray-300">
                 <div>
                     <span class="font-semibold text-slate-800">${lap.merk} ${lap.tipe}</span> 
                     <span class="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-bold ml-1">${kdTokoText}</span>
                     <span class="block text-xs text-gray-500">SN: <span class="font-mono text-cyan-600 font-medium">${snText}</span> | ${lap.spek ? lap.spek.replace(/\n/g, ' / ') : ''}</span>
                     ${lap.catatan ? `<span class="block text-[11px] text-amber-600 font-medium italic">Catatan: ${lap.catatan}</span>` : ''}
-                    ${isDisabled ? `<span class="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-semibold mt-0.5 inline-block">${lap.status === 'Staf' ? 'Digunakan Staf' : lap.status}</span>` : ''}
                 </div>
             </label>
         `;
@@ -1580,33 +1590,48 @@ function ensurePengembalianModalExists() {
     const modalDiv = document.createElement('div');
     modalDiv.innerHTML = `
         <div id="modal-pengembalian-laptop" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-xl shadow-xl border max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <header class="bg-slate-900 text-white p-4 flex justify-between items-center">
+            <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
                     <h3 class="font-bold flex items-center gap-2 text-sm md:text-base">
                         <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Verifikasi Pengembalian Unit
                     </h3>
-                    <button type="button" onclick="window.closePengembalianModal()" class="text-slate-400 hover:text-white transition p-1">
+                    <button type="button" onclick="window.closePengembalianModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800">
                         <i class="fa-solid fa-xmark text-lg"></i>
                     </button>
                 </header>
-                <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-table-scrollbar">
-                    <div>
-                        <h4 class="font-bold text-slate-800 text-xs md:text-sm">Daftar Laptop yang Harus Diperiksa:</h4>
-                        <p class="text-[11px] text-slate-500">Centang unit jika kondisi fisik kembali dengan aman.</p>
-                    </div>
-                    <div class="flex items-center space-x-2 py-2 px-3 bg-emerald-50/50 rounded-lg border border-emerald-100">
-                        <input type="checkbox" id="pengembalian-check-all" onchange="window.toggleSelectAllPengembalian(this)" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer">
-                        <label for="pengembalian-check-all" class="text-xs font-bold text-emerald-800 cursor-pointer select-none">Centang Semua (Semua Unit Kembali Aman)</label>
+                <div class="p-6 space-y-3.5 max-h-[75vh] overflow-y-auto custom-table-scrollbar bg-slate-50/50">
+                    
+                    <!-- BARIS HEADER: JUDUL DI KIRI | CENTANG SEMUA + COUNTER DI POJOK KANAN -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                        <div>
+                            <h4 class="font-extrabold text-slate-800 text-xs md:text-sm">Daftar Laptop yang Harus Diperiksa:</h4>
+                            <p class="text-[11px] text-slate-500">Centang unit jika kondisi fisik kembali dengan aman.</p>
+                        </div>
+                        <div class="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                            <!-- Tombol Centang Semua -->
+                            <label class="flex items-center space-x-1.5 text-xs font-bold text-emerald-800 cursor-pointer select-none bg-emerald-50 hover:bg-emerald-100/80 px-2.5 py-1 rounded-lg border border-emerald-200/70 transition">
+                                <input type="checkbox" id="pengembalian-check-all" onchange="window.toggleSelectAllPengembalian(this)" class="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer">
+                                <span>Centang Semua</span>
+                            </label>
+                            <!-- Live Counter di samping kanannya -->
+                            <div class="flex items-center gap-1 text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs">
+                                <span class="text-[11px] text-slate-400 font-semibold">Fisik Terverifikasi Aman:</span>
+                                <span id="pengembalian-live-counter" class="text-emerald-600 font-mono font-black">0 / 0 Unit</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="pengembalian-list-container" class="space-y-3"></div>
-
-                    <div class="bg-slate-50 p-2.5 rounded-lg border flex justify-between items-center text-xs font-bold text-slate-600">
-                        <span>Fisik Terverifikasi Aman:</span>
-                        <span id="pengembalian-live-counter" class="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">0 / 0 Unit</span>
+                    <!-- KOLOM PENCARIAN PRESISI GAYA GAMBAR -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                        <input type="text" id="pengembalian-search-input" oninput="window.filterPengembalianList()" placeholder="Ketik Merk, Tipe, SN, atau Kode Toko..." class="w-full pl-9 pr-4 py-2 border border-cyan-400/70 rounded-xl text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white font-semibold text-slate-700 shadow-xs">
                     </div>
 
-                    <div class="border-t pt-3 space-y-2">
+                    <!-- WADAH DAFTAR KARTU LAPTOP -->
+                    <div id="pengembalian-list-container" class="space-y-2.5 max-h-60 overflow-y-auto custom-table-scrollbar pr-1"></div>
+
+                    <!-- SEKSI DILEMA / UNIT BERMASALAH -->
+                    <div class="border-t border-slate-200 pt-3 space-y-2 bg-white p-3 rounded-xl border">
                         <label class="flex items-center space-x-2 text-xs font-bold text-rose-600 cursor-pointer">
                             <input type="checkbox" id="pengembalian-dilema-toggle" onchange="window.toggleDilemaBermasalah()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4 cursor-pointer">
                             <span>Ada Unit yang Kurang / Hilang / Rusak</span>
@@ -1614,9 +1639,10 @@ function ensurePengembalianModalExists() {
                         
                         <div id="pengembalian-catatan-container" class="hidden space-y-1">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase">Catatan Masalah & Detail Denda (Wajib Diisi - Min. 5 Karakter)</label>
-                            <textarea id="pengembalian-catatan-input" rows="2" placeholder="Tuliskan detail masalah unit yang hilang, didenda, dsb..." class="w-full border p-2 text-xs rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
+                            <textarea id="pengembalian-catatan-input" rows="2" placeholder="Tuliskan detail masalah unit yang hilang, didenda, dsb..." class="w-full border p-2 text-xs rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none bg-slate-50"></textarea>
                         </div>
                     </div>
+
                 </div>
                 <div class="p-4 border-t bg-white flex justify-end space-x-3">
                     <button type="button" onclick="window.closePengembalianModal()" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium transition">Batal</button>
@@ -1641,6 +1667,10 @@ window.openPengembalianModal = function(firebaseKey) {
 
     const sewaItem = (window.globalDataCloud['penyewaan'] || []).find(item => item._firebaseKey === firebaseKey);
     if (!sewaItem) return;
+
+    // Reset input pencarian saat modal dibuka
+    const searchInput = document.getElementById('pengembalian-search-input');
+    if (searchInput) searchInput.value = '';
 
     const dilemaToggle = document.getElementById('pengembalian-dilema-toggle');
     const catatanContainer = document.getElementById('pengembalian-catatan-container');
@@ -1672,22 +1702,29 @@ window.openPengembalianModal = function(firebaseKey) {
                 const name = lap ? `${lap.merk} ${lap.tipe}` : `Laptop ID: ${key}`;
                 const sn = lap ? lap.sn : 'Tanpa SN';
                 const kode = lap ? lap.kode_toko : 'N/A';
+                const spekText = lap && lap.spek ? lap.spek.replace(/\n/g, ' ') : '';
+
+                const searchTargetText = escapeHtml(`${name} ${sn} ${kode} ${spekText}`.toLowerCase());
 
                 html += `
-                    <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-sm">
+                    <div data-search-text="${searchTargetText}" class="p-3 bg-white border border-slate-200/80 rounded-xl space-y-2 shadow-xs hover:border-cyan-300 transition">
                         <div class="flex items-start justify-between">
                             <label class="flex items-start space-x-2.5 cursor-pointer">
-                                <input type="checkbox" name="pengembalian_checkbox" data-key="${key}" data-index="${index}" onchange="window.onCheckboxPengembalianChange()" class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer">
+                                <input type="checkbox" name="pengembalian_checkbox" data-key="${key}" data-index="${index}" onchange="window.onCheckboxPengembalianChange()" class="mt-1 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer">
                                 <div>
                                     <span class="text-xs font-bold text-slate-800">${escapeHtml(name)}</span>
-                                    <span class="block text-[10px] text-slate-500 font-mono">SN: ${escapeHtml(sn)} | Kode Toko: ${escapeHtml(kode)}</span>
+                                    <span class="px-1.5 py-0.2 bg-slate-100 text-slate-600 text-[10px] font-mono font-bold rounded border border-slate-200 ml-1.5">${escapeHtml(kode)}</span>
+                                    <span class="block text-[11px] text-slate-500 mt-0.5">
+                                        SN: <span class="font-mono text-cyan-600 font-extrabold">${escapeHtml(sn)}</span>
+                                        ${spekText ? ` | <span class="text-[10px] text-slate-400">${escapeHtml(spekText)}</span>` : ''}
+                                    </span>
                                 </div>
                             </label>
                         </div>
                         
                         <div id="pengembalian-status-select-container-${index}" class="pl-6 space-y-1">
                             <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Jika Belum Kembali / Masalah:</label>
-                            <select id="pengembalian-status-select-${index}" onchange="window.onCheckboxPengembalianChange()" class="w-full border p-1 text-[11px] rounded bg-slate-50 font-bold text-slate-600 focus:outline-none">
+                            <select id="pengembalian-status-select-${index}" onchange="window.onCheckboxPengembalianChange()" class="w-full border p-1 text-[11px] rounded-lg bg-slate-50 font-bold text-slate-600 focus:outline-none border-slate-200">
                                 <option value="Maintenance">🚨 Rusak (Butuh Maintenance)</option>
                                 <option value="Hilang">⚫ Hilang / Ganti Rugi</option>
                             </select>
