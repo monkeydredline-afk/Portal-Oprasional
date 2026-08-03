@@ -99,13 +99,16 @@ function renderTable() {
         data = window.globalDataCloud[window.currentTab] || [];
     }
     
-    if (window.currentTab === 'activity_logs') {
-        data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan') {
-        data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-    } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
-        data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
-    }
+    // KODE BARU (Presisi Real-time Kronologis):
+if (window.currentTab === 'activity_logs') {
+    data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+} else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv') {
+    // Urutkan berdasarkan Firebase Key (_firebaseKey) secara Descending
+    // Firebase Key secara otomatis menyimpan timestamp presisi milidetik saat data dibuat
+    data.sort((a, b) => String(b._firebaseKey || '').localeCompare(String(a._firebaseKey || '')));
+} else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
+    data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+}
 
     const searchBar = document.getElementById('search-bar');
     const searchQuery = searchBar ? searchBar.value.toLowerCase() : '';
