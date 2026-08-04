@@ -64,7 +64,7 @@ export const fieldsTemplate = {
             </div>
         </div>
         <div class="md:col-span-2 space-y-1.5">
-            <label class="block text-sm font-medium text-gray-700">Pilih Unit Laptop yang Tersedia (Bisa Centang Banyak)</label>
+            <label class="block text-sm font-medium text-gray-700">Pilih Unit (Laptop / Printer) yang Tersedia (Bisa Centang Banyak)</label>
             <div class="relative">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-xs"></i>
                 <input type="text" id="search-form-laptop" oninput="populateLaptopCheckboxes()" placeholder="Ketik Merk, Tipe, SN, atau Kode Toko..." class="w-full pl-8 pr-4 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-cyan-500 focus:outline-none bg-slate-50">
@@ -110,6 +110,8 @@ export const fieldsTemplate = {
         </div>
     `,
     list_laptop: `
+        <input type="hidden" name="jenis_unit" id="input-jenis-unit" value="Laptop">
+
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Input Master</label>
             <input type="date" name="tanggal" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
@@ -119,16 +121,16 @@ export const fieldsTemplate = {
             <input type="text" name="cabang" list="list-cabang" autocomplete="off" placeholder="Pilih / ketik cabang baru..." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Kode Toko</label>
-            <input type="text" name="kode_toko" placeholder="TK-01, LT-A5" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kode Toko / Aset</label>
+            <input type="text" name="kode_toko" placeholder="Contoh: LT-01 / PR-01" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Brand / Merk Laptop</label>
-            <input type="text" name="merk" list="list-merk" autocomplete="off" placeholder="Pilih / ketik manual..." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Brand / Merk Unit</label>
+            <input type="text" name="merk" list="list-merk" autocomplete="off" placeholder="Epson, Canon, Asus, Lenovo, dll." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tipe / Model Laptop</label>
-            <input type="text" name="tipe" list="list-tipe" autocomplete="off" onchange="autoFillSpecsByTipe(event)" placeholder="Pilih / ketik manual..." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipe / Model Unit</label>
+            <input type="text" name="tipe" list="list-tipe" autocomplete="off" onchange="autoFillSpecsByTipe(event)" placeholder="L3110, ThinkPad T480, dll." required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Serial Number (SN) Unit</label>
@@ -145,23 +147,25 @@ export const fieldsTemplate = {
                 <option value="Staf">Digunakan Oleh Staf</option>
             </select>
         </div>
-        <div class="md:col-span-2 bg-slate-50 p-4 border border-dashed rounded-xl grid grid-cols-2 gap-3">
-            <span class="col-span-2 text-xs font-bold text-slate-500 uppercase tracking-wide"><i class="fa-solid fa-microchip mr-1"></i> Detail Spesifikasi Unit</span>
+
+        <!-- FORM SPESIFIKASI KHUSUS LAPTOP -->
+        <div id="spec-laptop-container" class="md:col-span-2 bg-slate-50 p-4 border border-dashed rounded-xl grid grid-cols-2 gap-3">
+            <span class="col-span-2 text-xs font-bold text-slate-500 uppercase tracking-wide"><i class="fa-solid fa-laptop mr-1"></i> Detail Spesifikasi Laptop</span>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-0.5">Processor</label>
-                <input type="text" name="spec_proc" list="list-proc" autocomplete="off" placeholder="Core i5-8250U / Ryzen 5" required class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <input type="text" name="spec_proc" list="list-proc" autocomplete="off" placeholder="Core i5-8250U / Ryzen 5" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-0.5">Kapasitas RAM</label>
-                <input type="text" name="spec_ram" list="list-ram" autocomplete="off" placeholder="8GB DDR4 / 16GB" required class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <input type="text" name="spec_ram" list="list-ram" autocomplete="off" placeholder="8GB DDR4 / 16GB" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-0.5">Penyimpanan (Storage)</label>
-                <input type="text" name="spec_storage" list="list-storage" autocomplete="off" placeholder="SSD 256GB NVMe / HDD 1TB" required class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <input type="text" name="spec_storage" list="list-storage" autocomplete="off" placeholder="SSD 256GB NVMe / HDD 1TB" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-0.5">VGA / Layar</label>
-                <input type="text" name="spec_vga" list="list-vga" autocomplete="off" placeholder="Intel UHD / Nvidia GTX / 14 Inch" required class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <input type="text" name="spec_vga" list="list-vga" autocomplete="off" placeholder="Intel UHD / Nvidia GTX / 14 Inch" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
             </div>
             <div class="col-span-2">
                 <label class="block text-xs font-medium text-gray-600 mb-0.5">Fitur Layar</label>
@@ -171,9 +175,17 @@ export const fieldsTemplate = {
                 </select>
             </div>
         </div>
+
+        <!-- FORM SPESIFIKASI KHUSUS PRINTER (KETIK MANUAL) -->
+        <div id="spec-printer-container" class="md:col-span-2 bg-slate-50 p-4 border border-dashed border-cyan-300 rounded-xl space-y-2 hidden">
+            <span class="block text-xs font-bold text-cyan-700 uppercase tracking-wide"><i class="fa-solid fa-print mr-1"></i> Detail Spesifikasi Printer (Ketik Manual)</span>
+            <textarea name="spec_printer_manual" rows="3" placeholder="Ketik bebas spesifikasi printer di sini...&#10;Contoh: Inkjet Tank | Print, Scan, Copy | USB & Wi-Fi | A4 / F4" class="w-full border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none font-mono bg-white"></textarea>
+            <p class="text-[11px] text-slate-400 italic">*Anda bebas mengelompokkan spesifikasi printer dengan pemisah tanda (|) atau baris baru.</p>
+        </div>
+
         <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
-            <input type="text" name="catatan" placeholder="Contoh: Terjual ke Bpk Budi / Dipakai Staf Admin" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <input type="text" name="catatan" placeholder="Contoh: Kondisi Head 100% / Tinta Penuh" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
     `,
     laptop_display: `
@@ -434,7 +446,7 @@ export const fieldsTemplate = {
                     </label>
                     <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                         <input type="checkbox" name="perm_list_laptop" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
-                        <span>Laptop Gudang</span>
+                        <span>Unit Penyewaan</span>
                     </label>
                     <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                         <input type="checkbox" name="perm_laptop_display" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
@@ -584,9 +596,9 @@ export const fieldsTemplate = {
 
 export const tableHeaders = {
     services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Status', 'Aksi'],
-    penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN Laptop', 'Tanggal Sewa', 'Total Unit', 'Total Biaya', 'Status', 'Aksi'],
+    penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN', 'Tanggal Sewa', 'Total Unit', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
-    list_laptop: ['ID', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
+    list_laptop: ['ID', 'Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
     master_jasa: ['ID', 'Nama Jasa', 'Biaya Jasa', 'Aksi'],
@@ -601,7 +613,7 @@ export const dataKeysMapping = {
     services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'status'],
     penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_unit', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
-    list_laptop: ['id', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
+    list_laptop: ['id', 'jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
     master_jasa: ['id', 'nama_jasa', 'biaya_jasa'],
@@ -627,12 +639,11 @@ export const filterOptionsTemplate = {
     activity_logs: ['Tambah', 'Ubah', 'Hapus', 'Kosongkan', 'Impor']
 };
 
-// --- BLUPRINT KOLOM KHUSUS IMPOR & EKSPOR HARMONIS (TANPA ID & AKSI) ---
 export const importTemplatesHeaders = {
     services: ['Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Gejala / Kerusakan', 'Status'],
-    penyewaan: ['Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Tanggal Mulai', 'Tanggal Selesai', 'Total Biaya', 'Status', 'Unit & SN Laptop'],
+    penyewaan: ['Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Tanggal Mulai', 'Tanggal Selesai', 'Total Biaya', 'Status', 'Unit & SN'],
     cctv: ['Tanggal', 'Cabang', 'Klien / Instansi', 'Lokasi Pemasangan', 'Jumlah Kamera', 'Progres', 'Status Proyek'],
-    list_laptop: ['Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan'],
+    list_laptop: ['Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan'],
     laptop_display: ['Tanggal Masuk', 'Cabang', 'Nama Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Harga Jual', 'Status Display', 'Catatan', 'Spesifikasi Pajangan'],
     inventaris: ['Tanggal', 'Cabang', 'Nama Barang', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan'],
     list_office: ['Tanggal', 'Nama User', 'Akun', 'Password', 'Pemulihan', 'Tipe Akun', 'Lisensi', 'Server Utama', 'Name', 'Masa Aktif', 'Status'],
@@ -645,7 +656,7 @@ export const importTemplatesKeys = {
     services: ['tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'kerusakan', 'status'],
     penyewaan: ['tanggal', 'cabang', 'penyewa', 'no_wa', 'tgl_mulai', 'tgl_selesai', 'total_biaya', 'status', 'unit'],
     cctv: ['tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
-    list_laptop: ['tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
+    list_laptop: ['jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'harga_jual', 'status', 'catatan', 'spek_singkat'],
     inventaris: ['tanggal', 'cabang', 'nama_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
     list_office: ['tanggal', 'nama_user', 'akun', 'password', 'pemulihan', 'tipe_akun', 'office', 'server_utama', 'name', 'workspace_expired', 'status'],

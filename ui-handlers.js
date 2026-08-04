@@ -246,6 +246,15 @@ window.addEventListener('click', function(e) {
         }
     }
 
+    // Pendeteksi klik di luar menu dropdown jenis unit (agar otomatis menutup)
+    const unitTypeDropdown = document.getElementById('unit-type-dropdown-menu');
+    const unitTypeBtn = e.target.closest('button[onclick*="toggleUnitTypeDropdown"]');
+    if (unitTypeDropdown && !unitTypeDropdown.classList.contains('hidden')) {
+        if (!unitTypeDropdown.contains(e.target) && !unitTypeBtn) {
+            unitTypeDropdown.classList.add('hidden');
+        }
+    }
+
     // Klik di luar baris aksi dropdown juga akan menyembunyikan semua dropdown baris aktif
     const activeRowDropdowns = document.querySelectorAll('.row-action-dropdown');
     activeRowDropdowns.forEach(dropdown => {
@@ -257,6 +266,79 @@ window.addEventListener('click', function(e) {
         }
     });
 });
+// --- FUNGSI TOGGLE FORM SPESIFIKASI (LAPTOP VS PRINTER) ---
+window.toggleJenisUnitForm = function(jenis) {
+    const specLaptop = document.getElementById('spec-laptop-container');
+    const specPrinter = document.getElementById('spec-printer-container');
+    if (!specLaptop || !specPrinter) return;
+
+    if (jenis === 'Printer') {
+        specLaptop.classList.add('hidden');
+        specPrinter.classList.remove('hidden');
+    } else {
+        specPrinter.classList.add('hidden');
+        specLaptop.classList.remove('hidden');
+    }
+};
+
+// --- FUNGSI BUKA/TUTUP DROPDOWN GELAP (SEPERTI GAMBAR 1) ---
+window.toggleUnitTypeDropdown = function(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('unit-type-dropdown-menu');
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+};
+
+// --- FUNGSI SAAT PILIH UNIT DARI MENU DROPDOWN ---
+window.selectUnitType = function(type) {
+    const hiddenInput = document.getElementById('input-jenis-unit');
+    const btnLabel = document.getElementById('unit-type-btn-label');
+    const menu = document.getElementById('unit-type-dropdown-menu');
+
+    if (hiddenInput) hiddenInput.value = type;
+
+    if (btnLabel) {
+        btnLabel.innerHTML = (type === 'Printer') 
+            ? `<span>🖨️ Printer</span>` 
+            : `<span>💻 Laptop</span>`;
+    }
+
+    if (menu) menu.classList.add('hidden');
+
+    if (window.toggleJenisUnitForm) {
+        window.toggleJenisUnitForm(type);
+    }
+};
+
+// --- FUNGSI MEMASANG TOMBOL KAPSUL DI POJOK KANAN HEADER FORM ---
+window.renderFormHeaderAction = function() {
+    const headerAction = document.getElementById('form-header-action');
+    if (!headerAction) return;
+
+    if (window.currentTab === 'list_laptop') {
+        const currentVal = document.getElementById('input-jenis-unit')?.value || 'Laptop';
+        headerAction.innerHTML = `
+            <div class="relative inline-block text-left">
+                <button type="button" onclick="window.toggleUnitTypeDropdown(event)" class="bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 px-3.5 py-1.5 rounded-full text-xs font-bold transition shadow-sm flex items-center gap-2 cursor-pointer">
+                    <span id="unit-type-btn-label">${currentVal === 'Printer' ? '🖨️ Printer' : '💻 Laptop'}</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-cyan-400"></i>
+                </button>
+                
+                <div id="unit-type-dropdown-menu" class="hidden absolute right-0 mt-2 w-40 origin-top-right rounded-2xl bg-white shadow-xl border border-slate-200 p-1.5 z-50 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <button type="button" onclick="window.selectUnitType('Laptop')" class="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2 cursor-pointer">
+                        <span>💻 Laptop</span>
+                    </button>
+                    <button type="button" onclick="window.selectUnitType('Printer')" class="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2 cursor-pointer">
+                        <span>🖨️ Printer</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        headerAction.innerHTML = '';
+    }
+};
 
 // Daftarkan ke window agar langsung dipanggil oleh atribut HTML
 window.toggleSidebar = toggleSidebar;
@@ -268,3 +350,4 @@ window.toggleFilterPanel = toggleFilterPanel;
 window.updateFilterBadgeCount = updateFilterBadgeCount;
 window.resetAllFilters = resetAllFilters;
 window.toggleRowActionDropdown = toggleRowActionDropdown;
+

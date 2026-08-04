@@ -524,6 +524,9 @@ function switchTab(tabName) {
     if (formFields) formFields.innerHTML = fieldsTemplate[tabName];
     refreshInventarisFieldOptions();
 
+    // Memasang tombol dropdown jenis unit di pojok kanan header Form Input Data
+    if (window.renderFormHeaderAction) window.renderFormHeaderAction();
+
     // Jalankan aturan visualisasi kolom cabang
     applyBranchFieldRules();
 

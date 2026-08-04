@@ -210,11 +210,8 @@ function handleSubmit(e) {
         newDataItem._linkedLaptopKeys = laptopKeysToUpdate;
         logDetail = `Penyewa: ${newDataItem.penyewa} dengan unit sewa: ${newDataItem.unit} di cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'list_laptop') {
-        const proc = formData.get('spec_proc');
-        const ram = formData.get('spec_ram');
-        const storage = formData.get('spec_storage');
-        const vga = formData.get('spec_vga');
-        const screen = formData.get('spec_screen');
+        const jenisUnit = formData.get('jenis_unit') || 'Laptop';
+        newDataItem.jenis_unit = jenisUnit;
 
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
@@ -222,8 +219,18 @@ function handleSubmit(e) {
         newDataItem.kode_toko = formData.get('kode_toko');
         newDataItem.status = formData.get('status');
         newDataItem.catatan = formData.get('catatan') || '';
-        newDataItem.spek = `CPU: ${proc}\nRAM: ${ram}\nSSD/HDD: ${storage}\nVGA/Layar: ${vga} (${screen})`;
-        logDetail = `${newDataItem.merk} ${newDataItem.tipe} (SN: ${newDataItem.sn}) di cabang ${newDataItem.cabang}`;
+
+        if (jenisUnit === 'Printer') {
+            newDataItem.spek = formData.get('spec_printer_manual') || '-';
+        } else {
+            const proc = formData.get('spec_proc') || '-';
+            const ram = formData.get('spec_ram') || '-';
+            const storage = formData.get('spec_storage') || '-';
+            const vga = formData.get('spec_vga') || '-';
+            const screen = formData.get('spec_screen') || 'Non-Touch';
+            newDataItem.spek = `CPU: ${proc}\nRAM: ${ram}\nSSD/HDD: ${storage}\nVGA/Layar: ${vga} (${screen})`;
+        }
+        logDetail = `[${jenisUnit}] ${newDataItem.merk} ${newDataItem.tipe} (SN: ${newDataItem.sn}) di cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'laptop_display') {
         const proc = formData.get('spec_proc');
         const ram = formData.get('spec_ram');
@@ -487,6 +494,9 @@ function handleUpdateSubmit(e) {
             const parts = editTgl.split('-');
             updatedData.tanggal = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
+        const editJenisSelect = document.getElementById('edit-jenis_unit');
+        updatedData.jenis_unit = editJenisSelect ? editJenisSelect.value : (targetItem?.jenis_unit || 'Laptop');
+
         updatedData.cabang = document.getElementById('edit-cabang').value;
         updatedData.kode_toko = document.getElementById('edit-kode_toko').value;
         updatedData.merk = document.getElementById('edit-merk').value;
@@ -495,7 +505,7 @@ function handleUpdateSubmit(e) {
         updatedData.spek = document.getElementById('edit-spek').value;
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.catatan = document.getElementById('edit-catatan').value;
-        itemDescription = `${updatedData.merk} ${updatedData.tipe} (SN: ${updatedData.sn})`;
+        itemDescription = `[${updatedData.jenis_unit}] ${updatedData.merk} ${updatedData.tipe} (SN: ${updatedData.sn})`;
     } else if (window.currentTab === 'laptop_display') { 
         let editTgl = document.getElementById('edit-tanggal').value;
         if (editTgl && editTgl.includes('-')) {

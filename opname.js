@@ -155,12 +155,14 @@ function renderOpnameItems(isFullRebuild = false) {
                     .map(escapeHtml)
                     .join(' | ');
 
+                const unitIcon = (item.jenis_unit === 'Printer') ? '🖨️' : '💻';
+
                 html += `
                     <label data-search-text="${escapeHtml(searchableText)}" class="flex items-start space-x-3.5 p-4 bg-white border border-slate-200 hover:border-cyan-300 hover:bg-slate-50/50 rounded-xl transition cursor-pointer text-xs shadow-sm">
                         <input type="checkbox" name="opname_checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.merk + ' ' + item.tipe)}" data-sn="${escapeHtml(item.sn)}" onchange="window.updateOpnameCheckedCount()" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300 w-4.5 h-4.5 cursor-pointer">
                         <div class="flex-grow space-y-2">
                             <div class="flex items-center flex-wrap gap-1">
-                                <span class="font-extrabold text-slate-800 text-sm">${escapeHtml(item.merk)} ${escapeHtml(item.tipe)}</span>
+                                <span class="font-extrabold text-slate-800 text-sm">${unitIcon} ${escapeHtml(item.merk)} ${escapeHtml(item.tipe)}</span>
                                 <span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-extrabold rounded border border-slate-200 font-mono">${escapeHtml(item.kode_toko || 'N/A')}</span>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${statusBadgeColor}">${escapeHtml(item.status === 'Staf' ? 'Digunakan Staf' : item.status)}</span>
                             </div>

@@ -410,6 +410,12 @@ if (window.currentTab === 'activity_logs') {
                             ${val.replace(/\n/g, '<br>')}
                         </div>
                     </td>`;
+            } else if (key === 'jenis_unit') {
+            const isPrinter = (val === 'Printer');
+            const badgeHtml = isPrinter 
+                ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">🖨️ Printer</span>`
+                : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-cyan-100 text-cyan-800 border border-cyan-200 whitespace-nowrap">💻 Laptop</span>`;
+            rowHtml += `<td class="px-4 py-3 align-middle whitespace-nowrap">${badgeHtml}</td>`;
             } else if (key === 'sn') {
                 rowHtml += `<td class="px-4 py-3 font-mono font-medium text-cyan-700">${val}</td>`;
             } else if (key === 'office' && window.currentTab === 'list_office') {
@@ -827,12 +833,20 @@ function openEditModal(firebaseKey) {
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Proyek</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Survei" ${targetItem.status === 'Survei' ? 'selected' : ''}>Tahap Survei</option><option value="Pengerjaan" ${targetItem.status === 'Pengerjaan' ? 'selected' : ''}>Sedang Dikerjakan</option><option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai</option></select></div>
         `;
     } else if (window.currentTab === 'list_laptop') {
+        const currentJenis = targetItem.jenis_unit || 'Laptop';
         fieldsContainer.innerHTML = `
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Jenis Unit Penyewaan</label>
+                <select id="edit-jenis_unit" class="w-full border p-2 text-sm rounded-lg bg-white font-bold">
+                    <option value="Laptop" ${currentJenis === 'Laptop' ? 'selected' : ''}>💻 Laptop</option>
+                    <option value="Printer" ${currentJenis === 'Printer' ? 'selected' : ''}>🖨️ Printer</option>
+                </select>
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Input</label><input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Cabang Toko</label><input type="text" id="edit-cabang" list="list-cabang" value="${targetItem.cabang || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Kode Toko</label><input type="text" id="edit-kode_toko" value="${targetItem.kode_toko || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Brand / Merk Laptop</label><input type="text" id="edit-merk" list="list-merk" value="${targetItem.merk || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tipe / Model Laptop</label><input type="text" id="edit-tipe" list="list-tipe" value="${targetItem.tipe || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Kode Toko / Aset</label><input type="text" id="edit-kode_toko" value="${targetItem.kode_toko || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Brand / Merk Unit</label><input type="text" id="edit-merk" list="list-merk" value="${targetItem.merk || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tipe / Model Unit</label><input type="text" id="edit-tipe" list="list-tipe" value="${targetItem.tipe || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Serial Number (SN)</label><input type="text" id="edit-sn" value="${targetItem.sn || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Status Ketersediaan</label>
@@ -845,10 +859,13 @@ function openEditModal(firebaseKey) {
                     <option value="Hilang" ${targetItem.status === 'Hilang' ? 'selected' : ''}>Hilang / Disesuaikan</option>
                 </select>
             </div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
             <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Spesifikasi Unit (Pisahkan dengan baris enter)</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Spesifikasi Unit (Ketik Manual / Baris Baru)</label>
                 <textarea id="edit-spek" rows="4" required class="w-full border p-2 text-sm rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500">${targetItem.spek || ''}</textarea>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label>
+                <input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg">
             </div>
         `;
     } else if (window.currentTab === 'laptop_display') { 
@@ -1215,7 +1232,8 @@ function populateLaptopCheckboxes() {
     filteredLaptop.forEach((lap) => {
         const snText = lap.sn ? lap.sn : 'Tanpa SN'; 
         const kdTokoText = lap.kode_toko ? lap.kode_toko : '-';
-        const infoText = `${lap.merk} ${lap.tipe} [SN: ${snText}] [Kode: ${kdTokoText}]`;
+        const jenisIcon = (lap.jenis_unit === 'Printer') ? '🖨️' : '💻';
+        const infoText = `• [${lap.jenis_unit || 'Laptop'}] ${lap.merk} ${lap.tipe} [SN: ${snText}] [Kode: ${kdTokoText}]`;
         const isChecked = window.selectedLaptopKeys.includes(lap._firebaseKey) ? 'checked' : '';
         
         html += `
@@ -1228,7 +1246,7 @@ function populateLaptopCheckboxes() {
                        onchange="window.syncCheckboxState(this)"
                        class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 focus:outline-none border-gray-300">
                 <div>
-                    <span class="font-semibold text-slate-800">${lap.merk} ${lap.tipe}</span> 
+                    <span class="font-semibold text-slate-800">${jenisIcon} ${lap.merk} ${lap.tipe}</span> 
                     <span class="text-xs font-mono bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-bold ml-1">${kdTokoText}</span>
                     <span class="block text-xs text-gray-500">SN: <span class="font-mono text-cyan-600 font-medium">${snText}</span> | ${lap.spek ? lap.spek.replace(/\n/g, ' / ') : ''}</span>
                     ${lap.catatan ? `<span class="block text-[11px] text-amber-600 font-medium italic">Catatan: ${lap.catatan}</span>` : ''}
