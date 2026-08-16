@@ -273,11 +273,22 @@ function handleSubmit(e) {
         
         const rawKeluhan = formData.get('kerusakan') || '';
 
+        // --- PEMBUATAN NO. REFERENSI DINAMIS (MENYESUAIKAN TANGGAL INPUT) ---
         const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
+        let refYear = today.getFullYear();
+        let refMonth = String(today.getMonth() + 1).padStart(2, '0');
+
+        const rawTgl = formData.get('tanggal');
+        if (rawTgl && rawTgl.includes('-')) {
+            const tParts = rawTgl.split('-'); // Format YYYY-MM-DD
+            if (tParts[0] && tParts[0].length === 4) {
+                refYear = tParts[0];
+                refMonth = tParts[1].padStart(2, '0');
+            }
+        }
+
         const paddedId = String(nextId).padStart(5, '0');
-        newDataItem.no_ref = `SRV/${year}/${month}/${paddedId}`;
+        newDataItem.no_ref = `SRV/${refYear}/${refMonth}/${paddedId}`;
 
         newDataItem.pelanggan = formData.get('pelanggan');
         newDataItem.no_wa = formData.get('no_wa');
@@ -451,6 +462,13 @@ function handleUpdateSubmit(e) {
     }
 
     if (window.currentTab === 'services') {
+        let editTgl = document.getElementById('edit-tanggal')?.value;
+        if (editTgl && editTgl.includes('-')) {
+            const parts = editTgl.split('-');
+            updatedData.tanggal = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        } else {
+            updatedData.tanggal = targetItem?.tanggal || '';
+        }
         updatedData.pelanggan = document.getElementById('edit-pelanggan').value;
         updatedData.no_wa = document.getElementById('edit-no_wa').value;
         updatedData.perangkat = document.getElementById('edit-perangkat').value;

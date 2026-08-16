@@ -229,6 +229,14 @@ window.addEventListener('click', function(e) {
             userDropdown.classList.add('hidden');
         }
     }
+    // TAMBAHKAN INI: Pendeteksi klik di luar menu dropdown mode tanggal servisan
+    const srvDateDropdown = document.getElementById('services-date-mode-dropdown');
+    const srvDateBtn = e.target.closest('button[onclick*="toggleServicesDateModeDropdown"]');
+    if (srvDateDropdown && !srvDateDropdown.classList.contains('hidden')) {
+        if (!srvDateDropdown.contains(e.target) && !srvDateBtn) {
+            srvDateDropdown.classList.add('hidden');
+        }
+    }
 
     const utilityDropdown = document.getElementById('utility-dropdown-menu');
     const utilityButton = document.getElementById('utility-menu-button');
@@ -316,6 +324,7 @@ window.renderFormHeaderAction = function() {
     const headerAction = document.getElementById('form-header-action');
     if (!headerAction) return;
 
+    // 1. KONTROL MODE UNIT PENYEWAAN (LAPTOP VS PRINTER)
     if (window.currentTab === 'list_laptop') {
         const currentVal = document.getElementById('input-jenis-unit')?.value || 'Laptop';
         headerAction.innerHTML = `
@@ -335,8 +344,77 @@ window.renderFormHeaderAction = function() {
                 </div>
             </div>
         `;
-    } else {
+    } 
+    // 2. KONTROL DUA MODE LOG SERVIS (KHUSUS ADMIN & SUPERADMIN)
+    else if (window.currentTab === 'services') {
+        const isSuperadmin = (window.currentUser && window.currentUser.email === 'superadmin@wanasatria.com');
+        const isAdmin = (window.currentUser && String(window.currentUser.role || '').toLowerCase() === 'admin');
+        const canAccessManualDate = isSuperadmin || isAdmin;
+
+        // JIKA BUKAN ADMIN / SUPERADMIN -> KOSONGKAN (TOMBOL TIDAK MUNCUL)
+        if (!canAccessManualDate) {
+            headerAction.innerHTML = '';
+            return;
+        }
+
+        // JIKA ADMIN / SUPERADMIN -> MUNCULKAN TOMBOL KAPSUL
+        headerAction.innerHTML = `
+            <div class="relative inline-block text-left">
+                <button type="button" onclick="window.toggleServicesDateModeDropdown(event)" class="bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 px-3.5 py-1.5 rounded-full text-xs font-bold transition shadow-sm flex items-center gap-2 cursor-pointer">
+                    <span id="services-date-mode-label">⚡ Mode Otomatis</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-cyan-400"></i>
+                </button>
+                
+                <div id="services-date-mode-dropdown" class="hidden absolute right-0 mt-2 w-52 origin-top-right rounded-2xl bg-white shadow-xl border border-slate-200 p-1.5 z-50 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <button type="button" onclick="window.selectServicesDateMode('otomatis')" class="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2 cursor-pointer">
+                        <span>⚡ Mode Otomatis (Hari Ini)</span>
+                    </button>
+                    <button type="button" onclick="window.selectServicesDateMode('manual')" class="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2 cursor-pointer">
+                        <span>📅 Mode Manual (Pilih Tanggal)</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    } 
+    else {
         headerAction.innerHTML = '';
+    }
+};
+
+// --- FUNGSI BUKA / TUTUP DROPDOWN MODE TANGGAL SERVIS (ADMIN) ---
+window.toggleServicesDateModeDropdown = function(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('services-date-mode-dropdown');
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+};
+
+// --- FUNGSI SAAT ADMIN MEMILIH MODE (OTOMATIS VS MANUAL) ---
+window.selectServicesDateMode = function(mode) {
+    const container = document.getElementById('services-tanggal-container');
+    const label = document.getElementById('services-date-mode-label');
+    const menu = document.getElementById('services-date-mode-dropdown');
+    const dateInput = document.querySelector('#form-fields input[name="tanggal"]');
+
+    if (menu) menu.classList.add('hidden');
+
+    if (mode === 'manual') {
+        // Tampilkan kolom tanggal untuk input manual
+        if (container) container.classList.remove('hidden');
+        if (label) label.innerHTML = `<span>📅 Mode Manual</span>`;
+        if (dateInput) dateInput.focus();
+    } else {
+        // Sembunyikan kolom tanggal (kembali ke otomatis hari ini)
+        if (container) container.classList.add('hidden');
+        if (label) label.innerHTML = `<span>⚡ Mode Otomatis</span>`;
+        if (dateInput) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
     }
 };
 

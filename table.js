@@ -99,13 +99,11 @@ function renderTable() {
         data = window.globalDataCloud[window.currentTab] || [];
     }
     
-    // KODE BARU (Presisi Real-time Kronologis):
 if (window.currentTab === 'activity_logs') {
     data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv') {
-    // Urutkan berdasarkan Firebase Key (_firebaseKey) secara Descending
-    // Firebase Key secara otomatis menyimpan timestamp presisi milidetik saat data dibuat
-    data.sort((a, b) => String(b._firebaseKey || '').localeCompare(String(a._firebaseKey || '')));
+    // URUTKAN BERDASARKAN NOMOR ID (DARI TERBESAR KE TERKECIL)
+    data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
     data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
 }
@@ -724,6 +722,9 @@ function openEditModal(firebaseKey) {
 
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
+            <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk Servis</label>
+            <input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg">
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pelanggan</label><input type="text" id="edit-pelanggan" value="${targetItem.pelanggan || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Perangkat</label><input type="text" id="edit-perangkat" value="${targetItem.perangkat || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -1874,6 +1875,18 @@ window.submitPengembalian = function() {
     const rootRef = ref(db);
     update(rootRef, updates)
         .then(() => {
+            // Update otomatis status sewa menjadi Selesai di Google Sheet
+            if (window.syncSinglePenyewaanToSheet) {
+                window.syncSinglePenyewaanToSheet({
+                    id: sewaItem.id,
+                    penyewa: sewaItem.penyewa,
+                    tgl_mulai: sewaItem.tgl_mulai,
+                    cabang: sewaItem.cabang,
+                    status_sewa: 'Selesai',
+                    status_produk: 'Tersedia'
+                }, true);
+            }
+
             let detailAktivitas = `Menyelesaikan pengembalian sewa unit ID #${sewaItem.id} atas nama ${sewaItem.penyewa}.`;
             if (logDetailUnitBermasalah.length > 0) {
                 detailAktivitas += ` Masalah: ${logDetailUnitBermasalah.join(', ')}. Catatan Tambahan: ${catatanInput ? catatanInput.value.trim() : '-'}`;

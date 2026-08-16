@@ -11,6 +11,10 @@ export const fieldsTemplate = {
                 <option value="Perintis">Perintis</option>
             </select>
         </div>
+        <div id="services-tanggal-container" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Masuk Servis (Manual)</label>
+            <input type="date" name="tanggal" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan</label>
             <input type="text" name="pelanggan" list="list-pelanggan" autocomplete="off" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">

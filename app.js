@@ -42,6 +42,7 @@ import './admin-utils.js';       // Modul backup & pemeliharaan database admin
 import './jasa.js';              // Modul Master Jasa & Perawatan Data Tindakan Toko
 import './cetak.js';             // Modul cetak dokumen & laporan PDF
 import './katalog-penjualan.js'; // Modul Katalog Produk & Log Penjualan Baru
+import './sheets.js';            // Modul Integrasi Real-Time Google Sheets
 
 // ==========================================================================
 // INISIALISASI STATUS GLOBAL WINDOW (Diakses oleh seluruh modul eksternal)
