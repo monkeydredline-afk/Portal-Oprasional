@@ -333,7 +333,7 @@
             
             <div class="p-6 bg-slate-50 overflow-y-auto max-h-[85vh] space-y-8">
                 
-                <!-- SEKSI 1: MONITORING ANTREAN SERVIS TOKO -->
+                <!-- SEKSI 1: MONITORING ANTREAN SERVIS TOKO (6 STATUS LENGKAP) -->
                 <div id="section-services" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 relative">
                     <div class="flex items-center justify-between gap-2 border-b pb-2.5">
                         <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
@@ -387,34 +387,49 @@
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                        <div class="bg-amber-50/50 p-3 border border-amber-100 rounded-xl flex items-center justify-between">
+                    <!-- 6 KARTU STATISTIK ANTREAN SERVIS (RESPONSIF) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                        <div class="bg-amber-50/50 p-2.5 border border-amber-100 rounded-xl flex items-center justify-between">
                             <div>
                                 <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Antrean Baru</span>
-                                <span id="stat-services-pending-only" class="text-xl font-black text-amber-600 block mt-0.5 font-mono">0</span>
+                                <span id="stat-services-pending-only" class="text-lg font-black text-amber-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-amber-500 text-lg"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                            <div class="text-amber-500 text-base"><i class="fa-solid fa-clock-rotate-left"></i></div>
                         </div>
-                        <div class="bg-blue-50/50 p-3 border border-blue-100 rounded-xl flex items-center justify-between">
+                        <div class="bg-blue-50/50 p-2.5 border border-blue-100 rounded-xl flex items-center justify-between">
                             <div>
-                                <span class="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Sedang Diproses</span>
-                                <span id="stat-services-processing" class="text-xl font-black text-blue-600 block mt-0.5 font-mono">0</span>
+                                <span class="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Sedang Proses</span>
+                                <span id="stat-services-processing" class="text-lg font-black text-blue-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-blue-500 text-lg"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                            <div class="text-blue-500 text-base"><i class="fa-solid fa-screwdriver-wrench"></i></div>
                         </div>
-                        <div class="bg-emerald-50/50 p-3 border border-emerald-100 rounded-xl flex items-center justify-between">
+                        <div class="bg-purple-50/50 p-2.5 border border-purple-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Oper Vendor</span>
+                                <span id="stat-services-vendor" class="text-lg font-black text-purple-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-purple-500 text-base"><i class="fa-solid fa-truck-ramp-box"></i></div>
+                        </div>
+                        <div class="bg-orange-50/50 p-2.5 border border-orange-100 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-orange-700 uppercase tracking-wider block">Konfirmasi</span>
+                                <span id="stat-services-waiting" class="text-lg font-black text-orange-600 block mt-0.5 font-mono">0</span>
+                            </div>
+                            <div class="text-orange-500 text-base"><i class="fa-solid fa-phone-volume"></i></div>
+                        </div>
+                        <div class="bg-emerald-50/50 p-2.5 border border-emerald-100 rounded-xl flex items-center justify-between">
                             <div>
                                 <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Servis Selesai</span>
-                                <span id="stat-services-completed" class="text-xl font-black text-emerald-600 block mt-0.5 font-mono">0</span>
+                                <span id="stat-services-completed" class="text-lg font-black text-emerald-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-emerald-500 text-lg"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="text-emerald-500 text-base"><i class="fa-solid fa-circle-check"></i></div>
                         </div>
-                        <div class="bg-rose-50/50 p-3 border border-rose-100 rounded-xl flex items-center justify-between">
+                        <div class="bg-rose-50/50 p-2.5 border border-rose-100 rounded-xl flex items-center justify-between">
                             <div>
-                                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Dibatalkan / Cancel</span>
-                                <span id="stat-services-cancelled" class="text-xl font-black text-emerald-600 block mt-0.5 font-mono">0</span>
+                                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Cancel</span>
+                                <span id="stat-services-cancelled" class="text-lg font-black text-rose-600 block mt-0.5 font-mono">0</span>
                             </div>
-                            <div class="text-rose-500 text-lg"><i class="fa-solid fa-ban"></i></div>
+                            <div class="text-rose-500 text-base"><i class="fa-solid fa-ban"></i></div>
                         </div>
                     </div>
 

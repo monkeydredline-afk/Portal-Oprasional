@@ -99,14 +99,14 @@ function renderTable() {
         data = window.globalDataCloud[window.currentTab] || [];
     }
     
-if (window.currentTab === 'activity_logs') {
-    data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-} else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv') {
-    // URUTKAN BERDASARKAN NOMOR ID (DARI TERBESAR KE TERKECIL)
-    data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-} else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
-    data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
-}
+    if (window.currentTab === 'activity_logs') {
+        data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv') {
+        // Urutkan berdasarkan nomor ID terbesar ke terkecil
+        data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+    } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
+        data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+    }
 
     const searchBar = document.getElementById('search-bar');
     const searchQuery = searchBar ? searchBar.value.toLowerCase() : '';
@@ -207,7 +207,6 @@ if (window.currentTab === 'activity_logs') {
     paginatedData.forEach((item, index) => {
         const perms = window.currentUser.permissions || {};
         
-        // LOGIKA BARIS MERAH TERLAMBAT HANYA UNTUK SEWA AKTIF PASCA TANGGAL SELESAI
         let rowBgColor = '';
         if (window.currentTab === 'penyewaan') {
             const dateSelesai = new Date(item.tgl_selesai);
@@ -319,10 +318,12 @@ if (window.currentTab === 'activity_logs') {
                     }
                 }
 
-                // PEWARNAAN BADGE STATUS LENGKAP
+                // PEWARNAAN BADGE STATUS LENGKAP & STATUS BARU (Oper Vendor & Tunggu Konfirmasi)
                 if (val === 'Selesai' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
                 if (displayVal === 'Perpanjangan') badgeColor = "bg-purple-100 text-purple-800";
                 if (displayVal === 'Proses' || displayVal === 'Disewa') badgeColor = "bg-blue-100 text-blue-800";
+                if (displayVal === 'Oper Vendor') badgeColor = "bg-purple-100 text-purple-800 border border-purple-200";
+                if (displayVal === 'Tunggu Konfirmasi') badgeColor = "bg-orange-100 text-orange-800 border border-orange-200";
                 if (displayVal === 'Dibatalkan' || displayVal === 'Maintenance' || displayVal === 'Cancel' || displayVal === 'Tidak Aktif' || displayVal === 'Rusak') badgeColor = "bg-rose-100 text-rose-800";
                 if (displayVal === 'Permanen') badgeColor = "bg-cyan-100 text-cyan-800";
                 if (displayVal === 'Terjual') badgeColor = "bg-slate-200 text-slate-800";
@@ -409,11 +410,11 @@ if (window.currentTab === 'activity_logs') {
                         </div>
                     </td>`;
             } else if (key === 'jenis_unit') {
-            const isPrinter = (val === 'Printer');
-            const badgeHtml = isPrinter 
-                ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">🖨️ Printer</span>`
-                : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-cyan-100 text-cyan-800 border border-cyan-200 whitespace-nowrap">💻 Laptop</span>`;
-            rowHtml += `<td class="px-4 py-3 align-middle whitespace-nowrap">${badgeHtml}</td>`;
+                const isPrinter = (val === 'Printer');
+                const badgeHtml = isPrinter 
+                    ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">🖨️ Printer</span>`
+                    : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-cyan-100 text-cyan-800 border border-cyan-200 whitespace-nowrap">💻 Laptop</span>`;
+                rowHtml += `<td class="px-4 py-3 align-middle whitespace-nowrap">${badgeHtml}</td>`;
             } else if (key === 'sn') {
                 rowHtml += `<td class="px-4 py-3 font-mono font-medium text-cyan-700">${val}</td>`;
             } else if (key === 'office' && window.currentTab === 'list_office') {
@@ -554,7 +555,6 @@ if (window.currentTab === 'activity_logs') {
                     <div class="grid grid-cols-2 gap-1.5 w-max">
             `;
             
-            // TOMBOL VERIFIKASI SELESAI HANYA MUNCUL JIKA STATUS BUKAN SELESAI / DIBATALKAN
             if (item.status !== 'Selesai' && item.status !== 'Dibatalkan' && (perms.edit_data === true || perms.edit_data === 'true')) {
                 rowHtml += `
                     <button onclick="window.openPengembalianModal('${item._firebaseKey}')" 
@@ -723,8 +723,9 @@ function openEditModal(firebaseKey) {
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
             <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk Servis</label>
-            <input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk Servis</label>
+                <input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg">
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pelanggan</label><input type="text" id="edit-pelanggan" value="${targetItem.pelanggan || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Perangkat</label><input type="text" id="edit-perangkat" value="${targetItem.perangkat || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -764,11 +765,14 @@ function openEditModal(firebaseKey) {
                 </div>
             </div>
 
+            <!-- STATUS DROPDOWN LENGKAP: ANTREAN, PROSES, OPER VENDOR, TUNGGU KONFIRMASI, SELESAI, CANCEL -->
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
-                <select id="edit-status" onchange="window.handleEditStatusChange(this.value)" class="w-full border p-2 text-sm rounded-lg">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Status Servis</label>
+                <select id="edit-status" onchange="window.handleEditStatusChange(this.value)" class="w-full border p-2 text-sm rounded-lg bg-white font-bold">
                     <option value="Antrean" ${targetItem.status === 'Antrean' ? 'selected' : ''}>Antrean</option>
                     <option value="Proses" ${targetItem.status === 'Proses' ? 'selected' : ''}>Proses Pengecekan</option>
+                    <option value="Oper Vendor" ${targetItem.status === 'Oper Vendor' ? 'selected' : ''}>Oper Vendor</option>
+                    <option value="Tunggu Konfirmasi" ${targetItem.status === 'Tunggu Konfirmasi' ? 'selected' : ''}>Tunggu Konfirmasi</option>
                     <option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
                     <option value="Cancel" ${targetItem.status === 'Cancel' ? 'selected' : ''}>Cancel</option>
                 </select>
@@ -903,7 +907,6 @@ function openEditModal(firebaseKey) {
     } else if (window.currentTab === 'penyewaan') {
         window.editSelectedLaptopKeys = targetItem._linkedLaptopKeys ? [...targetItem._linkedLaptopKeys] : [];
 
-        // OPSI MODAL EDIT PENYEWAAN: HANYA PROSES & DIBATALKAN
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Penyewa</label><input type="text" id="edit-penyewa" value="${targetItem.penyewa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -1213,7 +1216,6 @@ function populateLaptopCheckboxes() {
     const filteredLaptop = masterLaptop.filter(lap => {
         if (selectedBranch && lap.cabang !== selectedBranch) return false;
 
-        // 🟢 HANYA TAMPILKAN LAPTOP YANG BERSTATUS "TERSEDIA" (READY)
         if (lap.status !== 'Tersedia') return false;
 
         const brand = (lap.merk || '').toLowerCase();
@@ -1623,19 +1625,16 @@ function ensurePengembalianModalExists() {
                 </header>
                 <div class="p-6 space-y-3.5 max-h-[75vh] overflow-y-auto custom-table-scrollbar bg-slate-50/50">
                     
-                    <!-- BARIS HEADER: JUDUL DI KIRI | CENTANG SEMUA + COUNTER DI POJOK KANAN -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
                         <div>
                             <h4 class="font-extrabold text-slate-800 text-xs md:text-sm">Daftar Laptop yang Harus Diperiksa:</h4>
                             <p class="text-[11px] text-slate-500">Centang unit jika kondisi fisik kembali dengan aman.</p>
                         </div>
                         <div class="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                            <!-- Tombol Centang Semua -->
                             <label class="flex items-center space-x-1.5 text-xs font-bold text-emerald-800 cursor-pointer select-none bg-emerald-50 hover:bg-emerald-100/80 px-2.5 py-1 rounded-lg border border-emerald-200/70 transition">
                                 <input type="checkbox" id="pengembalian-check-all" onchange="window.toggleSelectAllPengembalian(this)" class="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer">
                                 <span>Centang Semua</span>
                             </label>
-                            <!-- Live Counter di samping kanannya -->
                             <div class="flex items-center gap-1 text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs">
                                 <span class="text-[11px] text-slate-400 font-semibold">Fisik Terverifikasi Aman:</span>
                                 <span id="pengembalian-live-counter" class="text-emerald-600 font-mono font-black">0 / 0 Unit</span>
@@ -1643,16 +1642,13 @@ function ensurePengembalianModalExists() {
                         </div>
                     </div>
 
-                    <!-- KOLOM PENCARIAN PRESISI GAYA GAMBAR -->
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
                         <input type="text" id="pengembalian-search-input" oninput="window.filterPengembalianList()" placeholder="Ketik Merk, Tipe, SN, atau Kode Toko..." class="w-full pl-9 pr-4 py-2 border border-cyan-400/70 rounded-xl text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white font-semibold text-slate-700 shadow-xs">
                     </div>
 
-                    <!-- WADAH DAFTAR KARTU LAPTOP -->
                     <div id="pengembalian-list-container" class="space-y-2.5 max-h-60 overflow-y-auto custom-table-scrollbar pr-1"></div>
 
-                    <!-- SEKSI DILEMA / UNIT BERMASALAH -->
                     <div class="border-t border-slate-200 pt-3 space-y-2 bg-white p-3 rounded-xl border">
                         <label class="flex items-center space-x-2 text-xs font-bold text-rose-600 cursor-pointer">
                             <input type="checkbox" id="pengembalian-dilema-toggle" onchange="window.toggleDilemaBermasalah()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4 cursor-pointer">
@@ -1690,7 +1686,6 @@ window.openPengembalianModal = function(firebaseKey) {
     const sewaItem = (window.globalDataCloud['penyewaan'] || []).find(item => item._firebaseKey === firebaseKey);
     if (!sewaItem) return;
 
-    // Reset input pencarian saat modal dibuka
     const searchInput = document.getElementById('pengembalian-search-input');
     if (searchInput) searchInput.value = '';
 
@@ -1863,7 +1858,6 @@ window.submitPengembalian = function() {
         }
     });
 
-    // UBAH STATUS PENYEWAAN MENJADI SELESAI
     updates[`/penyewaan/${activeReturnKey}/status`] = "Selesai";
 
     const dilemaToggle = document.getElementById('pengembalian-dilema-toggle');
@@ -1875,7 +1869,6 @@ window.submitPengembalian = function() {
     const rootRef = ref(db);
     update(rootRef, updates)
         .then(() => {
-            // Update otomatis status sewa menjadi Selesai di Google Sheet
             if (window.syncSinglePenyewaanToSheet) {
                 window.syncSinglePenyewaanToSheet({
                     id: sewaItem.id,

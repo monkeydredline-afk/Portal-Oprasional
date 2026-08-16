@@ -102,6 +102,8 @@ function calculateAndRenderStats() {
         const totalServicesCount = filteredServices.length;
         const sAntrean = filteredServices.filter(s => s?.status === 'Antrean').length;
         const sProses = filteredServices.filter(s => s?.status === 'Proses').length;
+        const sVendor = filteredServices.filter(s => s?.status === 'Oper Vendor').length;
+        const sWaiting = filteredServices.filter(s => s?.status === 'Tunggu Konfirmasi').length;
         const sSelesai = filteredServices.filter(s => s?.status === 'Selesai').length;
         const sCancel = filteredServices.filter(s => s?.status === 'Cancel').length;
 
@@ -113,6 +115,8 @@ function calculateAndRenderStats() {
         setInnerText('stat-services-total', totalServicesCount);
         setInnerText('stat-services-pending-only', sAntrean);
         setInnerText('stat-services-processing', sProses);
+        setInnerText('stat-services-vendor', sVendor);
+        setInnerText('stat-services-waiting', sWaiting);
         setInnerText('stat-services-completed', sSelesai);
         setInnerText('stat-services-cancelled', sCancel);
 
@@ -397,7 +401,7 @@ function calculateAndRenderStats() {
         }
 
         // ==========================================================================
-        // AKUMULASI MODEL LAPTOP GUDANG BERDASARKAN 5 STATUS
+        // AKUMULASI MODEL LAPTOP GUDANG BERDASARKAN STATUS
         // ==========================================================================
         let warehouseReady = {};
         let warehouseSewa = {};
@@ -467,7 +471,7 @@ function calculateAndRenderStats() {
             }
         }
 
-        // MODE 3: FULL LAPORAN (Grid 3 Kolom & Otomatis Tanpa Scrollbar)
+        // MODE 3: FULL LAPORAN
         const stackedContainer = document.getElementById('dashboard-laptop-models-stacked-container');
         if (stackedContainer) {
             stackedContainer.innerHTML = '';
@@ -500,7 +504,6 @@ function calculateAndRenderStats() {
             }
         }
 
-        // RENDER CHART DONAT MODE STACKED
         try {
             const stackedStockCanvas = document.getElementById('chartLaptopStockStacked');
             if (stackedStockCanvas && typeof Chart !== 'undefined') {
@@ -829,6 +832,10 @@ function calculateAndRenderStats() {
                     let statusColor = 'text-amber-600 bg-amber-50 border border-amber-100';
                     if (s.status === 'Proses') {
                         statusColor = 'text-blue-600 bg-blue-50 border border-blue-100';
+                    } else if (s.status === 'Oper Vendor') {
+                        statusColor = 'text-purple-600 bg-purple-50 border border-purple-100';
+                    } else if (s.status === 'Tunggu Konfirmasi') {
+                        statusColor = 'text-orange-600 bg-orange-50 border border-orange-100';
                     } else if (s.status === 'Selesai') {
                         statusColor = 'text-emerald-600 bg-emerald-50 border border-emerald-100';
                     } else if (s.status === 'Cancel') {
@@ -882,7 +889,6 @@ function calculateAndRenderStats() {
             }
         }
 
-        // Render Grafik Laptop Stok Gudang Mode 1
         try {
             const laptopStockCanvas = document.getElementById('chartLaptopStock');
             if (laptopStockCanvas && typeof Chart !== 'undefined') {
@@ -1009,7 +1015,6 @@ function captureSectionHelper(sectionId, popoverId, fileNamePrefix) {
 
     const clone = originalSection.cloneNode(true);
 
-    // KUNCI: Copy pixel data canvas dari asli ke clone agar Chart.js tidak putih polos
     const originalCanvases = originalSection.querySelectorAll('canvas');
     const cloneCanvases = clone.querySelectorAll('canvas');
     originalCanvases.forEach((origCanvas, index) => {
@@ -1076,7 +1081,6 @@ window.captureLaptopGudangSection = function() { captureSectionHelper('section-l
 window.captureInventarisSection = function() { captureSectionHelper('section-inventaris', 'popover-inventaris-master', 'Laporan_Inventaris_Part'); };
 window.captureOfficeSection = function() { captureSectionHelper('section-office', 'popover-office-master', 'Laporan_Lisensi_Office'); };
 
-// Sembunyikan Pop-up jika pengguna mengeklik di luar area menu
 document.addEventListener('click', function(e) {
     const allPopovers = [
         { id: 'popover-services-master', btn: 'toggleServicesMasterMenu' },

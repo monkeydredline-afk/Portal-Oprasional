@@ -31,15 +31,9 @@ export const fieldsTemplate = {
             <label class="block text-sm font-medium text-gray-700 mb-1">Gejala / Kerusakan & Kelengkapan</label>
             <textarea name="kerusakan" rows="4" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">Detail Unit: &#10;kelengkapan: &#10;keluhan: </textarea>
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
-                <option value="Antrean">Antrean</option>
-                <option value="Proses">Proses Pengecekan</option>
-                <option value="Selesai">Selesai</option>
-                <option value="Cancel">Cancel</option>
-            </select>
-        </div>
+        
+        <!-- Status otomatis tersembunyi dengan nilai Antrean -->
+        <input type="hidden" name="status" value="Antrean">
     `,
     penyewaan: `
         <div id="cabang-input-container">
@@ -629,7 +623,7 @@ export const dataKeysMapping = {
 };
 
 export const filterOptionsTemplate = {
-    services: ['Antrean', 'Proses', 'Selesai', 'Cancel'],
+    services: ['Antrean', 'Proses', 'Oper Vendor', 'Tunggu Konfirmasi', 'Selesai', 'Cancel'],
     penyewaan: ['Proses', 'Perpanjangan', 'Selesai', 'Dibatalkan'],
     cctv: ['Survei', 'Pengerjaan', 'Selesai'],
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],

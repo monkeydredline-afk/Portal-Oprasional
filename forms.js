@@ -204,7 +204,6 @@ function handleSubmit(e) {
         
         newDataItem.total_biaya = String(formData.get('total_biaya') || '').replace(/\D/g, '');
         
-        // STATUS OTOMATIS PROSES PADA INPUT BARU
         newDataItem.status = 'Proses';
         newDataItem.unit = listUnitSewa.join(', ');
         newDataItem._linkedLaptopKeys = laptopKeysToUpdate;
@@ -273,14 +272,13 @@ function handleSubmit(e) {
         
         const rawKeluhan = formData.get('kerusakan') || '';
 
-        // --- PEMBUATAN NO. REFERENSI DINAMIS (MENYESUAIKAN TANGGAL INPUT) ---
         const today = new Date();
         let refYear = today.getFullYear();
         let refMonth = String(today.getMonth() + 1).padStart(2, '0');
 
         const rawTgl = formData.get('tanggal');
         if (rawTgl && rawTgl.includes('-')) {
-            const tParts = rawTgl.split('-'); // Format YYYY-MM-DD
+            const tParts = rawTgl.split('-');
             if (tParts[0] && tParts[0].length === 4) {
                 refYear = tParts[0];
                 refMonth = tParts[1].padStart(2, '0');
@@ -294,7 +292,8 @@ function handleSubmit(e) {
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.perangkat = formData.get('perangkat');
         newDataItem.biaya = "0";
-        newDataItem.status = formData.get('status');
+        // Status otomatis Antrean jika kosong
+        newDataItem.status = formData.get('status') || 'Antrean';
         newDataItem.teknisi = 'Belum Ditentukan';
         newDataItem.tindakan_teknisi = '';
         newDataItem.tgl_selesai = ''; 
@@ -332,7 +331,6 @@ function handleSubmit(e) {
                 if (window.refreshInventarisFieldOptions) window.refreshInventarisFieldOptions();
             }
 
-            // UBAH LAPTOP GUDANG MENJADI 'DISEWA'
             if (window.currentTab === 'penyewaan' && laptopKeysToUpdate.length > 0) {
                 laptopKeysToUpdate.forEach(laptopKey => {
                     const laptopStatusRef = ref(db, `list_laptop/${laptopKey}`);
@@ -497,7 +495,7 @@ function handleUpdateSubmit(e) {
         updatedData.no_ref = targetItem?.no_ref || `SRV/Legacy/#${targetItem?.id}`;
         updatedData.tgl_selesai = document.getElementById('edit-tgl-selesai')?.value || '';
 
-        itemDescription = `${updatedData.pelanggan} (${updatedData.perangkat}) - Teknisi: ${updatedData.teknisi}`;
+        itemDescription = `${updatedData.pelanggan} (${updatedData.perangkat}) - Teknisi: ${updatedData.teknisi} (Status: ${newStatus})`;
     } else if (window.currentTab === 'cctv') {
         updatedData.klien = document.getElementById('edit-klien').value;
         updatedData.lokasi = document.getElementById('edit-lokasi').value;
@@ -574,7 +572,6 @@ function handleUpdateSubmit(e) {
         let newStatus = document.getElementById('edit-status').value;
         const oldTglSelesai = targetItem?.tgl_selesai;
 
-        // DETEKSI OTOMATIS PERPANJANGAN JIKA TANGGAL SELESAI DIPERPANJANG
         if (newStatus !== 'Dibatalkan' && oldTglSelesai && new Date(tglSelesaiVal) > new Date(oldTglSelesai)) {
             newStatus = 'Perpanjangan';
         }
@@ -612,7 +609,6 @@ function handleUpdateSubmit(e) {
         const oldKeys = sewaItem && sewaItem._linkedLaptopKeys ? sewaItem._linkedLaptopKeys : [];
         const newKeys = window.editSelectedLaptopKeys;
 
-        // SINKRONISASI STATUS LAPTOP GUDANG
         if (newStatus === 'Dibatalkan' || newStatus === 'Selesai') {
             const allKeys = new Set([...oldKeys, ...newKeys]);
             allKeys.forEach(key => {
