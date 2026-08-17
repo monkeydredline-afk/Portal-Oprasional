@@ -43,6 +43,7 @@ import './jasa.js';              // Modul Master Jasa & Perawatan Data Tindakan 
 import './cetak.js';             // Modul cetak dokumen & laporan PDF
 import './katalog-penjualan.js'; // Modul Katalog Produk & Log Penjualan Baru
 import './sheets.js';            // Modul Integrasi Real-Time Google Sheets
+import './reports.js';           // Modul Pusat Unduh Laporan (Excel, PDF, Word, PPT)
 
 // ==========================================================================
 // INISIALISASI STATUS GLOBAL WINDOW (Diakses oleh seluruh modul eksternal)
@@ -284,8 +285,10 @@ function applyRoleBasedAccess() {
     const canExport = isPermitted(perms.export_excel);
     const canImport = isPermitted(perms.import_excel);
     const canDashboard = isPermitted(perms.dashboard);
+    const canDownloadReports = isPermitted(perms.unduh_laporan);
 
     const dropdownDashboard = document.getElementById('dropdown-dashboard-container');
+    const dropdownReports = document.getElementById('dropdown-reports-container');
     const dropdownBackup = document.getElementById('dropdown-backup-container');
     const dropdownPurge = document.getElementById('dropdown-purge-container');
     const dropdownClear = document.getElementById('dropdown-clear-container');
@@ -294,6 +297,7 @@ function applyRoleBasedAccess() {
     const utilityDropdownContainer = document.getElementById('utility-dropdown-container');
 
     if (dropdownDashboard) dropdownDashboard.style.display = canDashboard ? '' : 'none';
+    if (dropdownReports) dropdownReports.style.display = canDownloadReports ? '' : 'none';
     if (dropdownBackup) dropdownBackup.style.display = canBackup ? '' : 'none';
     if (dropdownPurge) dropdownPurge.style.display = (canDelete && window.currentTab === 'activity_logs') ? '' : 'none';
     if (dropdownClear) dropdownClear.style.display = canDelete ? '' : 'none';
@@ -307,7 +311,7 @@ function applyRoleBasedAccess() {
     }
 
     if (utilityDropdownContainer) {
-        if (canBackup || canDelete || canExport || canImport || canDashboard) {
+        if (canBackup || canDelete || canExport || canImport || canDashboard || canDownloadReports) {
             utilityDropdownContainer.classList.remove('hidden');
         } else {
             utilityDropdownContainer.classList.add('hidden');
@@ -844,7 +848,7 @@ onAuthStateChanged(auth, async (user) => {
                     dashboard: true, services: true, penyewaan: true, cctv: true,
                     list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, katalog_produk: true, log_penjualan: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
-                    export_excel: true, import_excel: true, edit_data: true, delete_data: true, cetak_nota: true
+                    export_excel: true, import_excel: true, edit_data: true, delete_data: true, cetak_nota: true, unduh_laporan: true
                 };
             } else if (snapshot.exists()) {
                 const profile = snapshot.val();
@@ -878,7 +882,7 @@ onAuthStateChanged(auth, async (user) => {
                     dashboard: true, services: true, penyewaan: true, cctv: true,
                     list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, katalog_produk: true, log_penjualan: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
-                    export_excel: true, import_excel: true, edit_data: true, delete_data: true
+                    export_excel: true, import_excel: true, edit_data: true, delete_data: true, unduh_laporan: true
                 };
             } else {
                 window.currentUser.name = user.email.split('@')[0];

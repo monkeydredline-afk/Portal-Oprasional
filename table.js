@@ -278,6 +278,7 @@ function renderTable() {
                 if (permsDetail.edit_data) badges.push('Edit');
                 if (permsDetail.delete_data) badges.push('Hapus');
                 if (permsDetail.cetak_nota) badges.push('Cetak Nota');
+                if (permsDetail.unduh_laporan) badges.push('Unduh Laporan');
 
                 let badgeHtml = '';
                 if (badges.length === 0) {
@@ -1092,6 +1093,10 @@ function openEditModal(firebaseKey) {
                         <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                             <input type="checkbox" id="edit-perm-cetak" ${targetItem.permissions?.cetak_nota ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
                             <span>Cetak Nota</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                            <input type="checkbox" id="edit-perm-unduh_laporan" ${targetItem.permissions?.unduh_laporan ? 'checked' : ''} class="rounded text-cyan-600 border-gray-300">
+                            <span>Pusat Unduh Laporan</span>
                         </label>
                     </div>
                 </div>

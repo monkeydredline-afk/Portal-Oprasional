@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script type="module" src="app.js"></script>
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-800">
@@ -127,6 +128,11 @@
                             <div class="py-1" id="dropdown-dashboard-container">
                                 <button onclick="window.openDashboardModal(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-bold transition flex items-center gap-2">
                                     <i class="fa-solid fa-chart-line text-cyan-500"></i> Dashboard Statistik
+                                </button>
+                            </div>
+                            <div class="py-1" id="dropdown-reports-container">
+                                <button onclick="window.openReportsModal(); window.toggleUtilityDropdown(event)" class="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 font-bold transition flex items-center gap-2">
+                                    <i class="fa-solid fa-file-invoice text-indigo-500"></i> Pusat Unduh Laporan
                                 </button>
                             </div>
                             <div class="py-1" id="dropdown-opname-container">
@@ -1111,6 +1117,88 @@
             <div class="p-3 bg-white border-t flex justify-end">
                 <button onclick="window.closeExportOptionModal()" class="px-4 py-2 border rounded-lg text-xs text-gray-600 hover:bg-gray-100 font-bold transition">Batal</button>
             </div>
+        </div>
+    </div>
+    <!-- ========================================================================== -->
+    <!-- MODAL PUSAT UNDUH LAPORAN LENGKAP (11 MODUL & 4 FORMAT EXPORT)             -->
+    <!-- ========================================================================== -->
+    <div id="reports-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            
+            <!-- Header Modal -->
+            <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
+                        <i class="fa-solid fa-file-invoice text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm md:text-base tracking-wide">Pusat Unduh Laporan Operasional</h3>
+                        <p class="text-[11px] text-slate-400">Ekspor rekap data dalam 4 format: Excel, PDF Siap Cetak, Word, dan PowerPoint</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeReportsModal()" class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-slate-800">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </header>
+
+            <!-- Body Modal (Scrollable) -->
+            <div class="p-5 bg-slate-50 overflow-y-auto space-y-4 custom-table-scrollbar">
+                
+                <!-- Filter Bar Terpadu (Cabang & Rentang Tanggal) -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between border-b pb-2">
+                        <span class="text-xs font-extrabold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders text-cyan-600"></i> Parameter & Filter Laporan
+                        </span>
+                        <span class="text-[11px] text-slate-400 italic">Filter berlaku otomatis untuk seluruh unduhan</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div id="reports-filter-cabang-container">
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">🏢 Wilayah Cabang</label>
+                            <select id="reports-filter-cabang" onchange="window.renderReportsList()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <option value="">Semua Cabang (Gabungan)</option>
+                                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                                <option value="Perintis">Perintis</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">📅 Tanggal Mulai</label>
+                            <input type="date" id="reports-filter-start" onchange="window.renderReportsList()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">📅 Tanggal Selesai</label>
+                            <input type="date" id="reports-filter-end" onchange="window.renderReportsList()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+                        <button type="button" onclick="window.resetReportsFilter()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Reset Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Wadah Tabel / List 11 Modul Laporan -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                    <div class="p-3 bg-slate-100/70 border-b border-slate-200 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Daftar Modul Rekap Dokumen</span>
+                        <span class="text-[11px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200/60 px-2.5 py-0.5 rounded-full">11 Modul Siap Ekspor</span>
+                    </div>
+                    
+                    <div id="reports-list-container" class="divide-y divide-slate-100">
+                        <p class="text-center text-xs text-slate-400 py-8 italic">Memuat modul laporan...</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Modal -->
+            <footer class="p-3 bg-white border-t flex justify-end shrink-0">
+                <button type="button" onclick="window.closeReportsModal()" class="px-4 py-2 border rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                    Tutup
+                </button>
+            </footer>
         </div>
     </div>
 

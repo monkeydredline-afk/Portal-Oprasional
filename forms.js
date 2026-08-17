@@ -121,7 +121,8 @@ function handleSubmit(e) {
                     import_excel: formData.get('perm_import_excel') === 'true',
                     edit_data: formData.get('perm_edit_data') === 'true',
                     delete_data: formData.get('perm_delete_data') === 'true',
-                    cetak_nota: formData.get('perm_cetak_nota') === 'true'
+                    cetak_nota: formData.get('perm_cetak_nota') === 'true',
+                    unduh_laporan: formData.get('perm_unduh_laporan') === 'true'
                 };
 
                 const nextId = currentData.length === 0 ? 1 : Math.max(...currentData.map(d => Number(d.id) || 0)) + 1;
@@ -672,7 +673,8 @@ function handleUpdateSubmit(e) {
             import_excel: document.getElementById('edit-perm-import')?.checked || false,
             edit_data: document.getElementById('edit-perm-edit')?.checked || false,
             delete_data: document.getElementById('edit-perm-delete')?.checked || false,
-            cetak_nota: document.getElementById('edit-perm-cetak')?.checked || false
+            cetak_nota: document.getElementById('edit-perm-cetak')?.checked || false,
+            unduh_laporan: document.getElementById('edit-perm-unduh_laporan')?.checked || false
         };
 
         const newPass = document.getElementById('edit-password-user')?.value;
