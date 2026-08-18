@@ -1134,7 +1134,7 @@ function refreshServerFilterOptions() {
 }
 
 // ==========================================================================
-// D. HELPER KERANJANG BELANJA LOG PENJUALAN
+// D. HELPER KERANJANG BELANJA LOG PENJUALAN (1 UNIT PER BARIS + TAMPIL SN)
 // ==========================================================================
 
 window.populatePenjualanCart = function() {
@@ -1155,7 +1155,10 @@ window.populatePenjualanCart = function() {
         displays = displays.filter(item => item.cabang === selectedBranch);
     }
 
-    if (katalog.length === 0 && displays.length === 0) {
+    // Hanya ambil unit display yang siap jual (Ready / status kosong)
+    const readyDisplays = displays.filter(item => item.status === 'Ready' || !item.status);
+
+    if (katalog.length === 0 && readyDisplays.length === 0) {
         container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Katalog produk dan display kosong pada cabang ini</p>`;
         return;
     }
@@ -1163,7 +1166,7 @@ window.populatePenjualanCart = function() {
     const searchInput = document.getElementById('search-katalog-produk');
     const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-    // 1. Petakan Katalog Produk
+    // 1. Petakan Katalog Produk (Barang / Aksesoris Umum)
     const mappedProducts = katalog.map(item => ({
         _firebaseKey: item._firebaseKey,
         nama_barang: item.nama_barang || '-',
@@ -1174,109 +1177,110 @@ window.populatePenjualanCart = function() {
         isDisplay: false
     }));
 
-    // 2. Akumulasi & Kelompokkan Laptop Display (Name + CPU + RAM + SSD + VGA/Layar)
-    const laptopGroups = {};
-    displays.forEach(item => {
-        const isReady = (item.status === 'Ready' || !item.status);
-        if (!isReady) return; // Hanya tampilkan unit display yang siap dijual
-
+    // 2. Petakan Laptop Display (Setiap unit mandiri dengan SN masing-masing)
+    const mappedLaptops = readyDisplays.map(item => {
         const name = `${item.merk || ''} ${item.tipe || ''}`.trim() || 'Laptop Display';
-        const specs = parseDisplaySpecs(item.spek_singkat || '');
-        const groupKey = `${name}_${specs.cpu}_${specs.ram}_${specs.ssd}_${specs.vga}`.toLowerCase();
-
-        if (!laptopGroups[groupKey]) {
-            laptopGroups[groupKey] = {
-                _firebaseKeys: [],
-                nama_barang: name,
-                harga_jual: Number(item.harga_jual) || 0,
-                cpu: specs.cpu,
-                ram: specs.ram,
-                ssd: specs.ssd,
-                vga: specs.vga,
-                satuan: 'Unit',
-                kategori: 'Laptop Display',
-                isDisplay: true
-            };
-        }
-        laptopGroups[groupKey]._firebaseKeys.push(item._firebaseKey);
+        const specs = parseDisplaySpecs(item.spek_singkat || item.spek || '');
+        return {
+            _firebaseKey: item._firebaseKey,
+            nama_barang: name,
+            sn: item.sn || 'Tanpa SN',
+            harga_jual: Number(item.harga_jual) || 0,
+            stok: 1, // 1 unit unik per SN
+            satuan: 'Unit',
+            kategori: 'Laptop Display',
+            isDisplay: true,
+            cpu: specs.cpu,
+            ram: specs.ram,
+            ssd: specs.ssd,
+            vga: specs.vga
+        };
     });
 
-    const mappedLaptops = Object.values(laptopGroups).map(group => ({
-        _firebaseKey: group._firebaseKeys[0], // Ambil key pertama sebagai rujukan checklist
-        _firebaseKeys: group._firebaseKeys,
-        nama_barang: group.nama_barang,
-        harga_jual: group.harga_jual,
-        stok: group._firebaseKeys.length, // Total kuantitas unit ready
-        satuan: group.satuan,
-        kategori: group.kategori,
-        isDisplay: true,
-        cpu: group.cpu,
-        ram: group.ram,
-        ssd: group.ssd,
-        vga: group.vga
-    }));
-
+    // Gabungkan list
     const unifiedList = [...mappedProducts, ...mappedLaptops];
 
-    // Saring data berdasarkan kata kunci (pencarian spesifikasi cerdas terintegrasi)
+    // Saring data berdasarkan kata kunci pencarian (bisa cari Nama, Kategori, Spek, hingga Nomor SN)
     const filtered = unifiedList.filter(item => {
-        const searchTarget = item.isDisplay 
-            ? `${item.nama_barang} ${item.cpu} ${item.ram} ${item.ssd} ${item.vga}`.toLowerCase()
-            : `${item.nama_barang} ${item.kategori}`.toLowerCase();
-        return searchTarget.includes(query);
+        if (item.isDisplay) {
+            const searchTarget = `${item.nama_barang} ${item.sn} ${item.cpu} ${item.ram} ${item.ssd} ${item.vga}`.toLowerCase();
+            return searchTarget.includes(query);
+        } else {
+            const searchTarget = `${item.nama_barang} ${item.kategori}`.toLowerCase();
+            return searchTarget.includes(query);
+        }
     });
 
     let displayHtml = '';
     let productHtml = '';
 
     filtered.forEach(item => {
-        const isChecked = window.selectedPenjualanItems.some(it => it.productKey === item._firebaseKey);
-        const qtyObj = window.selectedPenjualanItems.find(it => it.productKey === item._firebaseKey);
+        const isChecked = window.selectedPenjualanItems.some(it => it.itemKey === item._firebaseKey);
+        const qtyObj = window.selectedPenjualanItems.find(it => it.itemKey === item._firebaseKey);
         const qtyVal = qtyObj ? qtyObj.qty : 1;
-        const isOutOfStock = (Number(item.stok) || 0) <= 0;
+        const isOutOfStock = !item.isDisplay && (Number(item.stok) || 0) <= 0;
 
         if (item.isDisplay) {
+            // Tampilan per 1 unit Laptop Display (Lengkap dengan Nomor SN)
             const specsInline = [item.cpu, item.ram, item.ssd, item.vga].filter(Boolean).join(' | ');
-            const specsText = specsInline ? `<span class="block text-[10px] text-slate-500 font-mono italic mt-0.5 mb-0.5">${escapeHtml(specsInline)}</span>` : '';
+            const specsText = specsInline ? `<span class="block text-[10px] text-slate-500 font-mono italic mt-0.5">${escapeHtml(specsInline)}</span>` : '';
             
             displayHtml += `
-                <div class="flex items-start justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-cyan-300 transition text-xs">
+                <div class="flex items-start justify-between p-2.5 bg-white border ${isChecked ? 'border-purple-400 bg-purple-50/20' : 'border-slate-200'} rounded-lg hover:border-purple-300 transition text-xs">
                     <div class="flex items-start space-x-2.5">
-                        <input type="checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.nama_barang)}" data-price="${item.harga_jual}" ${isChecked ? 'checked' : ''} ${isOutOfStock ? 'disabled' : ''} onchange="window.togglePenjualanItem(this)" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500">
+                        <input type="checkbox" 
+                               data-key="${item._firebaseKey}" 
+                               data-name="${escapeHtml(item.nama_barang)}" 
+                               data-price="${item.harga_jual}" 
+                               data-is-display="true" 
+                               data-sn="${escapeHtml(item.sn)}" 
+                               ${isChecked ? 'checked' : ''} 
+                               onchange="window.togglePenjualanItem(this)" 
+                               class="mt-1 rounded text-purple-600 focus:ring-purple-500 cursor-pointer">
                         <div>
-                            <span class="font-bold text-slate-800">${escapeHtml(item.nama_barang)}</span>
-                            <span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 rounded text-[10px] font-bold border ml-1">${escapeHtml(item.kategori)}</span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-bold text-slate-800">💻 ${escapeHtml(item.nama_barang)}</span>
+                                <span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 rounded text-[10px] font-extrabold border border-purple-200">Display</span>
+                                <span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded text-[10px] font-mono font-extrabold border border-slate-200">SN: ${escapeHtml(item.sn)}</span>
+                            </div>
                             ${specsText}
-                            <span class="block text-[11px] text-slate-500 mt-0.5">
-                                Stok: <span class="font-extrabold ${isOutOfStock ? 'text-rose-600' : 'text-emerald-600'}">${item.stok} ${escapeHtml(item.satuan)}</span> | Harga: <span class="font-bold text-slate-700">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                            <span class="block text-[11px] text-slate-500 mt-1">
+                                Harga: <span class="font-bold text-emerald-700 font-mono">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
                             </span>
                         </div>
                     </div>
-                    ${isChecked ? `
-                        <div class="flex items-center space-x-1">
-                            <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
-                            <input type="number" min="1" max="${item.stok}" value="${qtyVal}" data-key="${item._firebaseKey}" oninput="window.updatePenjualanQty(this)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white">
-                        </div>
-                    ` : ''}
+                    <div class="self-center">
+                        <span class="text-[10px] font-bold px-2 py-1 rounded bg-slate-100 text-slate-600 font-mono">1 Unit</span>
+                    </div>
                 </div>
             `;
         } else {
+            // Tampilan Katalog Produk Aksesoris / Suku Cadang Umum
             productHtml += `
-                <div class="flex items-start justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-cyan-300 transition text-xs">
+                <div class="flex items-start justify-between p-2.5 bg-white border ${isChecked ? 'border-cyan-400 bg-cyan-50/20' : 'border-slate-200'} rounded-lg hover:border-cyan-300 transition text-xs">
                     <div class="flex items-start space-x-2.5">
-                        <input type="checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.nama_barang)}" data-price="${item.harga_jual}" ${isChecked ? 'checked' : ''} ${isOutOfStock ? 'disabled' : ''} onchange="window.togglePenjualanItem(this)" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500">
+                        <input type="checkbox" 
+                               data-key="${item._firebaseKey}" 
+                               data-name="${escapeHtml(item.nama_barang)}" 
+                               data-price="${item.harga_jual}" 
+                               data-is-display="false" 
+                               data-sn="" 
+                               ${isChecked ? 'checked' : ''} 
+                               ${isOutOfStock ? 'disabled' : ''} 
+                               onchange="window.togglePenjualanItem(this)" 
+                               class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 cursor-pointer">
                         <div>
-                            <span class="font-bold text-slate-800">${escapeHtml(item.nama_barang)}</span>
+                            <span class="font-bold text-slate-800">📦 ${escapeHtml(item.nama_barang)}</span>
                             <span class="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border ml-1">${escapeHtml(item.kategori)}</span>
                             <span class="block text-[11px] text-slate-500 mt-0.5">
-                                Stok: <span class="font-extrabold ${isOutOfStock ? 'text-rose-600' : 'text-emerald-600'}">${item.stok} ${escapeHtml(item.satuan)}</span> | Harga: <span class="font-bold text-slate-700">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                                Stok: <span class="font-extrabold ${isOutOfStock ? 'text-rose-600' : 'text-emerald-600'}">${item.stok} ${escapeHtml(item.satuan)}</span> | Harga: <span class="font-bold text-emerald-700 font-mono">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
                             </span>
                         </div>
                     </div>
                     ${isChecked ? `
                         <div class="flex items-center space-x-1">
                             <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
-                            <input type="number" min="1" max="${item.stok}" value="${qtyVal}" data-key="${item._firebaseKey}" oninput="window.updatePenjualanQty(this)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white">
+                            <input type="number" min="1" max="${item.stok}" value="${qtyVal}" data-key="${item._firebaseKey}" oninput="window.updatePenjualanQty(this)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white focus:ring-1 focus:ring-cyan-500 focus:outline-none">
                         </div>
                     ` : ''}
                 </div>
@@ -1288,7 +1292,7 @@ window.populatePenjualanCart = function() {
     if (displayHtml) {
         finalHtml += `
             <div class="px-3 py-1.5 bg-purple-50 text-purple-700 font-extrabold text-[10px] uppercase tracking-wider rounded-lg mb-2 border border-purple-200/50 select-none">
-                ── LAPTOP DISPLAY ─────────────────────────
+                ── UNIT LAPTOP DISPLAY (PILIH SESUAI SN FISIK) ──
             </div>
             <div class="space-y-2 mb-4">${displayHtml}</div>
         `;
@@ -1296,7 +1300,7 @@ window.populatePenjualanCart = function() {
     if (productHtml) {
         finalHtml += `
             <div class="px-3 py-1.5 bg-cyan-50 text-cyan-700 font-extrabold text-[10px] uppercase tracking-wider rounded-lg mb-2 border border-cyan-200/50 select-none">
-                ── KATALOG PRODUK ─────────────────────────
+                ── KATALOG PRODUK & AKSESORIS ──
             </div>
             <div class="space-y-2">${productHtml}</div>
         `;
@@ -1310,24 +1314,33 @@ window.populatePenjualanCart = function() {
 };
 
 window.togglePenjualanItem = function(checkbox) {
-    const productKey = checkbox.getAttribute('data-key');
+    const itemKey = checkbox.getAttribute('data-key');
     const name = checkbox.getAttribute('data-name');
     const price = Number(checkbox.getAttribute('data-price')) || 0;
+    const isDisplay = checkbox.getAttribute('data-is-display') === 'true';
+    const sn = checkbox.getAttribute('data-sn') || '';
 
     if (checkbox.checked) {
-        if (!window.selectedPenjualanItems.some(it => it.productKey === productKey)) {
-            window.selectedPenjualanItems.push({ productKey, name, qty: 1, price });
+        if (!window.selectedPenjualanItems.some(it => it.itemKey === itemKey)) {
+            window.selectedPenjualanItems.push({
+                itemKey,
+                name,
+                qty: 1,
+                price,
+                isDisplay,
+                sn
+            });
         }
     } else {
-        window.selectedPenjualanItems = window.selectedPenjualanItems.filter(it => it.productKey !== productKey);
+        window.selectedPenjualanItems = window.selectedPenjualanItems.filter(it => it.itemKey !== itemKey);
     }
     window.populatePenjualanCart();
 };
 
 window.updatePenjualanQty = function(input) {
-    const productKey = input.getAttribute('data-key');
+    const itemKey = input.getAttribute('data-key');
     const val = Math.max(1, Number(input.value) || 1);
-    const obj = window.selectedPenjualanItems.find(it => it.productKey === productKey);
+    const obj = window.selectedPenjualanItems.find(it => it.itemKey === itemKey);
     if (obj) {
         obj.qty = val;
     }

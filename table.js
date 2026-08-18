@@ -101,10 +101,10 @@ function renderTable() {
     
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv') {
-        // Urutkan berdasarkan nomor ID terbesar ke terkecil
+    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv' || window.currentTab === 'log_penjualan') {
+        // Data transaksi operasional diurutkan dari yang terbaru (ID terbesar di paling atas)
         data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-    } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk' || window.currentTab === 'log_penjualan') {
+    } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk') {
         data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     }
 
@@ -353,14 +353,15 @@ function renderTable() {
             } else if (key === 'items_terjual' && window.currentTab === 'log_penjualan') {
                 const soldItems = val || [];
                 const itemsHtml = soldItems.map(it => `
-                    <div class="flex gap-2 text-xs">
-                        <span>•</span>
-                        <span class="font-medium text-slate-800">${escapeHtml(it.name)}</span>
+                    <div class="flex items-center gap-1.5 text-xs py-0.5">
+                        <span class="text-slate-400">•</span>
+                        <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
+                        ${it.sn ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-extrabold rounded border border-purple-200">SN: ${escapeHtml(it.sn)}</span>` : ''}
                         <span class="text-slate-500 font-mono font-semibold">(x${it.qty})</span>
                     </div>
                 `).join('');
                 rowHtml += `
-                    <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[200px]">
+                    <td class="px-4 py-3 text-xs text-slate-700 whitespace-normal min-w-[240px]">
                         <div class="max-h-24 overflow-y-auto pr-1 space-y-1 custom-table-scrollbar">
                             ${itemsHtml || '<span class="text-slate-400 italic">Tidak ada item</span>'}
                         </div>
@@ -720,6 +721,10 @@ function openEditModal(firebaseKey) {
                 `;
             });
         }
+        let tindakanVal = targetItem.tindakan_teknisi;
+        if (!tindakanVal || tindakanVal.trim() === '') {
+            tindakanVal = "Hasil Analisa : \nTindakan Teknisi: ";
+        }
 
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
@@ -738,7 +743,7 @@ function openEditModal(firebaseKey) {
 
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Gejala / Kerusakan & Kelengkapan</label><textarea id="edit-kerusakan" rows="2" required class="w-full border p-2 text-sm rounded-lg">${targetItem.kerusakan || ''}</textarea></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Teknisi Penanggung Jawab</label><input type="text" id="edit-teknisi" value="${teknisiVal}" ${teknisiReadonlyAttr}></div>
-            <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Analisa / Tindakan Teknisi</label><textarea id="edit-tindakan_teknisi" rows="2" placeholder="Tuliskan tindakan servis, perbaikan komponen, dll." class="w-full border p-2 text-sm rounded-lg">${targetItem.tindakan_teknisi || ''}</textarea></div>
+            <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Analisa / Tindakan Teknisi</label><textarea id="edit-tindakan_teknisi" rows="3" class="w-full border p-2 text-sm rounded-lg">${escapeHtml(tindakanVal)}</textarea></div>
             
             <div class="md:col-span-2 border-t pt-3.5 space-y-2">
                 <div class="flex justify-between items-center">
@@ -809,26 +814,34 @@ function openEditModal(firebaseKey) {
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
         `;
     } else if (window.currentTab === 'log_penjualan') {
-        window.editSelectedPenjualanItems = targetItem.items_terjual ? [...targetItem.items_terjual] : [];
-        fieldsContainer.innerHTML = `
-            ${cabangEditHtml}
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label><input type="text" id="edit-nama_pembeli" value="${targetItem.nama_pembeli || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
-                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Edit Item Penjualan (Tinjau Kuantitas)</label>
-                <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-lg max-h-48 overflow-y-auto custom-table-scrollbar">
-                    ${(targetItem.items_terjual || []).map((it, idx) => `
-                        <div class="flex items-center justify-between text-xs py-1.5 border-b">
-                            <span class="font-bold text-slate-800">${escapeHtml(it.name)} (Rp ${Number(it.price).toLocaleString('id-ID')})</span>
-                            <div class="flex items-center space-x-1">
-                                <span class="text-[10px] text-slate-400 font-bold uppercase">Qty</span>
-                                <input type="number" min="1" id="edit-sale-qty-${idx}" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white">
-                            </div>
+    window.editSelectedPenjualanItems = targetItem.items_terjual ? targetItem.items_terjual.map(it => ({ ...it })) : [];
+    fieldsContainer.innerHTML = `
+        ${cabangEditHtml}
+        <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label><input type="text" id="edit-nama_pembeli" value="${targetItem.nama_pembeli || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+        <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+        <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Rincian Item Penjualan</label>
+            <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-lg max-h-48 overflow-y-auto custom-table-scrollbar">
+                ${(targetItem.items_terjual || []).map((it, idx) => `
+                    <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 last:border-0">
+                        <div>
+                            <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
+                            ${it.sn ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-extrabold rounded border border-purple-200 ml-1">SN: ${escapeHtml(it.sn)}</span>` : ''}
+                            <span class="block text-[11px] text-slate-500 font-mono">Rp ${Number(it.price).toLocaleString('id-ID')}</span>
                         </div>
-                    `).join('')}
-                </div>
+                        <div class="flex items-center space-x-1">
+                            ${(it.isDisplay || it.sn) ? `
+                                <span class="text-[10px] font-bold px-2 py-1 bg-slate-200 text-slate-700 rounded font-mono">1 Unit (SN Terkunci)</span>
+                            ` : `
+                                <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
+                                <input type="number" min="1" id="edit-sale-qty-${idx}" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white focus:ring-1 focus:ring-cyan-500 focus:outline-none">
+                            `}
+                        </div>
+                    </div>
+                `).join('')}
             </div>
-        `;
+        </div>
+    `;
     } else if (window.currentTab === 'cctv') {
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}

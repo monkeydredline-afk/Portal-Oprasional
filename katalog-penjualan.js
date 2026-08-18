@@ -4,13 +4,11 @@
 import { db, ref, set, push, update, remove, get } from './firebase-config.js';
 
 // ==========================================================================
-// A. HELPER UTAMA: SINKRONISASI STOK KATALOG PRODUK
+// A. HELPER UTAMA: SINKRONISASI STOK KATALOG & STATUS LAPTOP DISPLAY
 // ==========================================================================
 
 /**
- * Menyesuaikan stok barang secara langsung di Firebase berdasarkan kuantitas perubahan.
- * @param {string} productKey - Firebase Key dari Katalog Produk.
- * @param {number} changeAmount - Jumlah perubahan (+ untuk mengembalikan stok, - untuk mengurangi stok).
+ * Menyesuaikan stok barang di Katalog Produk (+ untuk mengembalikan, - untuk mengurangi).
  */
 export async function adjustKatalogStock(productKey, changeAmount) {
     if (!productKey) return;
@@ -29,35 +27,77 @@ export async function adjustKatalogStock(productKey, changeAmount) {
 }
 
 /**
- * Membandingkan array belanja lama dan baru untuk menghitung selisih perubahan stok.
- * @param {Array} oldItems - Array berisi item terjual lama.
- * @param {Array} newItems - Array berisi item terjual baru.
- * @param {boolean} isCancelledOrDeleted - True jika seluruh transaksi dibatalkan/dihapus.
+ * Mengubah status unit di Laptop Display ('Ready' atau 'Terjual').
  */
-export async function syncStockAdjustment(oldItems = [], newItems = [], isCancelledOrDeleted = false) {
-    const netChanges = {}; // Menyimpan akumulasi perubahan per productKey
+export async function updateDisplayStatus(displayKey, newStatus) {
+    if (!displayKey) return;
+    const displayRef = ref(db, `laptop_display/${displayKey}`);
+    try {
+        await update(displayRef, { status: newStatus });
+    } catch (err) {
+        console.error(`Gagal memperbarui status laptop display ${displayKey}:`, err);
+    }
+}
+
+/**
+ * Sinkronisasi gabungan Stok Produk & Status Laptop Display saat transaksi Penjualan.
+ */
+export async function syncSaleItemsStatusAndStock(oldItems = [], newItems = [], isCancelledOrDeleted = false) {
+    // 1. Tangani Laptop Display
+    if (isCancelledOrDeleted) {
+        // Jika dibatalkan/dihapus, kembalikan semua laptop display lama ke 'Ready'
+        for (const item of oldItems) {
+            const key = item._displayKey || item._itemKey || (item.isDisplay ? item.itemKey : null);
+            if (item.isDisplay || item._displayKey) {
+                await updateDisplayStatus(key, 'Ready');
+            }
+        }
+    } else {
+        const oldDisplayKeys = oldItems
+            .filter(it => it.isDisplay || it._displayKey)
+            .map(it => it._displayKey || it._itemKey || it.itemKey);
+        
+        const newDisplayKeys = newItems
+            .filter(it => it.isDisplay || it._displayKey)
+            .map(it => it._displayKey || it._itemKey || it.itemKey);
+
+        // Laptop yang dilepas saat edit -> kembalikan ke 'Ready'
+        for (const key of oldDisplayKeys) {
+            if (!newDisplayKeys.includes(key)) {
+                await updateDisplayStatus(key, 'Ready');
+            }
+        }
+
+        // Laptop yang baru dipilih -> ubah ke 'Terjual'
+        for (const key of newDisplayKeys) {
+            await updateDisplayStatus(key, 'Terjual');
+        }
+    }
+
+    // 2. Tangani Stok Katalog Produk Biasa
+    const oldProducts = oldItems.filter(it => !it.isDisplay && !it._displayKey);
+    const newProducts = newItems.filter(it => !it.isDisplay && !it._displayKey);
+
+    const netChanges = {};
 
     if (isCancelledOrDeleted) {
-        // Kembalikan seluruh stok barang lama
-        oldItems.forEach(item => {
-            const key = item._productKey || item.productKey;
+        oldProducts.forEach(item => {
+            const key = item._productKey || item._itemKey || item.productKey || item.itemKey;
             if (key) {
                 const qty = Number(item.qty) || 0;
                 netChanges[key] = (netChanges[key] || 0) + qty;
             }
         });
     } else {
-        // Kembalikan stok lama terlebih dahulu (reverse)
-        oldItems.forEach(item => {
-            const key = item._productKey || item.productKey;
+        oldProducts.forEach(item => {
+            const key = item._productKey || item._itemKey || item.productKey || item.itemKey;
             if (key) {
                 const qty = Number(item.qty) || 0;
                 netChanges[key] = (netChanges[key] || 0) + qty;
             }
         });
-        // Kurangi dengan stok yang baru dibeli/dipakai
-        newItems.forEach(item => {
-            const key = item._productKey || item.productKey;
+        newProducts.forEach(item => {
+            const key = item._productKey || item._itemKey || item.productKey || item.itemKey;
             if (key) {
                 const qty = Number(item.qty) || 0;
                 netChanges[key] = (netChanges[key] || 0) - qty;
@@ -65,7 +105,6 @@ export async function syncStockAdjustment(oldItems = [], newItems = [], isCancel
         });
     }
 
-    // Jalankan pembaruan stok ke Firebase database
     for (const key of Object.keys(netChanges)) {
         const change = netChanges[key];
         if (change !== 0) {
@@ -75,13 +114,35 @@ export async function syncStockAdjustment(oldItems = [], newItems = [], isCancel
 }
 
 /**
- * Logika Integrasi Pilar 3: Mengelola stok untuk pemakaian "Bahan/Produk" pada Log Services.
+ * Logika Integrasi: Mengelola stok untuk pemakaian bahan/sparepart pada Log Services.
  */
 export async function syncServiceMaterialStock(oldItems = [], newItems = [], isCancelledOrDeleted = false) {
-    // Saring hanya item yang bertipe "Produk"
     const oldProducts = (oldItems || []).filter(item => item.type === 'Produk');
     const newProducts = (newItems || []).filter(item => item.type === 'Produk');
-    await syncStockAdjustment(oldProducts, newProducts, isCancelledOrDeleted);
+    
+    const netChanges = {};
+    if (isCancelledOrDeleted) {
+        oldProducts.forEach(item => {
+            const key = item._productKey || item.productKey;
+            if (key) netChanges[key] = (netChanges[key] || 0) + (Number(item.qty) || 0);
+        });
+    } else {
+        oldProducts.forEach(item => {
+            const key = item._productKey || item.productKey;
+            if (key) netChanges[key] = (netChanges[key] || 0) + (Number(item.qty) || 0);
+        });
+        newProducts.forEach(item => {
+            const key = item._productKey || item.productKey;
+            if (key) netChanges[key] = (netChanges[key] || 0) - (Number(item.qty) || 0);
+        });
+    }
+
+    for (const key of Object.keys(netChanges)) {
+        const change = netChanges[key];
+        if (change !== 0) {
+            await adjustKatalogStock(key, change);
+        }
+    }
 }
 
 
@@ -202,7 +263,7 @@ export function deleteKatalogProduk(firebaseKey, targetItem) {
 
 
 // ==========================================================================
-// C. OPERASI CRUD & INTEGRASI STOK: LOG PENJUALAN
+// C. OPERASI CRUD & INTEGRASI STOK/STATUS: LOG PENJUALAN
 // ==========================================================================
 
 export function reindexLogPenjualanIds(excludedFirebaseKey = null) {
@@ -238,7 +299,7 @@ export function reindexLogPenjualanIds(excludedFirebaseKey = null) {
 
 export function submitLogPenjualan(formData, btnSubmit, originalText, formElement, selectedItems = []) {
     if (selectedItems.length === 0) {
-        alert("Silakan pilih minimal 1 barang dari Katalog Produk!");
+        alert("Silakan pilih minimal 1 barang/laptop dari keranjang belanja!");
         if (btnSubmit) {
             btnSubmit.innerHTML = originalText;
             btnSubmit.disabled = false;
@@ -262,11 +323,18 @@ export function submitLogPenjualan(formData, btnSubmit, originalText, formElemen
 
     let totalBayar = 0;
     const itemsTerjual = selectedItems.map(item => {
+        const isDisplay = item.isDisplay === true;
+        const itemKey = item.itemKey || item._itemKey || item._productKey || item._displayKey || item.productKey;
         const subtotal = (Number(item.qty) || 1) * (Number(item.price) || 0);
         totalBayar += subtotal;
+        
         return {
-            _productKey: item.productKey || item._productKey,
+            _itemKey: itemKey,
+            _productKey: !isDisplay ? itemKey : null,
+            _displayKey: isDisplay ? itemKey : null,
+            isDisplay: isDisplay,
             name: item.name,
+            sn: item.sn || '',
             qty: Number(item.qty) || 1,
             price: Number(item.price) || 0,
             subtotal: subtotal
@@ -287,12 +355,16 @@ export function submitLogPenjualan(formData, btnSubmit, originalText, formElemen
     const targetRef = ref(db, 'log_penjualan');
     push(targetRef, newSale)
         .then(async () => {
-            // Potong stok produk terkait di Katalog Produk
-            await syncStockAdjustment([], itemsTerjual, false);
+            // Sinkronisasi otomatis: Potong stok produk & ubah status laptop display menjadi 'Terjual'
+            await syncSaleItemsStatusAndStock([], itemsTerjual, false);
 
-            if (window.logActivity) window.logActivity('Tambah', 'log_penjualan', `Menyimpan transaksi penjualan ${refCode} senilai Rp ${totalBayar.toLocaleString('id-ID')} kepada ${buyerName}.`);
-            if (window.showToast) window.showToast("Penjualan berhasil disimpan!");
+            if (window.logActivity) {
+                window.logActivity('Tambah', 'log_penjualan', `Menyimpan transaksi penjualan ${refCode} senilai Rp ${totalBayar.toLocaleString('id-ID')} kepada ${buyerName}.`);
+            }
+            if (window.showToast) window.showToast("Penjualan berhasil disimpan & status unit diperbarui!");
             formElement.reset();
+            window.selectedPenjualanItems = [];
+            if (window.populatePenjualanCart) window.populatePenjualanCart();
         })
         .catch((error) => {
             if (window.showToast) window.showToast("Gagal menyimpan penjualan: " + error.message, "error");
@@ -309,12 +381,14 @@ export function updateLogPenjualan(firebaseKey, updatedData, targetItem, btnUpda
     const targetRef = ref(db, `log_penjualan/${firebaseKey}`);
     update(targetRef, updatedData)
         .then(async () => {
-            // Sinkronisasi penyesuaian selisih stok (lama vs baru)
+            // Sinkronisasi penyesuaian selisih stok produk & status laptop display (lama vs baru)
             const oldItems = targetItem.items_terjual || [];
             const newItems = updatedData.items_terjual || [];
-            await syncStockAdjustment(oldItems, newItems, false);
+            await syncSaleItemsStatusAndStock(oldItems, newItems, false);
 
-            if (window.logActivity) window.logActivity('Ubah', 'log_penjualan', `Memperbarui transaksi penjualan ID: ${targetItem.id} (${updatedData.no_ref}).`);
+            if (window.logActivity) {
+                window.logActivity('Ubah', 'log_penjualan', `Memperbarui transaksi penjualan ID: ${targetItem.id} (${updatedData.no_ref}).`);
+            }
             if (window.showToast) window.showToast("Transaksi penjualan berhasil diperbarui!");
             if (window.closeEditModal) window.closeEditModal();
         })
@@ -334,15 +408,17 @@ export function deleteLogPenjualan(firebaseKey, targetItem) {
         const targetRowRef = ref(db, `log_penjualan/${firebaseKey}`);
         remove(targetRowRef)
             .then(async () => {
-                // Kembalikan seluruh stok barang yang terjual ke master Katalog Produk
+                // Kembalikan seluruh stok produk & kembalikan status laptop display menjadi 'Ready'
                 const oldItems = targetItem.items_terjual || [];
-                await syncStockAdjustment(oldItems, [], true);
+                await syncSaleItemsStatusAndStock(oldItems, [], true);
 
                 return reindexLogPenjualanIds(firebaseKey);
             })
             .then(() => {
-                if (window.logActivity) window.logActivity('Hapus', 'log_penjualan', `Membatalkan/Menghapus transaksi penjualan ID #${targetItem.id} (${targetItem.no_ref}).`);
-                if (window.showToast) window.showToast("Transaksi berhasil dibatalkan dan dihapus.");
+                if (window.logActivity) {
+                    window.logActivity('Hapus', 'log_penjualan', `Membatalkan/Menghapus transaksi penjualan ID #${targetItem.id} (${targetItem.no_ref}). Unit display kembali Ready.`);
+                }
+                if (window.showToast) window.showToast("Transaksi berhasil dibatalkan & status unit dikembalikan.");
             })
             .catch((error) => {
                 console.warn('Gagal menata ulang ID Log Penjualan:', error);
@@ -353,7 +429,8 @@ export function deleteLogPenjualan(firebaseKey, targetItem) {
 
 // Ikat ke window object global agar langsung dikenal oleh app.js, table.js, dan forms.js
 window.adjustKatalogStock = adjustKatalogStock;
-window.syncStockAdjustment = syncStockAdjustment;
+window.updateDisplayStatus = updateDisplayStatus;
+window.syncSaleItemsStatusAndStock = syncSaleItemsStatusAndStock;
 window.syncServiceMaterialStock = syncServiceMaterialStock;
 
 window.submitKatalogProduk = submitKatalogProduk;

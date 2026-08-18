@@ -583,6 +583,8 @@ function calculateAndRenderStats() {
         // ==========================================================================
         // 5. VISUALISASI GRAFIK SERVIS & CCTV
         // ==========================================================================
+        
+        // 1. DIAGRAM BATANG HORIZONTAL: DISTRIBUSI MEREK UNIT SERVISAN
         try {
             const servicesCanvas = document.getElementById('chartServicesProgress');
             const servicesChartsContainer = document.getElementById('services-charts-container');
@@ -608,6 +610,7 @@ function calculateAndRenderStats() {
                     if (clean.includes('toshiba')) return 'Toshiba';
                     if (clean.includes('msi')) return 'MSI';
                     if (clean.includes('samsung')) return 'Samsung';
+                    if (clean.includes('razer')) return 'Razer';
                     
                     const firstWord = perangkatStr.trim().split(' ')[0];
                     if (firstWord && firstWord.length > 2) {
@@ -623,8 +626,7 @@ function calculateAndRenderStats() {
                 });
 
                 const sortedBrands = Object.keys(brandCounts).sort((a, b) => brandCounts[b] - brandCounts[a]);
-                const doughnutLabels = sortedBrands.map(brand => `${brand} (${brandCounts[brand]})`);
-                const doughnutData = sortedBrands.map(brand => brandCounts[brand]);
+                const barData = sortedBrands.map(brand => brandCounts[brand]);
 
                 const presetColors = {
                     'Lenovo': '#f59e0b',
@@ -632,137 +634,133 @@ function calculateAndRenderStats() {
                     'Acer': '#10b981',
                     'HP': '#8b5cf6',
                     'Dell': '#06b6d4',
-                    'Apple': '#6b7280',
+                    'Apple': '#64748b',
                     'Axioo': '#ec4899',
                     'MSI': '#ef4444',
-                    'Lainnya': '#cbd5e1'
+                    'Razer': '#84cc16',
+                    'Toshiba': '#f97316',
+                    'Samsung': '#14b8a6',
+                    'Lainnya': '#94a3b8'
                 };
-                const backgroundColors = sortedBrands.map(brand => presetColors[brand] || '#' + Math.floor(Math.random()*16777215).toString(16));
+                const backgroundColors = sortedBrands.map(brand => presetColors[brand] || '#06b6d4');
 
+                // Diagram Batang Horizontal (indexAxis: 'y')
                 chartServicesInstance = new Chart(ctxServices, {
-                    type: 'doughnut',
+                    type: 'bar',
                     data: {
-                        labels: doughnutLabels.length > 0 ? doughnutLabels : ['Tidak Ada Data'],
+                        labels: sortedBrands.length > 0 ? sortedBrands : ['Tidak Ada Data'],
                         datasets: [{
-                            data: doughnutData.length > 0 ? doughnutData : [0],
+                            label: 'Jumlah Unit Servis',
+                            data: barData.length > 0 ? barData : [0],
                             backgroundColor: backgroundColors.length > 0 ? backgroundColors : ['#cbd5e1'],
-                            borderWidth: 2,
-                            hoverOffset: 4
+                            borderRadius: 6,
+                            borderSkipped: false
                         }]
                     },
                     options: {
+                        indexAxis: 'y', // Memanjang ke samping secara horizontal
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.parsed.x} Unit Servis`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 },
+                                grid: { color: '#f1f5f9' }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11, weight: 'bold' } }
+                            }
                         }
                     }
                 });
             }
         } catch (chartErr) {
-            console.warn("Gagal menggambar diagram merk perangkat servis:", chartErr);
+            console.warn("Gagal menggambar diagram batang merek servis:", chartErr);
         }
 
+        // 2. DIAGRAM GARIS: TREN TOTAL SERVISAN / TIKET USER PER TANGGAL
         try {
             const servicesLineCanvas = document.getElementById('chartServicesLine');
             if (servicesLineCanvas && typeof Chart !== 'undefined') {
                 const ctxServicesLine = servicesLineCanvas.getContext('2d');
                 if (chartServicesLineInstance !== null) chartServicesLineInstance.destroy();
 
-                const datesSet = new Set();
+                const servicesByDate = {};
                 filteredServices.forEach(item => {
-                    if (item?.tanggal) {
-                        datesSet.add(item.tanggal);
+                    const tgl = item?.tanggal || '';
+                    if (tgl) {
+                        servicesByDate[tgl] = (servicesByDate[tgl] || 0) + 1;
                     }
                 });
 
-                const sortedServicesDates = Array.from(datesSet).sort((a, b) => {
+                const sortedServicesDates = Object.keys(servicesByDate).sort((a, b) => {
                     const dateA = parseDate(a) || new Date(0);
                     const dateB = parseDate(b) || new Date(0);
                     return dateA - dateB;
                 });
 
-                const extractBrand = (perangkatStr) => {
-                    if (!perangkatStr) return 'Lainnya';
-                    const clean = perangkatStr.trim().toLowerCase();
-                    if (clean.includes('lenovo')) return 'Lenovo';
-                    if (clean.includes('asus')) return 'Asus';
-                    if (clean.includes('acer')) return 'Acer';
-                    if (clean.includes('hp')) return 'HP';
-                    if (clean.includes('dell')) return 'Dell';
-                    if (clean.includes('apple') || clean.includes('macbook')) return 'Apple';
-                    if (clean.includes('axioo')) return 'Axioo';
-                    if (clean.includes('toshiba')) return 'Toshiba';
-                    if (clean.includes('msi')) return 'MSI';
-                    return 'Lainnya';
-                };
-
-                const trackedBrands = ['Lenovo', 'Asus', 'Acer', 'HP', 'Lainnya'];
-                const brandDateCounts = {};
-
-                trackedBrands.forEach(brand => {
-                    brandDateCounts[brand] = {};
-                    sortedServicesDates.forEach(tgl => {
-                        brandDateCounts[brand][tgl] = 0;
-                    });
-                });
-
-                filteredServices.forEach(item => {
-                    const brand = extractBrand(item?.perangkat || '');
-                    const tgl = item?.tanggal || '';
-                    const mappedBrand = trackedBrands.includes(brand) ? brand : 'Lainnya';
-                    if (tgl && brandDateCounts[mappedBrand]) {
-                        brandDateCounts[mappedBrand][tgl]++;
-                    }
-                });
-
-                const brandColors = {
-                    'Lenovo': '#f59e0b',
-                    'Asus': '#3b82f6',
-                    'Acer': '#10b981',
-                    'HP': '#8b5cf6',
-                    'Lainnya': '#94a3b8'
-                };
-
-                const lineDatasets = trackedBrands.map(brand => {
-                    return {
-                        label: brand,
-                        data: sortedServicesDates.map(tgl => brandDateCounts[brand][tgl] || 0),
-                        borderColor: brandColors[brand],
-                        backgroundColor: 'transparent',
-                        tension: 0.35,
-                        borderWidth: 2,
-                        pointRadius: 2.5,
-                        hoverRadius: 4
-                    };
-                });
+                const lineLabels = sortedServicesDates;
+                const lineData = sortedServicesDates.map(d => servicesByDate[d]);
 
                 chartServicesLineInstance = new Chart(ctxServicesLine, {
                     type: 'line',
                     data: {
-                        labels: sortedServicesDates.length > 0 ? sortedServicesDates : ['Tidak Ada Data'],
-                        datasets: lineDatasets
+                        labels: lineLabels.length > 0 ? lineLabels : ['Tidak Ada Data'],
+                        datasets: [{
+                            label: 'Servisan Masuk (Tiket User)',
+                            data: lineData.length > 0 ? lineData : [0],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.12)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                            pointRadius: 3.5,
+                            pointBackgroundColor: '#0891b2',
+                            hoverRadius: 5
+                        }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { 
-                                display: true, 
-                                position: 'top', 
-                                labels: { boxWidth: 12, font: { size: 10 } } 
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.parsed.y} Servisan / User Masuk`;
+                                    }
+                                }
                             }
                         },
                         scales: {
-                            y: { beginAtZero: true, ticks: { precision: 0 } }
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            },
+                            x: {
+                                ticks: { font: { size: 10 } },
+                                grid: { color: '#f8fafc' }
+                            }
                         }
                     }
                 });
             }
         } catch (chartErr) {
-            console.warn("Gagal menggambar diagram garis tren merk servis:", chartErr);
+            console.warn("Gagal menggambar diagram garis tren servisan user:", chartErr);
         }
 
+        // 3. DIAGRAM GARIS: PROYEK CCTV
         try {
             const cctvLineCanvas = document.getElementById('chartCctvLine');
             if (cctvLineCanvas && typeof Chart !== 'undefined') {

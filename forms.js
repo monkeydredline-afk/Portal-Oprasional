@@ -431,13 +431,18 @@ function handleUpdateSubmit(e) {
         if (window.updateLogPenjualan) {
             let totalBayar = 0;
             const itemsTerjual = (window.editSelectedPenjualanItems || []).map(it => {
-                totalBayar += Number(it.subtotal) || 0;
+                const subtotal = (Number(it.qty) || 1) * (Number(it.price) || 0);
+                totalBayar += subtotal;
                 return {
-                    _productKey: it._productKey || it.productKey,
+                    _itemKey: it._itemKey || it._productKey || it._displayKey || it.itemKey || it.productKey,
+                    _productKey: it._productKey || (!it.isDisplay ? (it._itemKey || it.itemKey) : null),
+                    _displayKey: it._displayKey || (it.isDisplay ? (it._itemKey || it.itemKey) : null),
+                    isDisplay: it.isDisplay === true || !!it.sn,
                     name: it.name,
+                    sn: it.sn || '',
                     qty: Number(it.qty) || 1,
                     price: Number(it.price) || 0,
-                    subtotal: Number(it.subtotal) || 0
+                    subtotal: subtotal
                 };
             });
             const compiledPenjualanData = {
