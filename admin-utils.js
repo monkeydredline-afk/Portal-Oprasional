@@ -167,8 +167,51 @@ function reindexSequentialIdsForTab(tabName, excludedFirebaseKey = null) {
     });
 }
 
+// ==========================================================================
+// FUNGSI PENOMORAN MASSAL KODE DISPLAY (#1 s/d #N) UNTUK DATA LAMA
+// ==========================================================================
+function backfillDisplayCodes() {
+    const allDisplays = window.globalDataCloud['laptop_display'] || [];
+    if (allDisplays.length === 0) {
+        alert("Belum ada data di list Laptop Display.");
+        return;
+    }
+
+    // Urutkan data berdasarkan urutan ID awal
+    const sortedAll = [...allDisplays].sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+
+    if (confirm(`⚙️ PENOMORAN DATA DISPLAY:\nApakah Anda ingin membuatkan nomor urut (#1 s/d #${sortedAll.length}) ke seluruh ${sortedAll.length} data display sekarang?`)) {
+        const updates = {};
+        sortedAll.forEach((item, index) => {
+            const expectedCode = `#${index + 1}`;
+            updates[`laptop_display/${item._firebaseKey}/kode`] = expectedCode;
+        });
+
+        const rootRef = ref(db);
+        update(rootRef, updates)
+            .then(() => {
+                // 1. Perbarui cache data lokal seketika
+                sortedAll.forEach((item, index) => {
+                    item.kode = `#${index + 1}`;
+                });
+
+                // 2. Tampilkan notifikasi pop-up sukses yang jelas
+                alert(`✅ BERHASIL!\n\nSeluruh ${sortedAll.length} data laptop display telah sukses dinomori (#1 s/d #${sortedAll.length}) di database Cloud.`);
+
+                // 3. Tampilkan toast hijau dan segarkan tabel
+                if (window.showToast) window.showToast(`Berhasil memberi Kode pada ${sortedAll.length} unit display!`, "success");
+                if (window.logActivity) window.logActivity('Ubah', 'laptop_display', `Melakukan penomoran kode display massal pada ${sortedAll.length} unit (#1 s/d #${sortedAll.length}).`);
+                if (window.renderTable) window.renderTable();
+            })
+            .catch(err => {
+                alert("❌ Gagal memperbarui kode di Firebase: " + err.message);
+            });
+    }
+}
+
 // Ikat ke global window agar HTML & table.js langsung mengenali tombol admin
 window.backupDatabase = backupDatabase;
 window.purgeOldLogs = purgeOldLogs;
 window.clearCurrentListData = clearCurrentListData;
 window.reindexSequentialIdsForTab = reindexSequentialIdsForTab;
+window.backfillDisplayCodes = backfillDisplayCodes;

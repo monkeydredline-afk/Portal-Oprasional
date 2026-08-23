@@ -187,9 +187,17 @@ export const fieldsTemplate = {
         </div>
     `,
     laptop_display: `
+        <div id="kode-display-container">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kode Unit Display</label>
+            <input type="text" name="kode" id="input-display-kode" placeholder="Contoh: #1" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-mono font-bold focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Masuk Etalase</label>
             <input type="date" name="tanggal" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai Cek (Opsional)</label>
+            <input type="date" name="tgl_selesai_cek" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Cabang Toko</label>
@@ -601,7 +609,7 @@ export const tableHeaders = {
     penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN', 'Tanggal Sewa', 'Total Unit', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
-    laptop_display: ['ID', 'Tanggal Masuk', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
+    laptop_display: ['ID', 'Kode', 'Tanggal Masuk', 'Tgl Selesai Cek', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
     master_jasa: ['ID', 'Nama Jasa', 'Biaya Jasa', 'Aksi'],
     katalog_produk: ['ID', 'Cabang', 'Nama Barang', 'Kategori', 'Identitas / SN', 'Stok / Status', 'Spesifikasi / Detail', 'Harga Beli', 'Harga Jual', 'Aksi'],
@@ -616,7 +624,7 @@ export const dataKeysMapping = {
     penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_unit', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['id', 'jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
-    laptop_display: ['id', 'tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
+    laptop_display: ['id', 'kode', 'tanggal', 'tgl_selesai_cek', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
     master_jasa: ['id', 'nama_jasa', 'biaya_jasa'],
     katalog_produk: ['id', 'cabang', 'display_name', 'display_kategori', 'display_identitas', 'display_stok', 'display_detail', 'display_harga_modal', 'display_harga_jual'],
@@ -646,7 +654,7 @@ export const importTemplatesHeaders = {
     penyewaan: ['Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Tanggal Mulai', 'Tanggal Selesai', 'Total Biaya', 'Status', 'Unit & SN'],
     cctv: ['Tanggal', 'Cabang', 'Klien / Instansi', 'Lokasi Pemasangan', 'Jumlah Kamera', 'Progres', 'Status Proyek'],
     list_laptop: ['Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan'],
-    laptop_display: ['Tanggal Masuk', 'Cabang', 'Nama Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Harga Jual', 'Status Display', 'Catatan', 'Spesifikasi Pajangan'],
+    laptop_display: ['Kode','Tanggal Masuk', 'tgl_selesai_cek', 'Cabang', 'Nama Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Harga Jual', 'Status Display', 'Catatan', 'Spesifikasi Pajangan'],
     inventaris: ['Tanggal', 'Cabang', 'Nama Barang', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan'],
     list_office: ['Tanggal', 'Nama User', 'Akun', 'Password', 'Pemulihan', 'Tipe Akun', 'Lisensi', 'Server Utama', 'Name', 'Masa Aktif', 'Status'],
     master_jasa: ['Nama Jasa', 'Biaya Jasa'],
@@ -659,7 +667,7 @@ export const importTemplatesKeys = {
     penyewaan: ['tanggal', 'cabang', 'penyewa', 'no_wa', 'tgl_mulai', 'tgl_selesai', 'total_biaya', 'status', 'unit'],
     cctv: ['tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
     list_laptop: ['jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
-    laptop_display: ['tanggal', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'harga_jual', 'status', 'catatan', 'spek_singkat'],
+    laptop_display: ['kode', 'tanggal', 'tgl_selesai_cek', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'harga_jual', 'status', 'catatan', 'spek_singkat'],
     inventaris: ['tanggal', 'cabang', 'nama_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
     list_office: ['tanggal', 'nama_user', 'akun', 'password', 'pemulihan', 'tipe_akun', 'office', 'server_utama', 'name', 'workspace_expired', 'status'],
     master_jasa: ['nama_jasa', 'biaya_jasa'],

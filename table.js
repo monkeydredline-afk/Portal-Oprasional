@@ -44,8 +44,8 @@ function renderTableHeader() {
     let html = '<tr>';
     tableHeaders[window.currentTab].forEach(header => {
         const specialHeaders = [
-            'Kode Toko', 'Harga Jual', 'Cabang', 'Masa Aktif', 'No. WhatsApp', 
-            'Tanggal Invite', 'Tanggal Masuk', 'Tanggal Input', 'Tanggal', 
+            'Kode', 'Kode Toko', 'Kode SKU', 'Harga Jual', 'Cabang', 'Masa Aktif', 'No. WhatsApp', 
+            'Tanggal Invite', 'Tanggal Masuk', 'Tgl Selesai Cek', 'Tanggal Input', 'Tanggal', 
             'Spesifikasi Ringkas', 'Nama User', 'Serial Number (SN)', 'Pemulihan', 
             'No. Referensi', 'No. WA', 'Akun', 'Status Display', 'Stok', 'Kondisi',
             'Total Unit'
@@ -87,7 +87,7 @@ function renderTable() {
             _sourceNode: 'laptop_display',
             display_name: `${item.merk || ''} ${item.tipe || ''}`.trim() || '-',
             display_kategori: 'Laptop Display',
-            display_identitas: `SN: ${item.sn || 'N/A'}`,
+            display_identitas: `${item.kode || 'Display'} [SN: ${item.sn || 'N/A'}]`,
             display_stok: item.status || 'Ready',
             display_detail: item.spek_singkat || item.catatan || '-',
             display_harga_modal: item.harga_modal || 0,
@@ -102,9 +102,11 @@ function renderTable() {
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv' || window.currentTab === 'log_penjualan') {
-        // Data transaksi operasional diurutkan dari yang terbaru (ID terbesar di paling atas)
         data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
     } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk') {
+        data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+    } else if (window.currentTab === 'laptop_display') {
+        // Urutkan display berdasarkan ID atau nomor kode
         data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     }
 
@@ -112,8 +114,6 @@ function renderTable() {
     const searchQuery = searchBar ? searchBar.value.toLowerCase() : '';
     const statusFilter = document.getElementById('status-filter');
     const filterStatusValue = statusFilter ? statusFilter.value : '';
-    const serverFilterValue = window.currentServerFilter || '';
-    
     const secondaryFilter = document.getElementById('secondary-filter');
     const filterSecondaryValue = secondaryFilter ? secondaryFilter.value : '';
     
@@ -229,6 +229,15 @@ function renderTable() {
             if (key === 'id') {
                 const displayId = startIndex + index + 1;
                 rowHtml += `<td class="px-4 py-3 font-semibold text-slate-500 font-mono">${displayId}</td>`;
+            } else if ((key === 'kode' || key === 'Kode') && window.currentTab === 'laptop_display') {
+                const kodeText = (val && val !== '-') ? val : (item.kode || item.Kode || '#-');
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="px-2.5 py-1 rounded-lg text-xs font-mono font-black bg-purple-100 text-purple-900 border border-purple-200/80">${kodeText}</span></td>`;
+            } else if (key === 'tgl_selesai_cek' && window.currentTab === 'laptop_display') {
+                const isDone = val && val !== '-' && String(val).trim() !== '';
+                const displayHtml = isDone 
+                    ? `<span class="font-mono text-xs text-slate-700">${val}</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200">Belum Dicek</span>`;
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap">${displayHtml}</td>`;
             } else if (key === 'no_ref') {
                 const refDisplay = (val && val !== '-') ? val : `SRV-Legacy-#${item.id}`;
                 rowHtml += `<td class="px-4 py-3 font-bold text-slate-700 font-mono text-xs whitespace-nowrap">${refDisplay}</td>`;
@@ -319,7 +328,6 @@ function renderTable() {
                     }
                 }
 
-                // PEWARNAAN BADGE STATUS LENGKAP & STATUS BARU (Oper Vendor & Tunggu Konfirmasi)
                 if (val === 'Selesai' || displayVal === 'Tersedia' || displayVal === 'Ready' || displayVal === 'Aktif') badgeColor = "bg-emerald-100 text-emerald-800";
                 if (displayVal === 'Perpanjangan') badgeColor = "bg-purple-100 text-purple-800";
                 if (displayVal === 'Proses' || displayVal === 'Disewa') badgeColor = "bg-blue-100 text-blue-800";
@@ -367,12 +375,7 @@ function renderTable() {
                         </div>
                     </td>`;
             } else if (key === 'display_identitas' && window.currentTab === 'katalog_produk') {
-                if (val.startsWith('SN:')) {
-                    const cleanSn = val.replace('SN:', '').trim();
-                    rowHtml += `<td class="px-4 py-3 font-mono font-bold text-cyan-600 whitespace-nowrap">${cleanSn}</td>`;
-                } else {
-                    rowHtml += `<td class="px-4 py-3 text-slate-600 font-semibold font-mono text-xs whitespace-nowrap">${val}</td>`;
-                }
+                rowHtml += `<td class="px-4 py-3 font-mono font-bold text-purple-700 whitespace-nowrap">${val}</td>`;
             } else if (key === 'display_stok' && window.currentTab === 'katalog_produk') {
                 let badgeColor = "bg-slate-100 text-slate-800 border-slate-200";
                 if (val === 'Ready' || val === 'Tersedia' || val === 'Aktif') {
@@ -771,7 +774,6 @@ function openEditModal(firebaseKey) {
                 </div>
             </div>
 
-            <!-- STATUS DROPDOWN LENGKAP: ANTREAN, PROSES, OPER VENDOR, TUNGGU KONFIRMASI, SELESAI, CANCEL -->
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Status Servis</label>
                 <select id="edit-status" onchange="window.handleEditStatusChange(this.value)" class="w-full border p-2 text-sm rounded-lg bg-white font-bold">
@@ -814,34 +816,34 @@ function openEditModal(firebaseKey) {
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
         `;
     } else if (window.currentTab === 'log_penjualan') {
-    window.editSelectedPenjualanItems = targetItem.items_terjual ? targetItem.items_terjual.map(it => ({ ...it })) : [];
-    fieldsContainer.innerHTML = `
-        ${cabangEditHtml}
-        <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label><input type="text" id="edit-nama_pembeli" value="${targetItem.nama_pembeli || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-        <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-        <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
-            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Rincian Item Penjualan</label>
-            <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-lg max-h-48 overflow-y-auto custom-table-scrollbar">
-                ${(targetItem.items_terjual || []).map((it, idx) => `
-                    <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 last:border-0">
-                        <div>
-                            <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
-                            ${it.sn ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-extrabold rounded border border-purple-200 ml-1">SN: ${escapeHtml(it.sn)}</span>` : ''}
-                            <span class="block text-[11px] text-slate-500 font-mono">Rp ${Number(it.price).toLocaleString('id-ID')}</span>
+        window.editSelectedPenjualanItems = targetItem.items_terjual ? targetItem.items_terjual.map(it => ({ ...it })) : [];
+        fieldsContainer.innerHTML = `
+            ${cabangEditHtml}
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label><input type="text" id="edit-nama_pembeli" value="${targetItem.nama_pembeli || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Rincian Item Penjualan</label>
+                <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-lg max-h-48 overflow-y-auto custom-table-scrollbar">
+                    ${(targetItem.items_terjual || []).map((it, idx) => `
+                        <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 last:border-0">
+                            <div>
+                                <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
+                                ${it.sn ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-extrabold rounded border border-purple-200 ml-1">SN: ${escapeHtml(it.sn)}</span>` : ''}
+                                <span class="block text-[11px] text-slate-500 font-mono">Rp ${Number(it.price).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                ${(it.isDisplay || it.sn) ? `
+                                    <span class="text-[10px] font-bold px-2 py-1 bg-slate-200 text-slate-700 rounded font-mono">1 Unit (SN Terkunci)</span>
+                                ` : `
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
+                                    <input type="number" min="1" id="edit-sale-qty-${idx}" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white focus:ring-1 focus:ring-cyan-500 focus:outline-none">
+                                `}
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-1">
-                            ${(it.isDisplay || it.sn) ? `
-                                <span class="text-[10px] font-bold px-2 py-1 bg-slate-200 text-slate-700 rounded font-mono">1 Unit (SN Terkunci)</span>
-                            ` : `
-                                <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
-                                <input type="number" min="1" id="edit-sale-qty-${idx}" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white focus:ring-1 focus:ring-cyan-500 focus:outline-none">
-                            `}
-                        </div>
-                    </div>
-                `).join('')}
+                    `).join('')}
+                </div>
             </div>
-        </div>
-    `;
+        `;
     } else if (window.currentTab === 'cctv') {
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
@@ -888,8 +890,27 @@ function openEditModal(firebaseKey) {
             </div>
         `;
     } else if (window.currentTab === 'laptop_display') { 
+        const role = String(window.currentUser.role || '').toLowerCase();
+        const email = window.currentUser.email || '';
+        const isAdmin = (email === 'superadmin@wanasatria.com' || role === 'admin');
+
+        const kodeInputAttr = isAdmin 
+            ? 'class="w-full border border-purple-400 bg-purple-50/20 text-purple-900 font-mono font-bold p-2 text-sm rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"' 
+            : 'readonly class="w-full border p-2 text-sm rounded-lg bg-gray-100 text-gray-500 font-mono font-bold cursor-not-allowed focus:outline-none"';
+
         fieldsContainer.innerHTML = `
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk</label><input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Kode Unit Display</label>
+                <input type="text" id="edit-kode" value="${targetItem.kode || '#1'}" ${kodeInputAttr}>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk (Datang)</label>
+                <input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai Cek (Opsional)</label>
+                <input type="date" id="edit-tgl_selesai_cek" value="${formatDateForInput(targetItem.tgl_selesai_cek)}" class="w-full border p-2 text-sm rounded-lg bg-white">
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Cabang Toko</label><input type="text" id="edit-cabang" list="list-cabang" value="${targetItem.cabang || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Teknisi</label><input type="text" id="edit-teknisi" list="list-teknisi" value="${targetItem.teknisi || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Brand / Merk Laptop</label><input type="text" id="edit-merk" list="list-merk" value="${targetItem.merk || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -1887,17 +1908,6 @@ window.submitPengembalian = function() {
     const rootRef = ref(db);
     update(rootRef, updates)
         .then(() => {
-            if (window.syncSinglePenyewaanToSheet) {
-                window.syncSinglePenyewaanToSheet({
-                    id: sewaItem.id,
-                    penyewa: sewaItem.penyewa,
-                    tgl_mulai: sewaItem.tgl_mulai,
-                    cabang: sewaItem.cabang,
-                    status_sewa: 'Selesai',
-                    status_produk: 'Tersedia'
-                }, true);
-            }
-
             let detailAktivitas = `Menyelesaikan pengembalian sewa unit ID #${sewaItem.id} atas nama ${sewaItem.penyewa}.`;
             if (logDetailUnitBermasalah.length > 0) {
                 detailAktivitas += ` Masalah: ${logDetailUnitBermasalah.join(', ')}. Catatan Tambahan: ${catatanInput ? catatanInput.value.trim() : '-'}`;
@@ -2063,6 +2073,261 @@ window.handleEditStatusChange = function(statusValue) {
             input.value = '';
         }
     }
+};
+
+// ==========================================================================
+// MODUL NOTIFIKASI WHATSAPP INTERAKTIF & TEMPLATE OTOMATIS
+// ==========================================================================
+
+function normalizeWhatsAppNumber(phone) {
+    if (!phone) return '';
+    let clean = String(phone).replace(/\D/g, '');
+    if (clean.startsWith('0')) {
+        clean = '62' + clean.slice(1);
+    } else if (clean.startsWith('8')) {
+        clean = '62' + clean;
+    }
+    return clean;
+}
+
+function generateWhatsAppMessage(tab, item, templateType = 'default') {
+    const toko = "CV. Wana Satria Komputindo";
+    const cabang = item.cabang || "Makassar";
+    
+    if (tab === 'services') {
+        const refNo = item.no_ref || `SRV/#${item.id}`;
+        const nama = item.pelanggan || 'Pelanggan';
+        const unit = item.perangkat || 'Perangkat';
+        const status = item.status || 'Antrean';
+        const totalBiaya = Number(item.biaya || 0).toLocaleString('id-ID');
+        const tindakan = (item.tindakan_teknisi || item.kerusakan || '-').replace(/\n+/g, '\n> ');
+
+        if (templateType === 'selesai' || status === 'Selesai') {
+            return `Halo Kak *${nama}*,\n\nKabar baik dari *${toko} (Cabang ${cabang})*! 💻✨\n\nPerangkat servis Anda telah *SELESAI* dikerjakan:\n• *No. Referensi:* ${refNo}\n• *Unit:* ${unit}\n• *Status:* Selesai / Siap Diambil\n• *Total Biaya:* Rp ${totalBiaya}\n\n*Catatan Tindakan Teknisi:*\n> ${tindakan}\n\nSilakan datang ke toko kami untuk pengambilan unit dengan membawa bukti nota/struk penerimaan. Terima kasih atas kepercayaan Anda! 🙏`;
+        }
+
+        if (templateType === 'konfirmasi' || status === 'Tunggu Konfirmasi') {
+            return `Halo Kak *${nama}*,\n\nKami dari *${toko} (Cabang ${cabang})* ingin mengonfirmasi terkait servis perangkat Anda:\n• *No. Referensi:* ${refNo}\n• *Unit:* ${unit}\n• *Status:* Menunggu Konfirmasi Pelanggan\n• *Estimasi Biaya:* Rp ${totalBiaya}\n\n*Hasil Analisa Teknisi:*\n> ${tindakan}\n\nMohon konfirmasinya apakah pengerjaan / pergantian part dapat kami lanjutkan? Terima kasih! 🙏`;
+        }
+
+        if (templateType === 'proses' || status === 'Proses') {
+            return `Halo Kak *${nama}*,\n\nInformasi update servis dari *${toko} (Cabang ${cabang})*:\n• *No. Referensi:* ${refNo}\n• *Unit:* ${unit}\n• *Status:* Sedang Dalam Proses Pengerjaan / Pengecekan\n\nTeknisi kami sedang menangani unit Anda. Kami akan mengabari kembali setelah ada hasil diagnosa lanjutan. Terima kasih! 🙏`;
+        }
+
+        if (templateType === 'antrean' || status === 'Antrean') {
+            return `Halo Kak *${nama}*,\n\nTerima kasih telah mempercayakan perbaikan di *${toko} (Cabang ${cabang})*.\n\nUnit Anda telah terdaftar dalam sistem:\n• *No. Referensi:* ${refNo}\n• *Unit:* ${unit}\n• *Status:* Masuk Antrean Pengecekan\n\nUnit Anda akan segera diperiksa oleh teknisi kami sesuai antrean masuk. Mohon ditunggu ya Kak. Terima kasih! 🙏`;
+        }
+
+        if (templateType === 'vendor' || status === 'Oper Vendor') {
+            return `Halo Kak *${nama}*,\n\nUpdate informasi servis dari *${toko} (Cabang ${cabang})*:\n• *No. Referensi:* ${refNo}\n• *Unit:* ${unit}\n• *Status:* Oper Vendor Spesialis\n\nUnit Anda sedang diproses oleh rekanan vendor spesialis kami untuk penanganan lebih lanjut. Terima kasih atas kesabaran Anda! 🙏`;
+        }
+
+        return `Halo Kak *${nama}*,\n\nInformasi terkait servis unit Anda di *${toko} (Cabang ${cabang})*:\n• *No. Referensi:* ${refNo}\n• *Unit:* ${unit}\n• *Status:* ${status}\n• *Total Biaya:* Rp ${totalBiaya}\n\nAda yang bisa kami bantu terkait unit ini? Terima kasih! 🙏`;
+    }
+
+    if (tab === 'penyewaan') {
+        const nama = item.penyewa || 'Penyewa';
+        const unit = (item.unit || '-').replace(/\n+/g, ' ');
+        const total = Number(item.total_biaya || 0).toLocaleString('id-ID');
+        const periode = `${item.tgl_mulai || '-'} s/d ${item.tgl_selesai || '-'}`;
+
+        if (templateType === 'pengingat') {
+            return `Halo Kak *${nama}*,\n\nKami dari *${toko} (Cabang ${cabang})* mengingatkan bahwa masa sewa unit laptop/printer Anda akan berakhir pada tanggal *${item.tgl_selesai}*.\n\n• *Unit:* ${unit}\n• *Periode Sewa:* ${periode}\n\nMohon konfirmasi apakah unit akan dikembalikan tepat waktu atau ingin melakukan perpanjangan masa sewa? Terima kasih! 🙏`;
+        }
+
+        return `Halo Kak *${nama}*,\n\nTerima kasih telah menyewa unit di *${toko} (Cabang ${cabang})*.\n\n*Rincian Transaksi Sewa:*\n• *Penyewa:* ${nama}\n• *Unit Disewa:* ${unit}\n• *Periode Sewa:* ${periode}\n• *Total Biaya:* Rp ${total}\n• *Status:* ${item.status || 'Proses'}\n\nHarap menjaga unit dengan baik selama masa penyewaan. Terima kasih! 🙏`;
+    }
+
+    if (tab === 'log_penjualan') {
+        const nama = item.nama_pembeli || 'Pelanggan';
+        const refNo = item.no_ref || `SLS/#${item.id}`;
+        const total = Number(item.total_bayar || 0).toLocaleString('id-ID');
+        const rincian = (item.items_terjual || []).map(it => `• ${it.name} (x${it.qty}) - Rp ${(it.price * it.qty).toLocaleString('id-ID')}`).join('\n');
+
+        return `Halo Kak *${nama}*,\n\nTerima kasih telah berbelanja di *${toko} (Cabang ${cabang})*! 🛒🛍️\n\n*Bukti Transaksi Penjualan:*\n• *No. Transaksi:* ${refNo}\n• *Tanggal:* ${item.tanggal || '-'}\n• *Rincian Barang:*\n${rincian || '• Produk Toko'}\n\n*Total Pembayaran:* Rp ${total}\n\n*Garansi toko berlaku sesuai nota transaksi.* Semoga produk bermanfaat dan ditunggu kunjungan berikutnya! 🙏`;
+    }
+
+    return `Halo Kak, kami dari *${toko}*. Ada yang bisa kami bantu?`;
+}
+
+function ensureWhatsAppModalExists() {
+    if (document.getElementById('whatsapp-notify-modal')) return;
+
+    const modalDiv = document.createElement('div');
+    modalDiv.innerHTML = `
+        <div id="whatsapp-notify-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+                
+                <header class="bg-slate-900 text-white p-4 flex justify-between items-center px-6">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm md:text-base">Kirim Pesan WhatsApp</h3>
+                            <p class="text-[11px] text-slate-400" id="wa-modal-subtitle">Notifikasi Pelanggan</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="window.closeWhatsAppModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </header>
+
+                <div class="p-5 bg-slate-50 space-y-4 overflow-y-auto custom-table-scrollbar">
+                    
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Tujuan</label>
+                            <input type="text" id="wa-target-name" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg p-2 font-bold text-slate-700 cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No. WhatsApp</label>
+                            <input type="text" id="wa-target-phone" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div id="wa-template-selector-container">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Format Template Pesan</label>
+                        <select id="wa-template-selector" onchange="window.onWhatsAppTemplateChange()" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="default">⚡ Sesuai Status Saat Ini</option>
+                            <option value="antrean">📥 Penerimaan Unit (Antrean)</option>
+                            <option value="proses">🔧 Sedang Dalam Pengecekan (Proses)</option>
+                            <option value="konfirmasi">📞 Konfirmasi Biaya & Tindakan</option>
+                            <option value="selesai">✅ Servis Selesai & Siap Diambil</option>
+                            <option value="pengingat">⏰ Pengingat Selesai Sewa (Penyewaan)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Pratinjau Pesan (Bisa Diedit Manual)</label>
+                            <span class="text-[10px] text-slate-400 italic">Format Markdown WA didukung (*bold*, _italic_)</span>
+                        </div>
+                        <textarea id="wa-message-body" rows="9" class="w-full border border-slate-300 rounded-xl p-3 text-xs text-slate-800 bg-white font-mono leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none custom-table-scrollbar"></textarea>
+                    </div>
+
+                </div>
+
+                <footer class="p-3.5 bg-white border-t flex justify-between items-center gap-2">
+                    <button type="button" onclick="window.closeWhatsAppModal()" class="px-4 py-2 border rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                        Batal
+                    </button>
+                    <button type="button" onclick="window.executeSendWhatsApp()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                        <span>Buka WhatsApp & Kirim</span>
+                    </button>
+                </footer>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalDiv.firstElementChild);
+}
+
+let activeWaContext = { tab: '', item: {} };
+
+window.sendWhatsAppNotify = function(phone, name, deviceOrUnit, cost, tab = '') {
+    const currentTabName = tab || window.currentTab;
+    const cleanPhone = normalizeWhatsAppNumber(phone);
+
+    if (!cleanPhone) {
+        alert("Nomor WhatsApp tidak valid atau belum diinput.");
+        return;
+    }
+
+    const list = window.globalDataCloud[currentTabName] || [];
+    let matchedItem = list.find(it => {
+        const itemPhone = normalizeWhatsAppNumber(it.no_wa);
+        const itemName = it.pelanggan || it.penyewa || it.nama_pembeli;
+        return itemPhone === cleanPhone || itemName === name;
+    });
+
+    if (!matchedItem) {
+        matchedItem = {
+            pelanggan: name,
+            penyewa: name,
+            nama_pembeli: name,
+            no_wa: phone,
+            perangkat: deviceOrUnit,
+            unit: deviceOrUnit,
+            biaya: cost,
+            total_biaya: cost,
+            total_bayar: cost,
+            cabang: window.userBranch || 'Monumen Emmy Saelan'
+        };
+    }
+
+    activeWaContext = { tab: currentTabName, item: matchedItem };
+    ensureWhatsAppModalExists();
+
+    const nameInput = document.getElementById('wa-target-name');
+    const phoneInput = document.getElementById('wa-target-phone');
+    const subtitleEl = document.getElementById('wa-modal-subtitle');
+    const messageArea = document.getElementById('wa-message-body');
+    const templateSelector = document.getElementById('wa-template-selector');
+
+    if (nameInput) nameInput.value = name || 'Pelanggan';
+    if (phoneInput) phoneInput.value = cleanPhone;
+    if (subtitleEl) subtitleEl.innerText = `Modul: ${currentTabName.toUpperCase()} | ${matchedItem.cabang || ''}`;
+
+    if (templateSelector) {
+        if (currentTabName === 'services') {
+            templateSelector.value = matchedItem.status ? matchedItem.status.toLowerCase() : 'default';
+            if (!templateSelector.value) templateSelector.value = 'default';
+        } else if (currentTabName === 'penyewaan') {
+            templateSelector.value = 'default';
+        } else {
+            templateSelector.value = 'default';
+        }
+    }
+
+    if (messageArea) {
+        messageArea.value = generateWhatsAppMessage(currentTabName, matchedItem, templateSelector ? templateSelector.value : 'default');
+    }
+
+    const modal = document.getElementById('whatsapp-notify-modal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closeWhatsAppModal = function() {
+    const modal = document.getElementById('whatsapp-notify-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.onWhatsAppTemplateChange = function() {
+    const templateSelector = document.getElementById('wa-template-selector');
+    const messageArea = document.getElementById('wa-message-body');
+    if (!templateSelector || !messageArea) return;
+
+    messageArea.value = generateWhatsAppMessage(activeWaContext.tab, activeWaContext.item, templateSelector.value);
+};
+
+window.executeSendWhatsApp = function() {
+    const phoneInput = document.getElementById('wa-target-phone');
+    const messageArea = document.getElementById('wa-message-body');
+
+    const cleanPhone = normalizeWhatsAppNumber(phoneInput ? phoneInput.value : '');
+    const messageText = messageArea ? messageArea.value : '';
+
+    if (!cleanPhone) {
+        alert("Nomor WhatsApp tidak valid!");
+        return;
+    }
+
+    if (!messageText.trim()) {
+        alert("Isi pesan WhatsApp tidak boleh kosong!");
+        return;
+    }
+
+    const encodedText = encodeURIComponent(messageText);
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+
+    window.open(waUrl, '_blank');
+
+    if (window.logActivity) {
+        window.logActivity('Lainnya', activeWaContext.tab, `Mengirim notifikasi WhatsApp ke ${cleanPhone} (${activeWaContext.item.pelanggan || activeWaContext.item.penyewa || activeWaContext.item.nama_pembeli || 'Pelanggan'}).`);
+    }
+
+    window.closeWhatsAppModal();
 };
 
 window.nextPage = function() {

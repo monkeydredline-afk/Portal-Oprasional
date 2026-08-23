@@ -338,7 +338,7 @@ function applyBranchFieldRules() {
     const isRestricted = !!window.userBranch; 
 
     if (isRestricted) {
-        // Operator Cabang: Kunci input cabang secara visual (seperti di gambar Anda)
+        // Operator Cabang: Kunci input cabang secara visual
         const lockedInput = document.createElement('input');
         lockedInput.type = 'text';
         lockedInput.name = 'cabang';
@@ -362,6 +362,48 @@ function applyBranchFieldRules() {
         } else if (branchElement.tagName === 'INPUT') {
             branchElement.placeholder = "Pilih / ketik cabang...";
         }
+    }
+}
+
+// --- FUNGSI 1: MENGHITUNG NOMOR URUT KODE DISPLAY BERIKUTNYA ---
+function generateNextDisplayCode() {
+    const displays = window.globalDataCloud.laptop_display || [];
+    const numbers = displays
+        .map(d => {
+            const code = String(d?.kode || '').trim();
+            const match = code.match(/^#?\s*(\d+)$/);
+            return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter(num => num > 0);
+
+    const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    return `#${nextNum}`;
+}
+
+// --- FUNGSI 2: ATURAN HAK AKSES FORM KODE DISPLAY (ADMIN vs TEKNISI) ---
+function applyDisplayCodeFieldRules() {
+    if (window.currentTab !== 'laptop_display') return;
+
+    const kodeInput = document.getElementById('input-display-kode');
+    if (!kodeInput) return;
+
+    const role = String(window.currentUser.role || '').toLowerCase();
+    const email = window.currentUser.email || '';
+    const isAdmin = (email === 'superadmin@wanasatria.com' || role === 'admin');
+
+    // Mengisi otomatis nomor urut berikutnya
+    kodeInput.value = generateNextDisplayCode();
+
+    if (isAdmin) {
+        // Admin / Superadmin: Bebas diedit manual
+        kodeInput.readOnly = false;
+        kodeInput.className = "w-full border border-purple-400 bg-purple-50/20 text-purple-900 font-mono font-bold rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none";
+        kodeInput.title = "Admin/Superadmin: Anda dapat mengubah kode ini secara manual.";
+    } else {
+        // Teknisi / User Biasa: Terkunci (Read-Only)
+        kodeInput.readOnly = true;
+        kodeInput.className = "w-full border border-gray-300 rounded-lg p-2.5 text-sm font-mono font-bold bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none";
+        kodeInput.title = "Kode unit diatur otomatis oleh sistem.";
     }
 }
 
@@ -532,8 +574,9 @@ function switchTab(tabName) {
     // Memasang tombol dropdown jenis unit di pojok kanan header Form Input Data
     if (window.renderFormHeaderAction) window.renderFormHeaderAction();
 
-    // Jalankan aturan visualisasi kolom cabang
+    // Jalankan aturan visualisasi kolom cabang & kode display
     applyBranchFieldRules();
+    applyDisplayCodeFieldRules();
 
     if (tabName === 'list_office') {
         const tipeSelect = document.querySelector('#form-fields select[name="tipe_akun"]');
@@ -544,23 +587,20 @@ function switchTab(tabName) {
 
         function handleTipeAkunChange() {
             const val = tipeSelect ? tipeSelect.value : '';
-            // Hubungkan ke elemen input masa_aktif
             const masaAktifInput = document.querySelector('#form-fields input[name="masa_aktif"]');
 
             if (val === 'Anggota') {
                 if (serverContainer) serverContainer.classList.remove('hidden');
                 if (masaAktifContainer) masaAktifContainer.classList.add('hidden'); 
                 
-                // PERBAIKAN: Hapus atribut required saat disembunyikan
                 if (masaAktifInput) {
                     masaAktifInput.removeAttribute('required');
-                    masaAktifInput.value = ''; // Kosongkan nilai jika ada
+                    masaAktifInput.value = '';
                 }
             } else {
                 if (serverContainer) serverContainer.classList.add('hidden');
                 if (masaAktifContainer) masaAktifContainer.classList.remove('hidden'); 
                 
-                // PERBAIKAN: Pasang kembali required saat ditampilkan
                 if (masaAktifInput) {
                     masaAktifInput.setAttribute('required', 'required');
                 }
@@ -954,9 +994,9 @@ function parseDisplaySpecs(spekStr) {
         const lines = spekStr.split('\n');
         lines.forEach(line => {
             const clean = line.trim();
-            if (/^cpu:/i.test(clean)) {
+            if (/^cpu:\s*/i.test(clean)) {
                 cpu = clean.replace(/^cpu:\s*/i, '').trim();
-            } else if (/^ram:/i.test(clean)) {
+            } else if (/^ram:\s*/i.test(clean)) {
                 ram = clean.replace(/^ram:\s*/i, '').trim();
             } else if (/^(ssd\/hdd|storage):/i.test(clean)) {
                 ssd = clean.replace(/^(ssd\/hdd|storage):\s*/i, '').trim();
@@ -996,30 +1036,23 @@ function initApp() {
     if (window.syncHamburgerIcon) window.syncHamburgerIcon();
 
     const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
-    // --- KODE BARU (Bebas Galat & Sesuai Hak Akses) ---
     allnodes.forEach(node => {
         if (!db) return;
         
-        // Periksa izin dasar untuk node saat ini
         let permitSync = isPermitted(perms[node]);
 
-        // PILAR INTEGRASI: Izinkan sinkronisasi latar belakang jika ada ketergantungan (dependency)
-        // 1. Katalog Produk diperlukan untuk input "Bahan" di Log Services dan Log Penjualan
         if (node === 'katalog_produk' && (isPermitted(perms.services) || isPermitted(perms.log_penjualan))) {
             permitSync = true;
         }
 
-        // 2. Master Jasa diperlukan untuk input "Jasa" di Log Services
         if (node === 'master_jasa' && isPermitted(perms.services)) {
             permitSync = true;
         }
 
-        // Aturan khusus untuk user_management
         if (node === 'user_management' && !isPermitted(perms.user_management)) {
             permitSync = false;
         }
 
-        // Jika tidak diizinkan sinkronisasi, hentikan proses untuk node ini
         if (!permitSync) {
             return; 
         }
@@ -1032,7 +1065,6 @@ function initApp() {
         const isAdmin = (email === 'superadmin@wanasatria.com' || role === 'admin');
         const hasBranchRestriction = (branch && branch !== 'Head Office' && email !== 'superadmin@wanasatria.com');
 
-        // Modul-modul yang datanya disaring spesifik berdasarkan cabang operator
         const filterableNodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'katalog_produk', 'log_penjualan'];
 
         if (filterableNodes.includes(node) && !isAdmin && hasBranchRestriction) {
@@ -1050,6 +1082,12 @@ function initApp() {
             if (window.currentTab === node) {
                 if (window.renderTable) window.renderTable(); 
             }
+
+            // Real-time synchronization saat data laptop_display masuk dari Cloud
+            if (node === 'laptop_display' && window.currentTab === 'laptop_display') {
+                applyDisplayCodeFieldRules();
+            }
+
             if ((node === 'katalog_produk' || node === 'laptop_display') && window.currentTab === 'log_penjualan') {
                 window.populatePenjualanCart();
             }
@@ -1057,7 +1095,6 @@ function initApp() {
                 if (window.updateDashboardBranchFilters) window.updateDashboardBranchFilters();
             }
 
-            // Memicu pembaruan filter sekunder dinamis ketika data Cloud sinkron
             const nodesWithFilters = ['list_laptop', 'laptop_display', 'services', 'inventaris', 'list_office', 'activity_logs'];
             if (nodesWithFilters.includes(node)) {
                 if (window.updateSecondaryFilterDropdown) window.updateSecondaryFilterDropdown();
@@ -1134,14 +1171,13 @@ function refreshServerFilterOptions() {
 }
 
 // ==========================================================================
-// D. HELPER KERANJANG BELANJA LOG PENJUALAN (1 UNIT PER BARIS + TAMPIL SN)
+// HELPER KERANJANG BELANJA LOG PENJUALAN (1 UNIT PER BARIS + KODE & SN)
 // ==========================================================================
 
 window.populatePenjualanCart = function() {
     const container = document.getElementById('keranjang-penjualan-container');
     if (!container) return;
 
-    // Mendapatkan cabang transaksi aktif di form
     const form = document.getElementById('operational-form');
     const branchSelect = form ? form.querySelector('[name="cabang"]') : null;
     const selectedBranch = branchSelect ? branchSelect.value : '';
@@ -1149,13 +1185,11 @@ window.populatePenjualanCart = function() {
     let katalog = window.globalDataCloud['katalog_produk'] || [];
     let displays = window.globalDataCloud['laptop_display'] || [];
 
-    // Menyaring data katalog dan display berdasarkan cabang transaksi
     if (selectedBranch) {
         katalog = katalog.filter(item => item.cabang === selectedBranch);
         displays = displays.filter(item => item.cabang === selectedBranch);
     }
 
-    // Hanya ambil unit display yang siap jual (Ready / status kosong)
     const readyDisplays = displays.filter(item => item.status === 'Ready' || !item.status);
 
     if (katalog.length === 0 && readyDisplays.length === 0) {
@@ -1177,12 +1211,13 @@ window.populatePenjualanCart = function() {
         isDisplay: false
     }));
 
-    // 2. Petakan Laptop Display (Setiap unit mandiri dengan SN masing-masing)
+    // 2. Petakan Laptop Display (Lengkap dengan Kode Unit & SN)
     const mappedLaptops = readyDisplays.map(item => {
         const name = `${item.merk || ''} ${item.tipe || ''}`.trim() || 'Laptop Display';
         const specs = parseDisplaySpecs(item.spek_singkat || item.spek || '');
         return {
             _firebaseKey: item._firebaseKey,
+            kode: item.kode || '#-',
             nama_barang: name,
             sn: item.sn || 'Tanpa SN',
             harga_jual: Number(item.harga_jual) || 0,
@@ -1197,13 +1232,11 @@ window.populatePenjualanCart = function() {
         };
     });
 
-    // Gabungkan list
     const unifiedList = [...mappedProducts, ...mappedLaptops];
 
-    // Saring data berdasarkan kata kunci pencarian (bisa cari Nama, Kategori, Spek, hingga Nomor SN)
     const filtered = unifiedList.filter(item => {
         if (item.isDisplay) {
-            const searchTarget = `${item.nama_barang} ${item.sn} ${item.cpu} ${item.ram} ${item.ssd} ${item.vga}`.toLowerCase();
+            const searchTarget = `${item.kode} ${item.nama_barang} ${item.sn} ${item.cpu} ${item.ram} ${item.ssd} ${item.vga}`.toLowerCase();
             return searchTarget.includes(query);
         } else {
             const searchTarget = `${item.nama_barang} ${item.kategori}`.toLowerCase();
@@ -1221,7 +1254,6 @@ window.populatePenjualanCart = function() {
         const isOutOfStock = !item.isDisplay && (Number(item.stok) || 0) <= 0;
 
         if (item.isDisplay) {
-            // Tampilan per 1 unit Laptop Display (Lengkap dengan Nomor SN)
             const specsInline = [item.cpu, item.ram, item.ssd, item.vga].filter(Boolean).join(' | ');
             const specsText = specsInline ? `<span class="block text-[10px] text-slate-500 font-mono italic mt-0.5">${escapeHtml(specsInline)}</span>` : '';
             
@@ -1240,7 +1272,7 @@ window.populatePenjualanCart = function() {
                         <div>
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="font-bold text-slate-800">💻 ${escapeHtml(item.nama_barang)}</span>
-                                <span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 rounded text-[10px] font-extrabold border border-purple-200">Display</span>
+                                <span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-mono font-black border border-purple-200">${escapeHtml(item.kode)}</span>
                                 <span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded text-[10px] font-mono font-extrabold border border-slate-200">SN: ${escapeHtml(item.sn)}</span>
                             </div>
                             ${specsText}
@@ -1255,7 +1287,6 @@ window.populatePenjualanCart = function() {
                 </div>
             `;
         } else {
-            // Tampilan Katalog Produk Aksesoris / Suku Cadang Umum
             productHtml += `
                 <div class="flex items-start justify-between p-2.5 bg-white border ${isChecked ? 'border-cyan-400 bg-cyan-50/20' : 'border-slate-200'} rounded-lg hover:border-cyan-300 transition text-xs">
                     <div class="flex items-start space-x-2.5">
@@ -1292,7 +1323,7 @@ window.populatePenjualanCart = function() {
     if (displayHtml) {
         finalHtml += `
             <div class="px-3 py-1.5 bg-purple-50 text-purple-700 font-extrabold text-[10px] uppercase tracking-wider rounded-lg mb-2 border border-purple-200/50 select-none">
-                ── UNIT LAPTOP DISPLAY (PILIH SESUAI SN FISIK) ──
+                ── UNIT LAPTOP DISPLAY (PILIH SESUAI KODE / SN FISIK) ──
             </div>
             <div class="space-y-2 mb-4">${displayHtml}</div>
         `;
@@ -1346,8 +1377,6 @@ window.updatePenjualanQty = function(input) {
     }
 };
 
-//Filter 
-
 window.updateSecondaryFilterDropdown = function() {
     const select = document.getElementById('secondary-filter');
     const label = document.getElementById('secondary-filter-label');
@@ -1356,7 +1385,6 @@ window.updateSecondaryFilterDropdown = function() {
 
     const currentTab = window.currentTab;
 
-    // Reset default
     container.classList.add('hidden');
     select.innerHTML = '<option value="">Semua</option>';
 
@@ -1364,7 +1392,6 @@ window.updateSecondaryFilterDropdown = function() {
     let labelText = "Filter Tambahan";
     let defaultOptionText = "Semua";
 
-    // 1. Kondisi Tab Laptop Gudang / Penyewaan (Hanya mengambil dari list_laptop)
     if (currentTab === 'list_laptop') {
         container.classList.remove('hidden');
         labelText = "Tipe Laptop";
@@ -1378,9 +1405,7 @@ window.updateSecondaryFilterDropdown = function() {
                 uniqueValues.add(`${merk} ${tipe}`);
             }
         });
-    }
-    // 2. Kondisi Tab Laptop Display (Hanya mengambil dari laptop_display)
-    else if (currentTab === 'laptop_display') {
+    } else if (currentTab === 'laptop_display') {
         container.classList.remove('hidden');
         labelText = "Tipe Laptop";
         defaultOptionText = "Semua Tipe Laptop";
@@ -1393,9 +1418,7 @@ window.updateSecondaryFilterDropdown = function() {
                 uniqueValues.add(`${merk} ${tipe}`);
             }
         });
-    }
-    // 3. Kondisi Tab Log Services (Hanya mengambil perangkat dari pelanggan aktif)
-    else if (currentTab === 'services') {
+    } else if (currentTab === 'services') {
         container.classList.remove('hidden');
         labelText = "Perangkat Pelanggan";
         defaultOptionText = "Semua Perangkat";
@@ -1407,9 +1430,7 @@ window.updateSecondaryFilterDropdown = function() {
                 uniqueValues.add(perangkat);
             }
         });
-    }
-    // 4. Kondisi Tab Inventaris
-    else if (currentTab === 'inventaris') {
+    } else if (currentTab === 'inventaris') {
         container.classList.remove('hidden');
         labelText = "Kategori Barang";
         defaultOptionText = "Semua Kategori";
@@ -1420,18 +1441,14 @@ window.updateSecondaryFilterDropdown = function() {
                 uniqueValues.add(item.kategori.trim());
             }
         });
-    } 
-    // 5. Kondisi Tab Office
-    else if (currentTab === 'list_office') {
+    } else if (currentTab === 'list_office') {
         container.classList.remove('hidden');
         labelText = "Tipe Akun";
         defaultOptionText = "Semua Tipe Akun";
         uniqueValues.add("Utama");
         uniqueValues.add("Anggota");
         uniqueValues.add("Personal");
-    } 
-    // 6. Kondisi Tab Log Aktivitas
-    else if (currentTab === 'activity_logs') {
+    } else if (currentTab === 'activity_logs') {
         container.classList.remove('hidden');
         labelText = "Modul Terkait";
         defaultOptionText = "Semua Modul";
@@ -1444,7 +1461,6 @@ window.updateSecondaryFilterDropdown = function() {
         });
     }
 
-    // Jika filter ini ditampilkan, perbarui teks label dan isinya
     if (!container.classList.contains('hidden')) {
         label.innerText = labelText;
         const sortedValues = Array.from(uniqueValues).sort();
@@ -1459,13 +1475,15 @@ window.updateSecondaryFilterDropdown = function() {
     }
 };
 
-// Bind fungsi pembantu ke window agar diakses file table.js / opname.js / forms.js / excel.js / admin-utils.js
+// Bind fungsi pembantu ke window agar diakses file lain
 window.logActivity = logActivity;
 window.showToast = showToast;
 window.showTableLoading = showTableLoading;
 window.buildInventarisCategoryOptions = buildInventarisCategoryOptions;
 window.buildInventarisUnitOptions = buildInventarisUnitOptions;
 window.generateInventarisSku = generateInventarisSku;
+window.generateNextDisplayCode = generateNextDisplayCode;
+window.applyDisplayCodeFieldRules = applyDisplayCodeFieldRules;
 window.refreshInventarisFieldOptions = refreshInventarisFieldOptions;
 window.applyBranchFieldRules = applyBranchFieldRules;
 

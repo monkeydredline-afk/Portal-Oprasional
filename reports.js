@@ -237,6 +237,9 @@ function getFilteredReportData(moduleKey) {
             const raw = filterArray(cloud.laptop_display || []);
             const rows = raw.map((item, idx) => ({
                 "No": idx + 1,
+                "Kode": item.kode || '#-',
+                "Tanggal Masuk": item.tanggal || '-',
+                "Tgl Selesai Cek": item.tgl_selesai_cek || '-',
                 "Merk / Model": `${item.merk || ''} ${item.tipe || ''}`.trim() || '-',
                 "Serial Number (SN)": item.sn || '-',
                 "Spesifikasi": (item.spek_singkat || '-').replace(/\n/g, ' / '),

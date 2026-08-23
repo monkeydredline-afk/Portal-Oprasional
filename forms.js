@@ -238,6 +238,23 @@ function handleSubmit(e) {
         const vga = formData.get('spec_vga');
         const screen = formData.get('spec_screen');
 
+        // Mengambil input tanggal selesai cek & konversi format YYYY-MM-DD -> DD/MM/YYYY
+        let inputTglCek = formData.get('tgl_selesai_cek');
+        if (inputTglCek && inputTglCek.includes('-')) {
+            const parts = inputTglCek.split('-');
+            inputTglCek = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        // Mengambil kode dan memastikan tanda #
+        let inputKode = (formData.get('kode') || '').trim();
+        if (!inputKode) {
+            inputKode = window.generateNextDisplayCode ? window.generateNextDisplayCode() : '#1';
+        } else if (!inputKode.startsWith('#')) {
+            inputKode = `#${inputKode}`;
+        }
+
+        newDataItem.kode = inputKode;
+        newDataItem.tgl_selesai_cek = inputTglCek || '-';
         newDataItem.teknisi = formData.get('teknisi');
         newDataItem.merk = formData.get('merk');
         newDataItem.tipe = formData.get('tipe');
@@ -248,7 +265,7 @@ function handleSubmit(e) {
         newDataItem.status = formData.get('status');
         newDataItem.catatan = formData.get('catatan') || '';
         newDataItem.spek_singkat = `CPU: ${proc}\nRAM: ${ram}\nSSD/HDD: ${storage}\nVGA/Layar: ${vga} (${screen})`;
-        logDetail = `${newDataItem.merk} ${newDataItem.tipe} (SN: ${newDataItem.sn}) di etalase cabang ${newDataItem.cabang}`;
+        logDetail = `[${newDataItem.kode}] ${newDataItem.merk} ${newDataItem.tipe} (SN: ${newDataItem.sn}) di etalase cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'inventaris') { 
         newDataItem.nama_barang = formData.get('nama_barang');
         newDataItem.kategori = formData.get('kategori');
@@ -293,7 +310,6 @@ function handleSubmit(e) {
         newDataItem.no_wa = formData.get('no_wa');
         newDataItem.perangkat = formData.get('perangkat');
         newDataItem.biaya = "0";
-        // Status otomatis Antrean jika kosong
         newDataItem.status = formData.get('status') || 'Antrean';
         newDataItem.teknisi = 'Belum Ditentukan';
         newDataItem.tindakan_teknisi = '';
@@ -342,6 +358,7 @@ function handleSubmit(e) {
             if (window.showToast) window.showToast("Data berhasil disimpan secara real-time!");
             e.target.reset();
 
+            // Setel ulang tanggal default
             const dateInput = document.querySelector('#form-fields input[name="tanggal"]');
             if (dateInput) {
                 const today = new Date();
@@ -350,6 +367,12 @@ function handleSubmit(e) {
                 const dd = String(today.getDate()).padStart(2, '0');
                 dateInput.value = `${yyyy}-${mm}-${dd}`;
             }
+
+            // Memperbarui nomor kode berikutnya di form display setelah submit
+            if (window.currentTab === 'laptop_display' && window.applyDisplayCodeFieldRules) {
+                window.applyDisplayCodeFieldRules();
+            }
+
             window.selectedLaptopKeys = []; 
             if(window.currentTab === 'penyewaan' && window.populateLaptopCheckboxes) window.populateLaptopCheckboxes();
         })
@@ -535,6 +558,22 @@ function handleUpdateSubmit(e) {
             updatedData.tanggal = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
+        // Mengambil dan mengonversi tanggal selesai cek dari form edit
+        let editTglCek = document.getElementById('edit-tgl_selesai_cek')?.value;
+        if (editTglCek && editTglCek.includes('-')) {
+            const parts = editTglCek.split('-');
+            updatedData.tgl_selesai_cek = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        } else {
+            updatedData.tgl_selesai_cek = editTglCek || targetItem.tgl_selesai_cek || '-';
+        }
+
+        // Membaca kode yang diubah di modal edit
+        let editKode = (document.getElementById('edit-kode')?.value || '').trim();
+        if (editKode && !editKode.startsWith('#')) {
+            editKode = `#${editKode}`;
+        }
+
+        updatedData.kode = editKode || targetItem.kode || '#1';
         updatedData.cabang = document.getElementById('edit-cabang').value;
         updatedData.teknisi = document.getElementById('edit-teknisi').value;
         updatedData.merk = document.getElementById('edit-merk').value;
@@ -546,7 +585,7 @@ function handleUpdateSubmit(e) {
         updatedData.spek_singkat = document.getElementById('edit-spek_singkat').value;
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.catatan = document.getElementById('edit-catatan').value;
-        itemDescription = `${updatedData.merk} ${updatedData.tipe} (SN: ${updatedData.sn})`;
+        itemDescription = `[${updatedData.kode}] ${updatedData.merk} ${updatedData.tipe} (SN: ${updatedData.sn})`;
     } else if (window.currentTab === 'inventaris') {
         let editTgl = document.getElementById('edit-tanggal').value;
         if (editTgl && editTgl.includes('-')) {
