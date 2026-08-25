@@ -183,6 +183,16 @@ function renderTable() {
         }
 
         return Object.values(item).some(val => {
+            if (Array.isArray(val)) {
+                return val.some(subItem => {
+                    if (typeof subItem === 'object' && subItem !== null) {
+                        return Object.values(subItem).some(subVal => 
+                            String(subVal || '').toLowerCase().includes(searchQuery)
+                        );
+                    }
+                    return String(subItem || '').toLowerCase().includes(searchQuery);
+                });
+            }
             if (typeof val === 'object') return false;
             return String(val).toLowerCase().includes(searchQuery);
         });
@@ -364,7 +374,8 @@ function renderTable() {
                     <div class="flex items-center gap-1.5 text-xs py-0.5">
                         <span class="text-slate-400">•</span>
                         <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
-                        ${it.sn ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-extrabold rounded border border-purple-200">SN: ${escapeHtml(it.sn)}</span>` : ''}
+                        ${it.kode ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-black rounded border border-purple-200">${escapeHtml(it.kode)}</span>` : ''}
+                        ${it.sn ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 text-[10px] font-mono font-extrabold rounded border border-slate-200">SN: ${escapeHtml(it.sn)}</span>` : ''}
                         <span class="text-slate-500 font-mono font-semibold">(x${it.qty})</span>
                     </div>
                 `).join('');
@@ -828,7 +839,8 @@ function openEditModal(firebaseKey) {
                         <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 last:border-0">
                             <div>
                                 <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
-                                ${it.sn ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-extrabold rounded border border-purple-200 ml-1">SN: ${escapeHtml(it.sn)}</span>` : ''}
+                                ${it.kode ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-black rounded border border-purple-200 ml-1">${escapeHtml(it.kode)}</span>` : ''}
+                                ${it.sn ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 text-[10px] font-mono font-extrabold rounded border border-slate-200 ml-1">SN: ${escapeHtml(it.sn)}</span>` : ''}
                                 <span class="block text-[11px] text-slate-500 font-mono">Rp ${Number(it.price).toLocaleString('id-ID')}</span>
                             </div>
                             <div class="flex items-center space-x-1">

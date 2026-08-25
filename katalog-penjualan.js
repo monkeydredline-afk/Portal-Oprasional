@@ -334,6 +334,7 @@ export function submitLogPenjualan(formData, btnSubmit, originalText, formElemen
             _displayKey: isDisplay ? itemKey : null,
             isDisplay: isDisplay,
             name: item.name,
+            kode: item.kode || '',
             sn: item.sn || '',
             qty: Number(item.qty) || 1,
             price: Number(item.price) || 0,

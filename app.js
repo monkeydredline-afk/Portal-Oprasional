@@ -1266,6 +1266,7 @@ window.populatePenjualanCart = function() {
                                data-price="${item.harga_jual}" 
                                data-is-display="true" 
                                data-sn="${escapeHtml(item.sn)}" 
+                               data-kode="${escapeHtml(item.kode)}"
                                ${isChecked ? 'checked' : ''} 
                                onchange="window.togglePenjualanItem(this)" 
                                class="mt-1 rounded text-purple-600 focus:ring-purple-500 cursor-pointer">
@@ -1344,18 +1345,21 @@ window.populatePenjualanCart = function() {
     container.innerHTML = finalHtml;
 };
 
+// SESUDAH:
 window.togglePenjualanItem = function(checkbox) {
     const itemKey = checkbox.getAttribute('data-key');
     const name = checkbox.getAttribute('data-name');
     const price = Number(checkbox.getAttribute('data-price')) || 0;
     const isDisplay = checkbox.getAttribute('data-is-display') === 'true';
     const sn = checkbox.getAttribute('data-sn') || '';
+    const kode = checkbox.getAttribute('data-kode') || '';
 
     if (checkbox.checked) {
         if (!window.selectedPenjualanItems.some(it => it.itemKey === itemKey)) {
             window.selectedPenjualanItems.push({
                 itemKey,
                 name,
+                kode,
                 qty: 1,
                 price,
                 isDisplay,

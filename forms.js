@@ -462,6 +462,7 @@ function handleUpdateSubmit(e) {
                     _displayKey: it._displayKey || (it.isDisplay ? (it._itemKey || it.itemKey) : null),
                     isDisplay: it.isDisplay === true || !!it.sn,
                     name: it.name,
+                    kode: it.kode || '',
                     sn: it.sn || '',
                     qty: Number(it.qty) || 1,
                     price: Number(it.price) || 0,
