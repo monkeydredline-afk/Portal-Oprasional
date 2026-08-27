@@ -4,7 +4,7 @@
 import { parseDate } from './utils.js';
 
 // URL Web App Google Apps Script Anda
-const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyCFmAWYWZ-_SUIBEPI1bK4Z3-coJH991hBqRe8sUW-jNLJ_vUI0VSRhGlDyFRoSK5vTA/exec";
+const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbx3p0WWcrOGNHotVs98stDsJ4rRtn7Li0Qpv5Ht_bvVkH2mgtV7iWQnXMUU-iewzLieXw/exec";
 
 const NAMA_BULAN = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
@@ -77,12 +77,12 @@ function filterDataByDateRange(dataArray, startDate, endDate, dateField = 'tangg
     });
 }
 
-/**
- * Membangun Ringkasan Eksekutif (Sheet 1) Non-Finansial
+/*** Membangun Ringkasan Eksekutif (Sheet 1) Non-Finansial (Termasuk CCTV & Lisensi Office)
  */
-function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList) {
+function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList, cctvList, officeList) {
     const branches = ["Monumen Emmy Saelan", "Perintis"];
 
+    // 1. Monitoring Servisan
     const servicesBreakdown = branches.map(b => {
         const list = servicesList.filter(s => (s.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !s.cabang));
         return {
@@ -96,6 +96,7 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
+    // 2. Monitoring Penyewaan
     const penyewaanBreakdown = branches.map(b => {
         const list = sewaList.filter(s => (s.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !s.cabang));
         return {
@@ -108,6 +109,7 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
+    // 3. Monitoring Ketersediaan Aset (Laptop Gudang & Display)
     const asetBreakdown = branches.map(b => {
         const lapList = masterLaptopAll.filter(l => (l.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !l.cabang));
         const dispList = displayList.filter(d => (d.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !d.cabang));
@@ -123,10 +125,42 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
+    // 4. Monitoring Proyek CCTV (Baru)
+    const cctvBreakdown = branches.map(b => {
+        const list = cctvList.filter(c => (c.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !c.cabang));
+        const totalKamera = list.reduce((sum, item) => sum + (Number(item.jumlah_cctv) || 0), 0);
+        return {
+            cabang: b,
+            total: list.length,
+            survei: list.filter(c => c.status === 'Survei').length,
+            pengerjaan: list.filter(c => c.status === 'Pengerjaan').length,
+            selesai: list.filter(c => c.status === 'Selesai' || c.status === 'Selesai / Serah Terima').length,
+            totalKamera: totalKamera
+        };
+    });
+
+    // 5. Monitoring Lisensi Office (Baru)
+    const servers = (officeList || []).filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
+    const members = (officeList || []).filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota');
+    let filledSlots = 0;
+    servers.forEach(srv => {
+        const srvEmail = srv?.akun || '';
+        filledSlots += members.filter(it => (it?.server_utama || '') === srvEmail).length;
+    });
+    const totalCapacity = servers.length * 5;
+    const officeSummary = {
+        totalServers: servers.length,
+        totalMembersPeriode: members.length,
+        filledSlots: `${filledSlots} / ${totalCapacity}`,
+        freeSlots: Math.max(0, totalCapacity - filledSlots)
+    };
+
     return {
         servicesBreakdown,
         penyewaanBreakdown,
-        asetBreakdown
+        asetBreakdown,
+        cctvBreakdown,
+        officeSummary
     };
 }
 
@@ -219,7 +253,7 @@ function ensureSheetsModalExists() {
                                 </select>
                             </div>
                         </div>
-                        <p class="text-[11px] text-slate-500 italic">Membuat / memperbarui 4 tab sheet bulan terkait pada file spreadsheet utama Anda.</p>
+                        <p class="text-[11px] text-slate-500 italic">Membuat / memperbarui 6 tab sheet bulan terkait pada file spreadsheet utama Anda.</p>
                     </div>
 
                     <!-- KONTEN MODE 2: KUSTOM TANGGAL (FILE BARU) -->
@@ -347,6 +381,12 @@ window.executeGoogleSheetsSync = async function() {
         let servicesFiltered = [];
         let sewaFiltered = [];
         let displayFiltered = [];
+        let cctvFiltered = [];
+        let officeFiltered = [];
+
+        // Ambil data mentah Office: Server Utama (semua) dan Anggota
+        const rawOffice = cloud.list_office || [];
+        const officeServers = rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
 
         if (activeSyncMode === 'custom_date') {
             const startVal = document.getElementById('sheets-sync-start-date')?.value;
@@ -374,11 +414,21 @@ window.executeGoogleSheetsSync = async function() {
             periodLabel = formatCustomDateLabel(startDate, endDate);
             servicesFiltered = filterDataByDateRange(cloud.services || [], startDate, endDate, 'tanggal');
             sewaFiltered = filterDataByDateRange(cloud.penyewaan || [], startDate, endDate, 'tgl_mulai');
+            cctvFiltered = filterDataByDateRange(cloud.cctv || [], startDate, endDate, 'tanggal');
             displayFiltered = filterDataByDateRange(cloud.laptop_display || [], startDate, endDate, 'tanggal')
                 .map(item => ({
                     ...item,
                     spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
                 }));
+
+            // Filter akun Anggota/Member sesuai rentang tanggal (Sesuai Poin 4 yang disepakati)
+            const officeMembersFiltered = filterDataByDateRange(
+                rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
+                startDate,
+                endDate,
+                'tanggal'
+            );
+            officeFiltered = [...officeServers, ...officeMembersFiltered];
 
         } else {
             const monthSelect = document.getElementById('sheets-sync-month');
@@ -389,15 +439,27 @@ window.executeGoogleSheetsSync = async function() {
             periodLabel = `${NAMA_BULAN_SINGKAT[selMonth]} ${selYear}`;
             servicesFiltered = filterDataByMonth(cloud.services || [], selYear, selMonth, 'tanggal');
             sewaFiltered = filterDataByMonth(cloud.penyewaan || [], selYear, selMonth, 'tgl_mulai');
+            cctvFiltered = filterDataByMonth(cloud.cctv || [], selYear, selMonth, 'tanggal');
             displayFiltered = filterDataByMonth(cloud.laptop_display || [], selYear, selMonth, 'tanggal')
                 .map(item => ({
                     ...item,
                     spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
                 }));
+
+            // Filter akun Anggota/Member sesuai bulan & tahun yang dipilih
+            const officeMembersFiltered = filterDataByMonth(
+                rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
+                selYear,
+                selMonth,
+                'tanggal'
+            );
+            officeFiltered = [...officeServers, ...officeMembersFiltered];
         }
 
-        const ringkasanData = buildRingkasanData(servicesFiltered, sewaFiltered, allLaptops, displayFiltered);
+        // Susun Ringkasan Eksekutif Tab 1
+        const ringkasanData = buildRingkasanData(servicesFiltered, sewaFiltered, allLaptops, displayFiltered, cctvFiltered, officeFiltered);
 
+        // Masukkan data CCTV dan Office ke dalam payload
         const payload = {
             mode: activeSyncMode,
             period: periodLabel,
@@ -405,13 +467,15 @@ window.executeGoogleSheetsSync = async function() {
             services: servicesFiltered,
             penyewaan: sewaFiltered,
             unitReady: readyUnitsOnly,
-            display: displayFiltered
+            display: displayFiltered,
+            cctv: cctvFiltered,
+            office: officeFiltered
         };
 
         if (window.showToast) {
             window.showToast(activeSyncMode === 'custom_date' 
                 ? `Membuat file spreadsheet baru [Laporan Operasional (${periodLabel}) - Wana Satria]...`
-                : `Menyinkronkan 4 sheet periode ${periodLabel}...`, "info");
+                : `Menyinkronkan 6 sheet periode ${periodLabel}...`, "info");
         }
 
         await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
@@ -437,7 +501,7 @@ window.executeGoogleSheetsSync = async function() {
             }
         } else {
             if (window.showToast) {
-                window.showToast(`Berhasil! 4 Sheet untuk periode ${periodLabel} telah diperbarui di Spreadsheet Utama.`, "success");
+                window.showToast(`Berhasil! 6 Sheet untuk periode ${periodLabel} telah diperbarui di Spreadsheet Utama.`, "success");
             }
             window.closeSheetsSyncModal();
         }
