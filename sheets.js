@@ -223,13 +223,16 @@ function ensureSheetsModalExists() {
                 </header>
 
                 <div class="p-6 space-y-4 bg-slate-50">
-                    <!-- SAKLAR DUA MODE -->
-                    <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-200/80 rounded-xl border border-slate-300/50">
-                        <button type="button" id="tab-mode-monthly" onclick="window.switchSheetsSyncMode('monthly')" class="py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-white text-emerald-700 shadow-xs">
-                            <i class="fa-solid fa-calendar-days"></i> <span>Mode Bulanan</span>
+                    <!-- SAKLAR TIGA MODE -->
+                    <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/80 rounded-xl border border-slate-300/50">
+                        <button type="button" id="tab-mode-monthly" onclick="window.switchSheetsSyncMode('monthly')" class="py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 bg-white text-emerald-700 shadow-xs">
+                            <i class="fa-solid fa-calendar-days"></i> <span>Bulanan</span>
                         </button>
-                        <button type="button" id="tab-mode-custom" onclick="window.switchSheetsSyncMode('custom_date')" class="py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
-                            <i class="fa-solid fa-file-circle-plus"></i> <span>Mode Kustom (File Baru)</span>
+                        <button type="button" id="tab-mode-custom" onclick="window.switchSheetsSyncMode('custom_date')" class="py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-file-circle-plus"></i> <span>Kustom</span>
+                        </button>
+                        <button type="button" id="tab-mode-display" onclick="window.switchSheetsSyncMode('display_only')" class="py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-desktop"></i> <span>Display (4 Tab)</span>
                         </button>
                     </div>
 
@@ -278,6 +281,23 @@ function ensureSheetsModalExists() {
                         </p>
                     </div>
 
+                    <!-- KONTEN MODE 3: KHUSUS DISPLAY (4 TAB) -->
+                    <div id="mode-display-content" class="hidden bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                        <div class="flex items-center justify-between border-b pb-2">
+                            <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Sinkronisasi Khusus Unit Display</span>
+                            <span class="text-[10px] text-purple-600 bg-purple-50 border border-purple-200 font-bold px-2 py-0.5 rounded-full">Di Spreadsheet Utama</span>
+                        </div>
+                        <div class="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-xs text-slate-600 space-y-1.5">
+                            <p class="font-bold text-purple-900">Otomatis menyinkronkan 4 Tab Khusus Display:</p>
+                            <ul class="list-disc list-inside space-y-0.5 text-[11px] text-slate-700 font-medium">
+                                <li><strong>Tab 1:</strong> Ringkasan Display (Rekapitulasi Cabang & Model)</li>
+                                <li><strong>Tab 2:</strong> Display - Semua Cabang (Gabungan)</li>
+                                <li><strong>Tab 3:</strong> Display - Emmy Saelan</li>
+                                <li><strong>Tab 4:</strong> Display - Perintis</li>
+                            </ul>
+                        </div>
+                    </div>
+
                     <!-- LINK FILE BARU HASIL SINKRONISASI -->
                     <div id="sheets-sync-result-link" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-center space-y-2">
                         <p class="text-xs font-bold text-emerald-900"><i class="fa-solid fa-circle-check text-emerald-600"></i> File Spreadsheet Baru Siap!</p>
@@ -321,22 +341,33 @@ window.switchSheetsSyncMode = function(mode) {
     activeSyncMode = mode;
     const tabMonthly = document.getElementById('tab-mode-monthly');
     const tabCustom = document.getElementById('tab-mode-custom');
+    const tabDisplay = document.getElementById('tab-mode-display');
+
     const contentMonthly = document.getElementById('mode-monthly-content');
     const contentCustom = document.getElementById('mode-custom-content');
+    const contentDisplay = document.getElementById('mode-display-content');
     const resultLink = document.getElementById('sheets-sync-result-link');
 
     if (resultLink) resultLink.classList.add('hidden');
 
+    const defaultClass = "py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900";
+    if (tabMonthly) tabMonthly.className = defaultClass;
+    if (tabCustom) tabCustom.className = defaultClass;
+    if (tabDisplay) tabDisplay.className = defaultClass;
+
+    if (contentMonthly) contentMonthly.classList.add('hidden');
+    if (contentCustom) contentCustom.classList.add('hidden');
+    if (contentDisplay) contentDisplay.classList.add('hidden');
+
     if (mode === 'custom_date') {
-        if (tabCustom) tabCustom.className = "py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-white text-purple-700 shadow-xs";
-        if (tabMonthly) tabMonthly.className = "py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900";
-        if (contentMonthly) contentMonthly.classList.add('hidden');
+        if (tabCustom) tabCustom.className = "py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 bg-white text-purple-700 shadow-xs";
         if (contentCustom) contentCustom.classList.remove('hidden');
+    } else if (mode === 'display_only') {
+        if (tabDisplay) tabDisplay.className = "py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 bg-white text-purple-700 shadow-xs";
+        if (contentDisplay) contentDisplay.classList.remove('hidden');
     } else {
-        if (tabMonthly) tabMonthly.className = "py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-white text-emerald-700 shadow-xs";
-        if (tabCustom) tabCustom.className = "py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900";
+        if (tabMonthly) tabMonthly.className = "py-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 bg-white text-emerald-700 shadow-xs";
         if (contentMonthly) contentMonthly.classList.remove('hidden');
-        if (contentCustom) contentCustom.classList.add('hidden');
     }
 };
 
@@ -388,7 +419,91 @@ window.executeGoogleSheetsSync = async function() {
         const rawOffice = cloud.list_office || [];
         const officeServers = rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
 
-        if (activeSyncMode === 'custom_date') {
+        if (activeSyncMode === 'display_only') {
+            const rawDisplay = cloud.laptop_display || [];
+            
+            // Format spesifikasi horizontal 1 baris
+            const formatDisplayItem = (d) => ({
+                ...d,
+                kode: d.kode || '#-',
+                tgl_selesai_cek: d.tgl_selesai_cek || '-',
+                spek_singkat: compactSpecs(d.spek_singkat || d.spek, 'Laptop')
+            });
+
+            const displayAll = rawDisplay.map(formatDisplayItem);
+            const displayEmmy = rawDisplay
+                .filter(d => (d.cabang || '').toLowerCase().includes('emmy') || !d.cabang)
+                .map(formatDisplayItem);
+            const displayPerintis = rawDisplay
+                .filter(d => (d.cabang || '').toLowerCase().includes('perintis'))
+                .map(formatDisplayItem);
+
+            // Susun rekapitulasi ringkasan khusus display (Tab 1)
+            const branches = ["Monumen Emmy Saelan", "Perintis"];
+            const displayBranchSummary = branches.map(b => {
+                const list = rawDisplay.filter(d => (d.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !d.cabang));
+                return {
+                    cabang: b,
+                    total: list.length,
+                    ready: list.filter(d => d.status === 'Ready' || !d.status).length,
+                    terjual: list.filter(d => d.status === 'Terjual').length,
+                    gudang: list.filter(d => d.status === 'Gudang').length
+                };
+            });
+
+            // Rekap jumlah per model
+            const modelCounts = {};
+            rawDisplay.forEach(d => {
+                const modelName = `${d.merk || ''} ${d.tipe || ''}`.trim() || 'Model Tidak Diketahui';
+                if (!modelCounts[modelName]) {
+                    modelCounts[modelName] = { model: modelName, total: 0, ready: 0, terjual: 0 };
+                }
+                modelCounts[modelName].total++;
+                if (d.status === 'Ready' || !d.status) modelCounts[modelName].ready++;
+                if (d.status === 'Terjual') modelCounts[modelName].terjual++;
+            });
+
+            const ringkasanDisplay = {
+                branchSummary: displayBranchSummary,
+                modelSummary: Object.values(modelCounts),
+                totalAll: rawDisplay.length,
+                totalReady: rawDisplay.filter(d => d.status === 'Ready' || !d.status).length,
+                totalTerjual: rawDisplay.filter(d => d.status === 'Terjual').length,
+                totalGudang: rawDisplay.filter(d => d.status === 'Gudang').length
+            };
+
+            const payload = {
+                mode: 'display_only',
+                period: 'Unit Display',
+                ringkasanDisplay: ringkasanDisplay,
+                displayAll: displayAll,
+                displayEmmy: displayEmmy,
+                displayPerintis: displayPerintis
+            };
+
+            if (window.showToast) {
+                window.showToast("Menyinkronkan 4 Tab Khusus Laptop Display ke Spreadsheet Utama...", "info");
+            }
+
+            await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (window.logActivity) {
+                window.logActivity('Lainnya', 'laptop_display', `Sinkronisasi 4 Tab Google Sheets Khusus Display (${rawDisplay.length} Unit).`);
+            }
+
+            if (window.showToast) {
+                window.showToast("Berhasil! 4 Tab Laptop Display telah diperbarui di Spreadsheet Utama.", "success");
+            }
+
+            window.closeSheetsSyncModal();
+            return;
+        }
+    if (activeSyncMode === 'custom_date') {
             const startVal = document.getElementById('sheets-sync-start-date')?.value;
             const endVal = document.getElementById('sheets-sync-end-date')?.value;
 
@@ -421,7 +536,6 @@ window.executeGoogleSheetsSync = async function() {
                     spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
                 }));
 
-            // Filter akun Anggota/Member sesuai rentang tanggal (Sesuai Poin 4 yang disepakati)
             const officeMembersFiltered = filterDataByDateRange(
                 rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
                 startDate,
@@ -446,7 +560,6 @@ window.executeGoogleSheetsSync = async function() {
                     spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
                 }));
 
-            // Filter akun Anggota/Member sesuai bulan & tahun yang dipilih
             const officeMembersFiltered = filterDataByMonth(
                 rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
                 selYear,
@@ -456,10 +569,9 @@ window.executeGoogleSheetsSync = async function() {
             officeFiltered = [...officeServers, ...officeMembersFiltered];
         }
 
-        // Susun Ringkasan Eksekutif Tab 1
+        // Susun Ringkasan Eksekutif Tab 1 Laporan Umum
         const ringkasanData = buildRingkasanData(servicesFiltered, sewaFiltered, allLaptops, displayFiltered, cctvFiltered, officeFiltered);
 
-        // Masukkan data CCTV dan Office ke dalam payload
         const payload = {
             mode: activeSyncMode,
             period: periodLabel,
@@ -486,7 +598,7 @@ window.executeGoogleSheetsSync = async function() {
         });
 
         if (window.logActivity) {
-            window.logActivity('Lainnya', 'sheets', `Sinkronisasi Google Sheets [Mode: ${activeSyncMode.toUpperCase()}] Periode: ${periodLabel} (${servicesFiltered.length} Servis, ${sewaFiltered.length} Sewa, ${readyUnitsOnly.length} Unit Ready, ${displayFiltered.length} Display).`);
+            window.logActivity('Lainnya', 'sheets', `Sinkronisasi Google Sheets [Mode: ${activeSyncMode.toUpperCase()}] Periode: ${periodLabel}.`);
         }
 
         if (activeSyncMode === 'custom_date') {

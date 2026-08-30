@@ -57,6 +57,10 @@ function exportToExcel(isCompatibleForImport = false) {
             
             let val = item[key];
             if (val === undefined || val === null) val = '-';
+            // Mengubah spesifikasi bertingkat (\n) menjadi horizontal ( / ) saat ekspor
+            if ((key === 'spek_singkat' || key === 'spek') && typeof val === 'string') {
+                val = val.replace(/\n+/g, ' / ').replace(/\s+/g, ' ').trim();
+            }
             
             if (key === 'status' && window.currentTab === 'list_office') {
                 const expiredStr = item.workspace_expired || item.masa_aktif || '';
@@ -230,6 +234,20 @@ function importSpreadsheet(e) {
                     const parts = newItemData.tanggal.split('-');
                     if (parts[0] && parts[0].length === 4) {
                         newItemData.tanggal = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                }
+                // Format Tanggal Selesai Cek jika berformat YYYY-MM-DD
+                if (newItemData.tgl_selesai_cek && newItemData.tgl_selesai_cek.includes('-')) {
+                    const parts = newItemData.tgl_selesai_cek.split('-');
+                    if (parts[0] && parts[0].length === 4) {
+                        newItemData.tgl_selesai_cek = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                }
+
+                // Memastikan kode display diawali tanda # (misal: 1 -> #1)
+                if (window.currentTab === 'laptop_display' && newItemData.kode) {
+                    if (!newItemData.kode.startsWith('#')) {
+                        newItemData.kode = `#${newItemData.kode}`;
                     }
                 }
 
