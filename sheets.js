@@ -77,12 +77,13 @@ function filterDataByDateRange(dataArray, startDate, endDate, dateField = 'tangg
     });
 }
 
-/*** Membangun Ringkasan Eksekutif (Sheet 1) Non-Finansial (Termasuk CCTV & Lisensi Office)
+/**
+ * Membangun Ringkasan Eksekutif 7 Tabel Lengkap (Penyaringan Ketat Aset Aktif - Opsi A)
  */
 function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList, cctvList, officeList) {
     const branches = ["Monumen Emmy Saelan", "Perintis"];
 
-    // 1. Monitoring Servisan
+    // 1. MONITORING SERVISAN TOKO (PER CABANG)
     const servicesBreakdown = branches.map(b => {
         const list = servicesList.filter(s => (s.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !s.cabang));
         return {
@@ -96,7 +97,78 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
-    // 2. Monitoring Penyewaan
+    // 2. MONITORING KECEPATAN SERVISAN & TEKNISI (HANYA UNTUK TEKNISI AKTIF)
+    const teknisiMap = {};
+    (servicesList || []).forEach(s => {
+        const rawTeknisi = (s.teknisi || '').trim();
+
+        // JIKA TEKNISI MASIH KOSONG / '-' / 'BELUM DITENTUKAN', LANGSUNG LEWATI (SKIP)
+        if (!rawTeknisi || rawTeknisi === '-' || rawTeknisi.toLowerCase().includes('belum')) {
+            return; 
+        }
+
+        const namaTeknisi = rawTeknisi;
+
+        if (!teknisiMap[namaTeknisi]) {
+            teknisiMap[namaTeknisi] = {
+                teknisi: namaTeknisi,
+                cepat: 0,       // <= 1 Hari
+                standar: 0,     // 2 - 3 Hari
+                lama: 0,        // > 3 Hari
+                masihProses: 0, // Antrean, Proses, Oper Vendor, Tunggu Konfirmasi
+                totalHariSelesai: 0,
+                jumlahSelesai: 0,
+                totalUnit: 0
+            };
+        }
+
+        const tekData = teknisiMap[namaTeknisi];
+        tekData.totalUnit++;
+
+        const status = (s.status || '').trim();
+
+        if (status === 'Selesai') {
+            const dMasuk = parseDate(s.tanggal);
+            const dSelesai = parseDate(s.tgl_selesai) || dMasuk;
+
+            let diffDays = 0;
+            if (dMasuk && dSelesai) {
+                const diffTime = Math.abs(dSelesai.getTime() - dMasuk.getTime());
+                diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            }
+
+            tekData.totalHariSelesai += diffDays;
+            tekData.jumlahSelesai++;
+
+            if (diffDays <= 1) {
+                tekData.cepat++;
+            } else if (diffDays <= 3) {
+                tekData.standar++;
+            } else {
+                tekData.lama++;
+            }
+        } else if (['Antrean', 'Proses', 'Oper Vendor', 'Tunggu Konfirmasi'].includes(status)) {
+            tekData.masihProses++;
+        }
+    });
+
+    const teknisiBreakdown = Object.values(teknisiMap).map(t => {
+        const rataRata = t.jumlahSelesai > 0 
+            ? (t.totalHariSelesai / t.jumlahSelesai).toFixed(1) + " Hari" 
+            : "0.0 Hari";
+
+        return {
+            teknisi: t.teknisi,
+            cepat: t.cepat,
+            standar: t.standar,
+            lama: t.lama,
+            masihProses: t.masihProses,
+            rataRata: rataRata,
+            totalUnit: t.totalUnit
+        };
+    }).sort((a, b) => b.totalUnit - a.totalUnit);
+
+    // 3. MONITORING TRANSAKSI PENYEWAAN (PER CABANG)
     const penyewaanBreakdown = branches.map(b => {
         const list = sewaList.filter(s => (s.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !s.cabang));
         return {
@@ -109,61 +181,154 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
-    // 3. Monitoring Ketersediaan Aset (Laptop Gudang & Display)
+    // 4. MONITORING INVENTARIS UNIT DISPLAY (DIURUTKAN PER CABANG LALU MODEL A-Z)
+    const displayModelMap = {};
+    (displayList || []).forEach(d => {
+        const st = (d.status || '').trim().toLowerCase();
+        // Hanya loloskan unit display yang aktif (Ready / Terjual)
+        if (st === 'gudang' || st === 'rusak' || st === 'maintenance') return;
+
+        const cabang = (d.cabang || '').toLowerCase().includes('perintis') ? 'Perintis' : 'Monumen Emmy Saelan';
+        const model = `${d.merk || ''} ${d.tipe || ''}`.trim() || 'Model Tidak Diketahui';
+        const key = `${cabang}___${model}`;
+
+        if (!displayModelMap[key]) {
+            displayModelMap[key] = {
+                cabang: cabang,
+                model: model,
+                ready: 0,
+                terjual: 0,
+                total: 0
+            };
+        }
+
+        displayModelMap[key].total++;
+        if (d.status === 'Terjual') {
+            displayModelMap[key].terjual++;
+        } else {
+            displayModelMap[key].ready++;
+        }
+    });
+
+    const displayModelsBreakdown = Object.values(displayModelMap).sort((a, b) => {
+        if (a.cabang !== b.cabang) {
+            return a.cabang === 'Monumen Emmy Saelan' ? -1 : 1;
+        }
+        return a.model.localeCompare(b.model);
+    });
+
+    // 5. MONITORING INVENTARIS UNIT PENYEWAAN (WHITELIST: HANYA TERSEDIA, DISEWA, STAF)
+    // Saring di awal: Buang semua status Hilang, Maintenance, Rusak, Terjual
+    const activeLaptops = (masterLaptopAll || []).filter(l => {
+        const st = (l?.status || '').trim().toLowerCase();
+        return st === 'tersedia' || st === 'disewa' || st === 'staf';
+    });
+
+    const sewaModelMap = {};
+    activeLaptops.forEach(l => {
+        const cabang = (l.cabang || '').toLowerCase().includes('perintis') ? 'Perintis' : 'Monumen Emmy Saelan';
+        const model = `${l.merk || ''} ${l.tipe || ''}`.trim() || 'Model Tidak Diketahui';
+        const key = `${cabang}___${model}`;
+
+        if (!sewaModelMap[key]) {
+            sewaModelMap[key] = {
+                cabang: cabang,
+                model: model,
+                ready: 0,
+                disewa: 0,
+                staf: 0,
+                total: 0
+            };
+        }
+
+        sewaModelMap[key].total++;
+        const st = (l.status || '').trim();
+        if (st === 'Tersedia') sewaModelMap[key].ready++;
+        else if (st === 'Disewa') sewaModelMap[key].disewa++;
+        else if (st === 'Staf') sewaModelMap[key].staf++;
+    });
+
+    const sewaModelsBreakdown = Object.values(sewaModelMap).sort((a, b) => {
+        if (a.cabang !== b.cabang) {
+            return a.cabang === 'Monumen Emmy Saelan' ? -1 : 1;
+        }
+        return a.model.localeCompare(b.model);
+    });
+
+    // 6. KETERSEDIAAN ASET UNIT PENYEWAAN & DISPLAY (RINGKASAN TOTAL AKTIF PER CABANG)
     const asetBreakdown = branches.map(b => {
-        const lapList = masterLaptopAll.filter(l => (l.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !l.cabang));
-        const dispList = displayList.filter(d => (d.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !d.cabang));
+        const lapList = activeLaptops.filter(l => (l.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !l.cabang));
+        const dispList = (displayList || []).filter(d => (d.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !d.cabang));
 
         return {
             cabang: b,
             gudangReady: lapList.filter(l => l.status === 'Tersedia').length,
             gudangSewa: lapList.filter(l => l.status === 'Disewa').length,
-            gudangMaint: lapList.filter(l => l.status === 'Maintenance').length,
             gudangStaf: lapList.filter(l => l.status === 'Staf').length,
             displayReady: dispList.filter(d => d.status === 'Ready' || !d.status).length,
             displaySold: dispList.filter(d => d.status === 'Terjual').length
         };
     });
 
-    // 4. Monitoring Proyek CCTV (Baru)
-    const cctvBreakdown = branches.map(b => {
-        const list = cctvList.filter(c => (c.cabang || '').toLowerCase().includes(b.toLowerCase()) || (b === "Monumen Emmy Saelan" && !c.cabang));
-        const totalKamera = list.reduce((sum, item) => sum + (Number(item.jumlah_cctv) || 0), 0);
-        return {
-            cabang: b,
-            total: list.length,
-            survei: list.filter(c => c.status === 'Survei').length,
-            pengerjaan: list.filter(c => c.status === 'Pengerjaan').length,
-            selesai: list.filter(c => c.status === 'Selesai' || c.status === 'Selesai / Serah Terima').length,
-            totalKamera: totalKamera
-        };
+    // 7. REKAPITULASI MEREK LAPTOP / PERANGKAT SERVISAN (3 KOLOM BERSIH)
+    function extractServiceBrand(perangkatStr) {
+        if (!perangkatStr) return 'Lainnya';
+        const clean = perangkatStr.trim().toLowerCase();
+        if (clean.includes('lenovo') || clean.includes('thinkpad') || clean.includes('ideapad') || clean.includes('legion')) return 'Lenovo';
+        if (clean.includes('asus') || clean.includes('rog') || clean.includes('tuf') || clean.includes('zenbook') || clean.includes('vivobook')) return 'Asus';
+        if (clean.includes('acer') || clean.includes('predator') || clean.includes('nitro') || clean.includes('aspire') || clean.includes('swift')) return 'Acer';
+        if (clean.includes('hp') || clean.includes('pavilion') || clean.includes('omen') || clean.includes('victus') || clean.includes('elitebook') || clean.includes('probook')) return 'HP';
+        if (clean.includes('apple') || clean.includes('macbook') || clean.includes('mac') || clean.includes('imac')) return 'Apple / MacBook';
+        if (clean.includes('dell') || clean.includes('latitude') || clean.includes('inspiron') || clean.includes('vostro') || clean.includes('alienware')) return 'Dell';
+        if (clean.includes('msi')) return 'MSI';
+        if (clean.includes('axioo')) return 'Axioo';
+        if (clean.includes('toshiba') || clean.includes('dynabook')) return 'Toshiba';
+        if (clean.includes('fujitsu')) return 'Fujitsu';
+        if (clean.includes('samsung')) return 'Samsung';
+        if (clean.includes('epson') || clean.includes('canon') || clean.includes('brother')) return 'Printer';
+        if (clean.includes('pc') || clean.includes('rakitan') || clean.includes('aio') || clean.includes('desktop')) return 'PC Desktop';
+        
+        const firstWord = perangkatStr.trim().split(' ')[0];
+        if (firstWord && firstWord.length >= 2) {
+            return firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
+        }
+        return 'Lainnya';
+    }
+
+    const serviceBrandMap = {};
+    (servicesList || []).forEach(s => {
+        const cabang = (s.cabang || '').toLowerCase().includes('perintis') ? 'Perintis' : 'Monumen Emmy Saelan';
+        const brand = extractServiceBrand(s.perangkat || '');
+        const key = `${cabang}___${brand}`;
+
+        if (!serviceBrandMap[key]) {
+            serviceBrandMap[key] = {
+                cabang: cabang,
+                brand: brand,
+                total: 0
+            };
+        }
+        serviceBrandMap[key].total++;
     });
 
-    // 5. Monitoring Lisensi Office (Baru)
-    const servers = (officeList || []).filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'utama');
-    const members = (officeList || []).filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota');
-    let filledSlots = 0;
-    servers.forEach(srv => {
-        const srvEmail = srv?.akun || '';
-        filledSlots += members.filter(it => (it?.server_utama || '') === srvEmail).length;
+    const servicesBrandsBreakdown = Object.values(serviceBrandMap).sort((a, b) => {
+        if (a.cabang !== b.cabang) {
+            return a.cabang === 'Monumen Emmy Saelan' ? -1 : 1;
+        }
+        return b.total - a.total; // Urutkan dari jumlah unit terbanyak
     });
-    const totalCapacity = servers.length * 5;
-    const officeSummary = {
-        totalServers: servers.length,
-        totalMembersPeriode: members.length,
-        filledSlots: `${filledSlots} / ${totalCapacity}`,
-        freeSlots: Math.max(0, totalCapacity - filledSlots)
-    };
 
+    // RETURN KESELURUHAN 7 DATA RINGKASAN
     return {
         servicesBreakdown,
+        teknisiBreakdown,
         penyewaanBreakdown,
+        displayModelsBreakdown,
+        sewaModelsBreakdown,
         asetBreakdown,
-        cctvBreakdown,
-        officeSummary
+        servicesBrandsBreakdown
     };
 }
-
 /**
  * Format label periode untuk rentang tanggal
  */
@@ -530,11 +695,10 @@ window.executeGoogleSheetsSync = async function() {
             servicesFiltered = filterDataByDateRange(cloud.services || [], startDate, endDate, 'tanggal');
             sewaFiltered = filterDataByDateRange(cloud.penyewaan || [], startDate, endDate, 'tgl_mulai');
             cctvFiltered = filterDataByDateRange(cloud.cctv || [], startDate, endDate, 'tanggal');
-            displayFiltered = filterDataByDateRange(cloud.laptop_display || [], startDate, endDate, 'tanggal')
-                .map(item => ({
-                    ...item,
-                    spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
-                }));
+            displayFiltered = (cloud.laptop_display || []).map(item => ({
+                ...item,
+                spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
+            }));
 
             const officeMembersFiltered = filterDataByDateRange(
                 rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
@@ -554,11 +718,10 @@ window.executeGoogleSheetsSync = async function() {
             servicesFiltered = filterDataByMonth(cloud.services || [], selYear, selMonth, 'tanggal');
             sewaFiltered = filterDataByMonth(cloud.penyewaan || [], selYear, selMonth, 'tgl_mulai');
             cctvFiltered = filterDataByMonth(cloud.cctv || [], selYear, selMonth, 'tanggal');
-            displayFiltered = filterDataByMonth(cloud.laptop_display || [], selYear, selMonth, 'tanggal')
-                .map(item => ({
-                    ...item,
-                    spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
-                }));
+            displayFiltered = (cloud.laptop_display || []).map(item => ({
+                ...item,
+                spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
+            }));
 
             const officeMembersFiltered = filterDataByMonth(
                 rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
