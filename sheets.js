@@ -97,25 +97,41 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
-    // 2. MONITORING KECEPATAN SERVISAN & TEKNISI (HANYA UNTUK TEKNISI AKTIF)
+    // =========================================================================
+    // 2. MONITORING KECEPATAN SERVISAN & TEKNISI (LENGKAP: PROSES, VENDOR, KONFIRMASI, CANCEL)
+    // =========================================================================
     const teknisiMap = {};
     (servicesList || []).forEach(s => {
         const rawTeknisi = (s.teknisi || '').trim();
 
-        // JIKA TEKNISI MASIH KOSONG / '-' / 'BELUM DITENTUKAN', LANGSUNG LEWATI (SKIP)
-        if (!rawTeknisi || rawTeknisi === '-' || rawTeknisi.toLowerCase().includes('belum')) {
+        // 1. Validasi Teknisi: Lewati jika kosong, '-', 'Belum Ditentukan', atau 'None'
+        if (
+            !rawTeknisi || 
+            rawTeknisi === '-' || 
+            rawTeknisi.toLowerCase().includes('belum') || 
+            rawTeknisi.toLowerCase() === 'none'
+        ) {
             return; 
         }
 
         const namaTeknisi = rawTeknisi;
+        const status = (s.status || '').trim();
+
+        // 2. Abaikan HANYA status 'Antrean' (karena baru masuk toko & belum mulai disentuh teknisi)
+        if (status === 'Antrean' || status === '') {
+            return;
+        }
 
         if (!teknisiMap[namaTeknisi]) {
             teknisiMap[namaTeknisi] = {
                 teknisi: namaTeknisi,
-                cepat: 0,       // <= 1 Hari
-                standar: 0,     // 2 - 3 Hari
-                lama: 0,        // > 3 Hari
-                masihProses: 0, // Antrean, Proses, Oper Vendor, Tunggu Konfirmasi
+                cepat: 0,        // Selesai <= 1 Hari
+                standar: 0,      // Selesai 2 - 3 Hari
+                lama: 0,         // Selesai > 3 Hari
+                proses: 0,       // Murni sedang dikerjakan di meja
+                vendor: 0,       // Oper Vendor luar
+                konfirmasi: 0,   // Tunggu konfirmasi pelanggan
+                cancel: 0,       // Batal servis
                 totalHariSelesai: 0,
                 jumlahSelesai: 0,
                 totalUnit: 0
@@ -123,11 +139,10 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         }
 
         const tekData = teknisiMap[namaTeknisi];
-        tekData.totalUnit++;
 
-        const status = (s.status || '').trim();
-
+        // 3. Klasifikasi Status & Penambahan Beban Kerja Teknisi
         if (status === 'Selesai') {
+            tekData.totalUnit++;
             const dMasuk = parseDate(s.tanggal);
             const dSelesai = parseDate(s.tgl_selesai) || dMasuk;
 
@@ -147,8 +162,18 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
             } else {
                 tekData.lama++;
             }
-        } else if (['Antrean', 'Proses', 'Oper Vendor', 'Tunggu Konfirmasi'].includes(status)) {
-            tekData.masihProses++;
+        } else if (status === 'Proses') {
+            tekData.totalUnit++;
+            tekData.proses++;
+        } else if (status === 'Oper Vendor') {
+            tekData.totalUnit++;
+            tekData.vendor++;
+        } else if (status === 'Tunggu Konfirmasi') {
+            tekData.totalUnit++;
+            tekData.konfirmasi++;
+        } else if (status === 'Cancel') {
+            tekData.totalUnit++;
+            tekData.cancel++;
         }
     });
 
@@ -162,11 +187,37 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
             cepat: t.cepat,
             standar: t.standar,
             lama: t.lama,
-            masihProses: t.masihProses,
+            proses: t.proses,
+            vendor: t.vendor,
+            konfirmasi: t.konfirmasi,
+            cancel: t.cancel,
             rataRata: rataRata,
             totalUnit: t.totalUnit
         };
     }).sort((a, b) => b.totalUnit - a.totalUnit);
+
+    // =========================================================================
+    // 2.1 DAFTAR SELURUH UNIT SERVISAN PER TEKNISI (PILIHAN B)
+    // =========================================================================
+    const validTeknisiServices = (servicesList || [])
+        .filter(s => {
+            const rawTeknisi = (s.teknisi || '').trim();
+            const status = (s.status || '').trim();
+            return (
+                rawTeknisi && 
+                rawTeknisi !== '-' && 
+                !rawTeknisi.toLowerCase().includes('belum') && 
+                rawTeknisi.toLowerCase() !== 'none' &&
+                status !== 'Antrean' && 
+                status !== ''
+            );
+        })
+        .sort((a, b) => {
+            const tekA = (a.teknisi || '').trim();
+            const tekB = (b.teknisi || '').trim();
+            if (tekA !== tekB) return tekA.localeCompare(tekB); // Dikelompokkan per nama teknisi A-Z
+            return (b.id || 0) - (a.id || 0); // Unit terbaru di atas
+        });
 
     // 3. MONITORING TRANSAKSI PENYEWAAN (PER CABANG)
     const penyewaanBreakdown = branches.map(b => {
@@ -318,10 +369,11 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         return b.total - a.total; // Urutkan dari jumlah unit terbanyak
     });
 
-    // RETURN KESELURUHAN 7 DATA RINGKASAN
+    // RETURN KESELURUHAN 8 DATA RINGKASAN
     return {
         servicesBreakdown,
         teknisiBreakdown,
+        teknisiServicesList: validTeknisiServices,
         penyewaanBreakdown,
         displayModelsBreakdown,
         sewaModelsBreakdown,
