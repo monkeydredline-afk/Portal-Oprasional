@@ -34,6 +34,12 @@ export async function updateDisplayStatus(displayKey, newStatus) {
     const displayRef = ref(db, `laptop_display/${displayKey}`);
     try {
         await update(displayRef, { status: newStatus });
+        // Perbarui juga cache memori lokal seketika agar tidak perlu menunggu jeda listener
+        const displays = window.globalDataCloud?.laptop_display || [];
+        const target = displays.find(d => d._firebaseKey === displayKey);
+        if (target) {
+            target.status = newStatus;
+        }
     } catch (err) {
         console.error(`Gagal memperbarui status laptop display ${displayKey}:`, err);
     }
@@ -382,15 +388,34 @@ export function updateLogPenjualan(firebaseKey, updatedData, targetItem, btnUpda
     const targetRef = ref(db, `log_penjualan/${firebaseKey}`);
     update(targetRef, updatedData)
         .then(async () => {
-            // Sinkronisasi penyesuaian selisih stok produk & status laptop display (lama vs baru)
+            // 1. Sinkronisasi status laptop display & stok katalog (unit lama lepas jadi Ready, unit baru jadi Terjual)
             const oldItems = targetItem.items_terjual || [];
             const newItems = updatedData.items_terjual || [];
             await syncSaleItemsStatusAndStock(oldItems, newItems, false);
 
-            if (window.logActivity) {
-                window.logActivity('Ubah', 'log_penjualan', `Memperbarui transaksi penjualan ID: ${targetItem.id} (${updatedData.no_ref}).`);
+            // 2. Perbarui cache data transaksi lokal
+            if (window.globalDataCloud?.log_penjualan) {
+                const idx = window.globalDataCloud.log_penjualan.findIndex(it => it._firebaseKey === firebaseKey);
+                if (idx !== -1) {
+                    window.globalDataCloud.log_penjualan[idx] = {
+                        ...window.globalDataCloud.log_penjualan[idx],
+                        ...updatedData
+                    };
+                }
             }
-            if (window.showToast) window.showToast("Transaksi penjualan berhasil diperbarui!");
+
+            // 3. Catat di audit log aktivitas dengan menyertakan keterangan penukaran jika ada
+            if (window.logActivity) {
+                let activityDetail = `Memperbarui transaksi penjualan ID: ${targetItem.id} (${updatedData.no_ref}). Total: Rp ${Number(updatedData.total_bayar || 0).toLocaleString('id-ID')}.`;
+                if (updatedData.catatan && updatedData.catatan.trim()) {
+                    activityDetail += ` Catatan/Penukaran: ${updatedData.catatan.replace(/\n+/g, ' ')}`;
+                }
+                window.logActivity('Ubah', 'log_penjualan', activityDetail);
+            }
+
+            // 4. Segarkan tabel utama agar perubahan terlihat seketika
+            if (window.renderTable) window.renderTable();
+            if (window.showToast) window.showToast("Transaksi berhasil diperbarui & status unit disinkronkan!", "success");
             if (window.closeEditModal) window.closeEditModal();
         })
         .catch(err => {

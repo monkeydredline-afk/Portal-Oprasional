@@ -78,6 +78,49 @@ function filterDataByDateRange(dataArray, startDate, endDate, dateField = 'tangg
 }
 
 /**
+ * Filter Cerdas Display: Memisahkan Ready Lama (sebelum periode) & Unit Selesai Cek di Periode Ini
+ */
+function filterDisplayByDateRange(displayArray, startDate, endDate) {
+    const result = [];
+    (displayArray || []).forEach(item => {
+        if (!item) return;
+        const tglCekStr = item.tgl_selesai_cek;
+        // Lewati jika belum dicek / tanggal kosong / tanda strip
+        if (!tglCekStr || tglCekStr === '-' || tglCekStr.trim() === '') return;
+
+        const d = parseDate(tglCekStr);
+        if (!d) return; // Tanggal tidak valid, lewati
+
+        const status = (item.status || 'Ready').trim();
+        const isReady = (status === 'Ready');
+        const isTerjual = (status === 'Terjual');
+        const isGudang = (status === 'Gudang' || status === 'Rusak' || status === 'Maintenance');
+
+        // KASUS 1: Dicek SEBELUM rentang tanggal & saat ini masih READY di etalase
+        if (d < startDate && isReady) {
+            result.push({
+                ...item,
+                _displayCategory: 'ready_lama',
+                spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
+            });
+        }
+        // KASUS 2: Selesai dicek DI DALAM rentang tanggal laporan
+        else if (d >= startDate && d <= endDate) {
+            let cat = 'ready_baru';
+            if (isTerjual) cat = 'terjual';
+            else if (isGudang) cat = 'gudang';
+
+            result.push({
+                ...item,
+                _displayCategory: cat,
+                spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
+            });
+        }
+    });
+    return result;
+}
+
+/**
  * Membangun Ringkasan Eksekutif 7 Tabel Lengkap (Penyaringan Ketat Aset Aktif - Opsi A)
  */
 function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList, cctvList, officeList) {
@@ -232,13 +275,9 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
         };
     });
 
-    // 4. MONITORING INVENTARIS UNIT DISPLAY (DIURUTKAN PER CABANG LALU MODEL A-Z)
+// 4. MONITORING INVENTARIS UNIT DISPLAY (DIURUTKAN PER CABANG LALU MODEL A-Z)
     const displayModelMap = {};
     (displayList || []).forEach(d => {
-        const st = (d.status || '').trim().toLowerCase();
-        // Hanya loloskan unit display yang aktif (Ready / Terjual)
-        if (st === 'gudang' || st === 'rusak' || st === 'maintenance') return;
-
         const cabang = (d.cabang || '').toLowerCase().includes('perintis') ? 'Perintis' : 'Monumen Emmy Saelan';
         const model = `${d.merk || ''} ${d.tipe || ''}`.trim() || 'Model Tidak Diketahui';
         const key = `${cabang}___${model}`;
@@ -247,17 +286,30 @@ function buildRingkasanData(servicesList, sewaList, masterLaptopAll, displayList
             displayModelMap[key] = {
                 cabang: cabang,
                 model: model,
-                ready: 0,
+                readyLama: 0,
+                readyBaru: 0,
                 terjual: 0,
+                gudang: 0,
                 total: 0
             };
         }
 
         displayModelMap[key].total++;
-        if (d.status === 'Terjual') {
+        const cat = d._displayCategory;
+
+        if (cat === 'ready_lama') {
+            displayModelMap[key].readyLama++;
+        } else if (cat === 'ready_baru') {
+            displayModelMap[key].readyBaru++;
+        } else if (cat === 'terjual') {
             displayModelMap[key].terjual++;
+        } else if (cat === 'gudang') {
+            displayModelMap[key].gudang++;
         } else {
-            displayModelMap[key].ready++;
+            // Fallback jika tidak ada tag kategori
+            if (d.status === 'Terjual') displayModelMap[key].terjual++;
+            else if (d.status === 'Gudang') displayModelMap[key].gudang++;
+            else displayModelMap[key].readyBaru++;
         }
     });
 
@@ -747,10 +799,7 @@ window.executeGoogleSheetsSync = async function() {
             servicesFiltered = filterDataByDateRange(cloud.services || [], startDate, endDate, 'tanggal');
             sewaFiltered = filterDataByDateRange(cloud.penyewaan || [], startDate, endDate, 'tgl_mulai');
             cctvFiltered = filterDataByDateRange(cloud.cctv || [], startDate, endDate, 'tanggal');
-            displayFiltered = (cloud.laptop_display || []).map(item => ({
-                ...item,
-                spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
-            }));
+            displayFiltered = filterDisplayByDateRange(cloud.laptop_display || [], startDate, endDate);
 
             const officeMembersFiltered = filterDataByDateRange(
                 rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),
@@ -766,14 +815,15 @@ window.executeGoogleSheetsSync = async function() {
             const selMonth = Number(monthSelect.value);
             const selYear = Number(yearSelect.value);
 
+            // Tentukan awal dan akhir bulan terpilih
+            const startOfMonth = new Date(selYear, selMonth, 1, 0, 0, 0, 0);
+            const endOfMonth = new Date(selYear, selMonth + 1, 0, 23, 59, 59, 999);
+
             periodLabel = `${NAMA_BULAN_SINGKAT[selMonth]} ${selYear}`;
             servicesFiltered = filterDataByMonth(cloud.services || [], selYear, selMonth, 'tanggal');
             sewaFiltered = filterDataByMonth(cloud.penyewaan || [], selYear, selMonth, 'tgl_mulai');
             cctvFiltered = filterDataByMonth(cloud.cctv || [], selYear, selMonth, 'tanggal');
-            displayFiltered = (cloud.laptop_display || []).map(item => ({
-                ...item,
-                spek_singkat: compactSpecs(item.spek_singkat || item.spek, 'Laptop')
-            }));
+            displayFiltered = filterDisplayByDateRange(cloud.laptop_display || [], startOfMonth, endOfMonth);
 
             const officeMembersFiltered = filterDataByMonth(
                 rawOffice.filter(i => (i?.tipe_akun || '').toString().toLowerCase() === 'anggota'),

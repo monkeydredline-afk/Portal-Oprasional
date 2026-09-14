@@ -476,7 +476,8 @@ function handleUpdateSubmit(e) {
                 tanggal: targetItem.tanggal || '',
                 no_ref: targetItem.no_ref || '',
                 total_bayar: totalBayar,
-                items_terjual: itemsTerjual
+                items_terjual: itemsTerjual,
+                catatan: document.getElementById('edit-catatan_penjualan')?.value || ''
             };
             window.updateLogPenjualan(firebaseKey, compiledPenjualanData, targetItem, btnUpdate, originalText);
         } else {

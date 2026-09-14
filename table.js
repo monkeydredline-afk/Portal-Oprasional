@@ -7,6 +7,9 @@ import { parseDate, formatDateForInput } from './utils.js';
 
 let activeBahanJasaTicketKey = ''; // Menyimpan kunci tiket aktif untuk penambahan bahan/jasa
 window.editSelectedPenjualanItems = []; // Array temporer item terjual saat proses edit transaksi
+window.activeSwapItemIndex = null; // Menyimpan index item yang sedang ingin ditukar
+window.editOriginalPenjualanItems = []; // Menyimpan salinan item asli sebelum ditukar
+window.editOriginalPenjualanTotal = 0; // Menyimpan total bayar awal untuk hitung selisih
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -827,35 +830,82 @@ function openEditModal(firebaseKey) {
             <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Tambahan</label><input type="text" id="edit-catatan" value="${targetItem.catatan || ''}" class="w-full border p-2 text-sm rounded-lg"></div>
         `;
     } else if (window.currentTab === 'log_penjualan') {
+        // Salin item dan total asli untuk perbandingan selisih penukaran
         window.editSelectedPenjualanItems = targetItem.items_terjual ? targetItem.items_terjual.map(it => ({ ...it })) : [];
+        window.editOriginalPenjualanItems = JSON.parse(JSON.stringify(window.editSelectedPenjualanItems));
+        window.editOriginalPenjualanTotal = Number(targetItem.total_bayar) || 0;
+        window.activeSwapItemIndex = null;
+
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label><input type="text" id="edit-nama_pembeli" value="${targetItem.nama_pembeli || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label><input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${targetItem.no_wa || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div class="md:col-span-2 space-y-1.5 border-t border-slate-200 pt-3 mt-1">
-                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Rincian Item Penjualan</label>
-                <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-lg max-h-48 overflow-y-auto custom-table-scrollbar">
-                    ${(targetItem.items_terjual || []).map((it, idx) => `
-                        <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 last:border-0">
-                            <div>
-                                <span class="font-bold text-slate-800">${escapeHtml(it.name)}</span>
-                                ${it.kode ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-black rounded border border-purple-200 ml-1">${escapeHtml(it.kode)}</span>` : ''}
-                                ${it.sn ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 text-[10px] font-mono font-extrabold rounded border border-slate-200 ml-1">SN: ${escapeHtml(it.sn)}</span>` : ''}
-                                <span class="block text-[11px] text-slate-500 font-mono">Rp ${Number(it.price).toLocaleString('id-ID')}</span>
-                            </div>
-                            <div class="flex items-center space-x-1">
-                                ${(it.isDisplay || it.sn) ? `
-                                    <span class="text-[10px] font-bold px-2 py-1 bg-slate-200 text-slate-700 rounded font-mono">1 Unit (SN Terkunci)</span>
-                                ` : `
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase mr-1">Qty</span>
-                                    <input type="number" min="1" id="edit-sale-qty-${idx}" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-14 border border-gray-300 rounded p-1 text-center font-bold bg-white focus:ring-1 focus:ring-cyan-500 focus:outline-none">
-                                `}
-                            </div>
-                        </div>
-                    `).join('')}
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pembeli</label>
+                <input type="text" id="edit-nama_pembeli" value="${escapeHtml(targetItem.nama_pembeli || '')}" required class="w-full border p-2 text-sm rounded-lg bg-white">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">No. WhatsApp</label>
+                <input type="tel" id="edit-no_wa" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${escapeHtml(targetItem.no_wa || '')}" required class="w-full border p-2 text-sm rounded-lg bg-white">
+            </div>
+
+            <!-- Wadah Daftar Barang yang Terjual -->
+            <div class="md:col-span-2 space-y-2 border-t border-slate-200 pt-3 mt-1">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">Rincian Item & Penukaran Unit</label>
+                    <span class="text-[11px] text-slate-400 italic">Klik tombol "Tukar Unit" jika ingin menukar barang</span>
+                </div>
+
+                <div id="edit-penjualan-items-container" class="space-y-2 bg-slate-50 border p-3 rounded-xl max-h-56 overflow-y-auto custom-table-scrollbar">
+                    <!-- Daftar baris item akan di-render dinamis oleh window.renderEditPenjualanItemsList() -->
+                </div>
+
+                <!-- Panel Pemilihan Unit Pengganti (Muncul saat tombol Tukar Unit diklik) -->
+                <div id="swap-unit-picker-container" class="hidden border-2 border-dashed border-purple-300 bg-purple-50/40 p-3 rounded-xl space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-purple-200/60 pb-1.5">
+                        <span class="text-xs font-extrabold text-purple-900" id="swap-picker-title">
+                            <i class="fa-solid fa-arrows-rotate mr-1"></i> Pilih Unit Pengganti
+                        </span>
+                        <button type="button" onclick="window.closeSwapUnitPicker()" class="text-xs text-slate-400 hover:text-rose-600 font-bold px-2 py-0.5 rounded transition">
+                            <i class="fa-solid fa-xmark"></i> Batal Tukar
+                        </button>
+                    </div>
+
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-purple-400 text-xs"></i>
+                        <input type="text" id="search-swap-unit" oninput="window.filterSwapUnitList()" placeholder="Cari Kode #, SN, Merk, atau Nama Produk Ready..." class="w-full pl-8 pr-4 py-1.5 border border-purple-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                    </div>
+
+                    <div id="swap-unit-options-list" class="space-y-1.5 max-h-44 overflow-y-auto custom-table-scrollbar pr-1">
+                        <!-- Pilihan laptop display Ready / produk akan dimuat di sini -->
+                    </div>
+                </div>
+
+                <!-- Ringkasan Total Bayar & Selisih Harga Real-time -->
+                <div class="p-3 bg-slate-100 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-500 uppercase">Total Transaksi Diperbarui</span>
+                        <span id="edit-penjualan-total-display" class="text-base font-black text-emerald-700 font-mono">Rp 0</span>
+                    </div>
+                    <div id="edit-penjualan-selisih-badge" class="hidden px-2.5 py-1 rounded-lg text-xs font-bold font-mono">
+                        <!-- Info selisih harga (Kurang bayar / Kembalian) -->
+                    </div>
                 </div>
             </div>
+
+            <!-- Kolom Catatan / Keterangan Transaksi & Penukaran -->
+            <div class="md:col-span-2 space-y-1">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-700 uppercase">Catatan / Keterangan Penukaran Unit</label>
+                    <span class="text-[10px] text-slate-400 italic">Otomatis terisi saat tukar unit & bisa diedit manual</span>
+                </div>
+                <textarea id="edit-catatan_penjualan" rows="3" placeholder="Contoh: Tukar unit laptop karena pembeli menginginkan spesifikasi lebih tinggi..." class="w-full border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white font-sans leading-relaxed">${escapeHtml(targetItem.catatan || '')}</textarea>
+            </div>
         `;
+
+        // Render daftar item dan hitung total pertama kali modal dibuka
+        setTimeout(() => {
+            if (window.renderEditPenjualanItemsList) window.renderEditPenjualanItemsList();
+        }, 50);
+
     } else if (window.currentTab === 'cctv') {
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
@@ -2064,11 +2114,269 @@ window.removeBahanJasaFromTicket = function(ticketKey, index) {
     });
 };
 
+// Memperbarui kuantitas produk katalog umum pada modal edit
 window.updateEditSaleQty = function(idx, val) {
     if (window.editSelectedPenjualanItems && window.editSelectedPenjualanItems[idx]) {
         window.editSelectedPenjualanItems[idx].qty = Math.max(1, Number(val) || 1);
         window.editSelectedPenjualanItems[idx].subtotal = window.editSelectedPenjualanItems[idx].qty * window.editSelectedPenjualanItems[idx].price;
+        if (window.renderEditPenjualanItemsList) window.renderEditPenjualanItemsList(false);
     }
+};
+
+// Merender daftar item di dalam modal edit + memperbarui total bayar & selisih
+window.renderEditPenjualanItemsList = function(autoUpdateNotes = true) {
+    const container = document.getElementById('edit-penjualan-items-container');
+    const totalDisplay = document.getElementById('edit-penjualan-total-display');
+    const selisihBadge = document.getElementById('edit-penjualan-selisih-badge');
+    const catatanInput = document.getElementById('edit-catatan_penjualan');
+    if (!container) return;
+
+    const items = window.editSelectedPenjualanItems || [];
+    let currentTotal = 0;
+
+    let html = '';
+    items.forEach((it, idx) => {
+        const itemSubtotal = (Number(it.qty) || 1) * (Number(it.price) || 0);
+        currentTotal += itemSubtotal;
+        const isLaptopDisplay = it.isDisplay === true || !!it.sn;
+
+        html += `
+            <div class="flex items-center justify-between text-xs py-2 px-2.5 bg-white border border-slate-200 rounded-lg shadow-xs hover:border-purple-300 transition">
+                <div class="flex-1 pr-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-extrabold text-slate-800">${isLaptopDisplay ? '💻' : '📦'} ${escapeHtml(it.name)}</span>
+                        ${it.kode ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-black rounded border border-purple-200">${escapeHtml(it.kode)}</span>` : ''}
+                        ${it.sn ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 text-[10px] font-mono font-extrabold rounded border border-slate-200">SN: ${escapeHtml(it.sn)}</span>` : ''}
+                    </div>
+                    <span class="block text-[11px] text-slate-500 font-mono mt-0.5">
+                        Harga: <strong class="text-emerald-700">Rp ${Number(it.price).toLocaleString('id-ID')}</strong>
+                        ${!isLaptopDisplay ? ` (Subtotal: Rp ${itemSubtotal.toLocaleString('id-ID')})` : ''}
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    ${!isLaptopDisplay ? `
+                        <div class="flex items-center space-x-1">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase">Qty</span>
+                            <input type="number" min="1" value="${it.qty}" onchange="window.updateEditSaleQty(${idx}, this.value)" class="w-12 border border-gray-300 rounded p-1 text-center font-bold bg-white focus:ring-1 focus:ring-cyan-500 focus:outline-none">
+                        </div>
+                    ` : ''}
+
+                    <button type="button" onclick="window.openSwapUnitPicker(${idx})" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs" title="Tukar dengan unit lain yang Ready">
+                        <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                        <span>Tukar Unit</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html || `<p class="text-xs text-slate-400 italic text-center py-2">Tidak ada item</p>`;
+
+    // Perbarui display total bayar
+    if (totalDisplay) {
+        totalDisplay.innerText = `Rp ${currentTotal.toLocaleString('id-ID')}`;
+    }
+
+    // Hitung selisih harga terhadap transaksi awal
+    const originalTotal = window.editOriginalPenjualanTotal || 0;
+    const selisih = currentTotal - originalTotal;
+
+    if (selisihBadge) {
+        if (selisih > 0) {
+            selisihBadge.className = "px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono bg-amber-100 text-amber-800 border border-amber-200";
+            selisihBadge.innerText = `Kurang Bayar: + Rp ${selisih.toLocaleString('id-ID')}`;
+            selisihBadge.classList.remove('hidden');
+        } else if (selisih < 0) {
+            selisihBadge.className = "px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono bg-blue-100 text-blue-800 border border-blue-200";
+            selisihBadge.innerText = `Kembalian Toko: - Rp ${Math.abs(selisih).toLocaleString('id-ID')}`;
+            selisihBadge.classList.remove('hidden');
+        } else {
+            selisihBadge.classList.add('hidden');
+        }
+    }
+};
+
+// Membuka panel pencarian unit pengganti
+window.openSwapUnitPicker = function(itemIndex) {
+    window.activeSwapItemIndex = itemIndex;
+    const pickerContainer = document.getElementById('swap-unit-picker-container');
+    const titleEl = document.getElementById('swap-picker-title');
+    const searchInput = document.getElementById('search-swap-unit');
+    if (!pickerContainer) return;
+
+    const currentItem = window.editSelectedPenjualanItems[itemIndex];
+    if (titleEl && currentItem) {
+        titleEl.innerHTML = `<i class="fa-solid fa-arrows-rotate mr-1"></i> Menukar: <span class="underline">${escapeHtml(currentItem.name)} ${currentItem.kode ? '(' + escapeHtml(currentItem.kode) + ')' : ''}</span>`;
+    }
+
+    if (searchInput) searchInput.value = '';
+    pickerContainer.classList.remove('hidden');
+    window.renderSwapUnitOptions('');
+};
+
+// Menutup panel pencarian unit pengganti
+window.closeSwapUnitPicker = function() {
+    window.activeSwapItemIndex = null;
+    const pickerContainer = document.getElementById('swap-unit-picker-container');
+    if (pickerContainer) pickerContainer.classList.add('hidden');
+};
+
+// Filter saat mengetik di kolom pencarian panel unit pengganti
+window.filterSwapUnitList = function() {
+    const searchInput = document.getElementById('search-swap-unit');
+    const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    window.renderSwapUnitOptions(q);
+};
+
+// Merender opsi unit Ready di cabang yang bersangkutan
+window.renderSwapUnitOptions = function(query = '') {
+    const listContainer = document.getElementById('swap-unit-options-list');
+    const editCabangEl = document.getElementById('edit-cabang');
+    if (!listContainer) return;
+
+    const branch = editCabangEl ? editCabangEl.value : '';
+
+    let displays = window.globalDataCloud['laptop_display'] || [];
+    let products = window.globalDataCloud['katalog_produk'] || [];
+
+    if (branch) {
+        displays = displays.filter(d => d.cabang === branch);
+        products = products.filter(p => p.cabang === branch);
+    }
+
+    // Hanya ambil unit display yang Ready dan bukan unit yang saat ini sedang ada di keranjang transaksi
+    const currentSelectedKeys = (window.editSelectedPenjualanItems || []).map(it => it._displayKey || it._itemKey || it.itemKey);
+    const readyDisplays = displays.filter(d => (d.status === 'Ready' || !d.status) && !currentSelectedKeys.includes(d._firebaseKey));
+
+    // Petakan display
+    const mappedDisplays = readyDisplays.map(d => ({
+        _firebaseKey: d._firebaseKey,
+        isDisplay: true,
+        kode: d.kode || '#-',
+        name: `${d.merk || ''} ${d.tipe || ''}`.trim() || 'Laptop Display',
+        sn: d.sn || 'Tanpa SN',
+        price: Number(d.harga_jual) || 0,
+        spec: (d.spek_singkat || d.spek || '').replace(/\n/g, ' | ')
+    }));
+
+    // Petakan produk dengan stok > 0
+    const availableProducts = products.filter(p => (Number(p.stok) || 0) > 0).map(p => ({
+        _firebaseKey: p._firebaseKey,
+        isDisplay: false,
+        kode: '',
+        name: p.nama_barang || 'Produk',
+        sn: '',
+        price: Number(p.harga_jual) || 0,
+        spec: `Stok: ${p.stok} ${p.satuan || 'Pcs'}`
+    }));
+
+    const unified = [...mappedDisplays, ...availableProducts];
+    const filtered = unified.filter(item => {
+        const target = `${item.kode} ${item.name} ${item.sn} ${item.spec}`.toLowerCase();
+        return target.includes(query);
+    });
+
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4 bg-white rounded-lg border">Tidak ada unit Ready yang cocok di cabang ini</p>`;
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(item => {
+        html += `
+            <div onclick="window.selectSwapReplacement('${item._firebaseKey}', ${item.isDisplay})" 
+                 class="flex items-center justify-between p-2.5 bg-white border border-slate-200 hover:border-purple-400 hover:bg-purple-50/30 rounded-lg cursor-pointer transition text-xs shadow-xs">
+                <div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-extrabold text-slate-800">${item.isDisplay ? '💻' : '📦'} ${escapeHtml(item.name)}</span>
+                        ${item.kode ? `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 text-[10px] font-mono font-black rounded border border-purple-200">${escapeHtml(item.kode)}</span>` : ''}
+                        ${item.sn ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 text-[10px] font-mono font-extrabold rounded border border-slate-200">SN: ${escapeHtml(item.sn)}</span>` : ''}
+                    </div>
+                    <span class="block text-[10.5px] text-slate-400 truncate max-w-sm mt-0.5">${escapeHtml(item.spec)}</span>
+                </div>
+                <div class="text-right shrink-0 pl-2">
+                    <span class="font-extrabold text-emerald-700 font-mono text-xs block">Rp ${item.price.toLocaleString('id-ID')}</span>
+                    <span class="text-[10px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 inline-block mt-0.5">Pilih Ini ➔</span>
+                </div>
+            </div>
+        `;
+    });
+
+    listContainer.innerHTML = html;
+};
+
+// Mengeksekusi penggantian item di array sementara dan menyusun draf catatan
+window.selectSwapReplacement = function(newKey, isDisplay) {
+    if (window.activeSwapItemIndex === null) return;
+    const idx = window.activeSwapItemIndex;
+    const oldItem = window.editSelectedPenjualanItems[idx];
+    if (!oldItem) return;
+
+    let newItemObj = null;
+
+    if (isDisplay) {
+        const displays = window.globalDataCloud['laptop_display'] || [];
+        const d = displays.find(item => item._firebaseKey === newKey);
+        if (!d) return;
+        newItemObj = {
+            _itemKey: newKey,
+            _displayKey: newKey,
+            _productKey: null,
+            isDisplay: true,
+            name: `${d.merk || ''} ${d.tipe || ''}`.trim() || 'Laptop Display',
+            kode: d.kode || '#-',
+            sn: d.sn || 'Tanpa SN',
+            qty: 1,
+            price: Number(d.harga_jual) || 0,
+            subtotal: Number(d.harga_jual) || 0
+        };
+    } else {
+        const products = window.globalDataCloud['katalog_produk'] || [];
+        const p = products.find(item => item._firebaseKey === newKey);
+        if (!p) return;
+        newItemObj = {
+            _itemKey: newKey,
+            _displayKey: null,
+            _productKey: newKey,
+            isDisplay: false,
+            name: p.nama_barang || 'Produk',
+            kode: '',
+            sn: '',
+            qty: 1,
+            price: Number(p.harga_jual) || 0,
+            subtotal: Number(p.harga_jual) || 0
+        };
+    }
+
+    // Gantikan item di array edit
+    window.editSelectedPenjualanItems[idx] = newItemObj;
+
+    // Susun otomatis catatan riwayat penukaran di textarea
+    const catatanInput = document.getElementById('edit-catatan_penjualan');
+    if (catatanInput) {
+        const oldDesc = `${oldItem.name} ${oldItem.kode ? '[' + oldItem.kode + ']' : ''} ${oldItem.sn ? '(SN: ' + oldItem.sn + ')' : ''} [Rp ${Number(oldItem.price).toLocaleString('id-ID')}]`;
+        const newDesc = `${newItemObj.name} ${newItemObj.kode ? '[' + newItemObj.kode + ']' : ''} ${newItemObj.sn ? '(SN: ' + newItemObj.sn + ')' : ''} [Rp ${Number(newItemObj.price).toLocaleString('id-ID')}]`;
+        
+        const selisihHarga = newItemObj.price - oldItem.price;
+        let selisihInfo = '';
+        if (selisihHarga > 0) selisihInfo = ` (Kurang bayar: +Rp ${selisihHarga.toLocaleString('id-ID')})`;
+        else if (selisihHarga < 0) selisihInfo = ` (Kembalian: -Rp ${Math.abs(selisihHarga).toLocaleString('id-ID')})`;
+        else selisihInfo = ` (Harga sama)`;
+
+        const swapNote = `• Penukaran unit: ${oldDesc} ➔ ${newDesc}${selisihInfo}`;
+        
+        let existingNotes = catatanInput.value.trim();
+        if (existingNotes) {
+            catatanInput.value = `${existingNotes}\n${swapNote}`;
+        } else {
+            catatanInput.value = swapNote;
+        }
+    }
+
+    // Tutup panel pemilih unit dan render ulang daftar item
+    window.closeSwapUnitPicker();
+    window.renderEditPenjualanItemsList(false);
 };
 
 window.handleEditStatusChange = function(statusValue) {
