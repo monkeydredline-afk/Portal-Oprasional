@@ -1,7 +1,7 @@
 /* ==========================================================================
    Teknisi Portal - opname.js (Modul Stok Opname / Audit Fisik)
    ========================================================================== */
-import { db, ref, update } from './firebase-config.js';
+import { db, ref, update, push } from './firebase-config.js';
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -11,6 +11,57 @@ function escapeHtml(value) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
+
+// Mengatur ketersediaan fisik (Checkbox Kiri)
+window.toggleOpnameUnitAda = function(cb, key) {
+    const wrapKondisi = document.getElementById(`opname-kondisi-wrap-${key}`);
+    const boxCatatan = document.getElementById(`opname-catatan-box-${key}`);
+    const inputCatatan = document.getElementById(`opname-catatan-${key}`);
+
+    if (cb.checked) {
+        // Fisik Ada: Aktifkan pilihan Normal vs Bermasalah
+        if (wrapKondisi) {
+            wrapKondisi.classList.remove('opacity-40', 'pointer-events-none');
+        }
+        // Cek apakah radio saat ini bermasalah
+        const isBermasalah = document.querySelector(`input[name="kondisi_${key}"][value="Bermasalah"]`)?.checked;
+        if (isBermasalah && boxCatatan) {
+            boxCatatan.classList.remove('hidden');
+        }
+    } else {
+        // Fisik Hilang/Tidak Ada: Redupkan pilihan dan sembunyikan catatan
+        if (wrapKondisi) {
+            wrapKondisi.classList.add('opacity-40', 'pointer-events-none');
+        }
+        if (boxCatatan) {
+            boxCatatan.classList.add('hidden');
+        }
+        if (inputCatatan) {
+            inputCatatan.value = '';
+        }
+    }
+    updateOpnameCheckedCount();
+};
+
+// Mengatur pilihan kondisi Normal vs Bermasalah
+window.toggleOpnameKondisi = function(key, kondisi) {
+    const boxCatatan = document.getElementById(`opname-catatan-box-${key}`);
+    const inputCatatan = document.getElementById(`opname-catatan-${key}`);
+
+    if (kondisi === 'Bermasalah') {
+        if (boxCatatan) {
+            boxCatatan.classList.remove('hidden');
+            if (inputCatatan) inputCatatan.focus();
+        }
+    } else {
+        if (boxCatatan) {
+            boxCatatan.classList.add('hidden');
+        }
+        if (inputCatatan) {
+            inputCatatan.value = '';
+        }
+    }
+};
 
 function openOpnameModal() {
     const filterEl = document.getElementById('opname-branch-filter');
@@ -156,22 +207,57 @@ function renderOpnameItems(isFullRebuild = false) {
                     .join(' | ');
 
                 const unitIcon = (item.jenis_unit === 'Printer') ? '🖨️' : '💻';
+                const kodeUnit = item.kode_toko || item.kode || 'N/A';
 
                 html += `
-                    <label data-search-text="${escapeHtml(searchableText)}" class="flex items-start space-x-3.5 p-4 bg-white border border-slate-200 hover:border-cyan-300 hover:bg-slate-50/50 rounded-xl transition cursor-pointer text-xs shadow-sm">
-                        <input type="checkbox" name="opname_checkbox" data-key="${item._firebaseKey}" data-name="${escapeHtml(item.merk + ' ' + item.tipe)}" data-sn="${escapeHtml(item.sn)}" onchange="window.updateOpnameCheckedCount()" class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300 w-4.5 h-4.5 cursor-pointer">
-                        <div class="flex-grow space-y-2">
-                            <div class="flex items-center flex-wrap gap-1">
-                                <span class="font-extrabold text-slate-800 text-sm">${unitIcon} ${escapeHtml(item.merk)} ${escapeHtml(item.tipe)}</span>
-                                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-extrabold rounded border border-slate-200 font-mono">${escapeHtml(item.kode_toko || 'N/A')}</span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${statusBadgeColor}">${escapeHtml(item.status === 'Staf' ? 'Digunakan Staf' : item.status)}</span>
+                    <div data-search-text="${escapeHtml(searchableText)}" class="p-4 bg-white border border-slate-200 rounded-xl space-y-2.5 text-xs shadow-sm hover:border-cyan-300 transition">
+                        <div class="flex items-start space-x-3">
+                            <!-- Checkbox Fisik Ada / Hilang -->
+                            <input type="checkbox" 
+                                   name="opname_checkbox" 
+                                   data-key="${item._firebaseKey}" 
+                                   data-name="${escapeHtml(item.merk + ' ' + item.tipe)}" 
+                                   data-sn="${escapeHtml(item.sn || 'Tanpa SN')}" 
+                                   data-kode="${escapeHtml(kodeUnit)}"
+                                   data-spek="${escapeHtml(specInlineText)}"
+                                   onchange="window.toggleOpnameUnitAda(this, '${item._firebaseKey}')" 
+                                   class="mt-1 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300 w-4 h-4 cursor-pointer">
+                            
+                            <div class="flex-grow space-y-1.5">
+                                <!-- Baris Judul & Opsi Normal / Bermasalah -->
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <div class="flex items-center flex-wrap gap-1">
+                                        <span class="font-extrabold text-slate-800 text-sm">${unitIcon} ${escapeHtml(item.merk)} ${escapeHtml(item.tipe)}</span>
+                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-extrabold rounded border border-slate-200 font-mono">${escapeHtml(kodeUnit)}</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${statusBadgeColor}">${escapeHtml(item.status === 'Staf' ? 'Digunakan Staf' : item.status)}</span>
+                                    </div>
+
+                                    <!-- Opsi Ceklis Normal vs Bermasalah -->
+                                    <div id="opname-kondisi-wrap-${item._firebaseKey}" class="flex items-center gap-1.5 opacity-40 pointer-events-none transition">
+                                        <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px] font-bold cursor-pointer hover:bg-emerald-100 transition select-none">
+                                            <input type="radio" name="kondisi_${item._firebaseKey}" value="Normal" checked onchange="window.toggleOpnameKondisi('${item._firebaseKey}', 'Normal')" class="text-emerald-600 focus:ring-emerald-500">
+                                            <span>Normal 🟢</span>
+                                        </label>
+                                        <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-bold cursor-pointer hover:bg-amber-100 transition select-none">
+                                            <input type="radio" name="kondisi_${item._firebaseKey}" value="Bermasalah" onchange="window.toggleOpnameKondisi('${item._firebaseKey}', 'Bermasalah')" class="text-amber-600 focus:ring-amber-500">
+                                            <span>Bermasalah 🟡</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Baris SN & Spesifikasi -->
+                                <div class="text-[11px] text-slate-500 leading-relaxed">
+                                    <span class="font-bold text-slate-700">SN:</span> <span class="font-mono text-cyan-600 font-extrabold">${escapeHtml(item.sn || 'Tanpa SN')}</span>${specInlineText ? ' | ' + specInlineText : ''}
+                                </div>
+
+                                <!-- Kotak Catatan Dinamis (Hanya Muncul jika Bermasalah) -->
+                                <div id="opname-catatan-box-${item._firebaseKey}" class="hidden pt-1.5">
+                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-1">Catatan Kerusakan / Kendala Fisik:</label>
+                                    <textarea id="opname-catatan-${item._firebaseKey}" rows="2" placeholder="Contoh: Layar ada garis putih tipis, tombol spasi keras..." class="w-full border border-amber-300 rounded-lg p-2 text-xs bg-amber-50/40 text-slate-800 font-sans focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
+                                </div>
                             </div>
-                            <div class="text-[11px] text-slate-500 leading-relaxed">
-                                <span class="font-bold text-slate-700">SN:</span> <span class="font-mono text-cyan-600 font-extrabold">${escapeHtml(item.sn || 'Tanpa SN')}</span>${specInlineText ? ' | ' + specInlineText : ''}
-                            </div>
-                            ${item.catatan ? `<div class="text-[10px] text-amber-600 italic font-bold">Catatan: ${escapeHtml(item.catatan)}</div>` : ''}
                         </div>
-                    </label>
+                    </div>
                 `;
             } else if (window.currentTab === 'inventaris') {
                 html += `
@@ -244,47 +330,144 @@ function submitOpname() {
         const checkboxes = Array.from(document.querySelectorAll('input[name="opname_checkbox"]'));
         totalItems = checkboxes.length;
 
+        if (totalItems === 0) {
+            alert("Tidak ada unit yang terdaftar untuk di-opname.");
+            return;
+        }
+
+        let normalCount = 0;
+        let bermasalahCount = 0;
+        let hilangCount = 0;
+        const auditItemsDetail = [];
+
         checkboxes.forEach(cb => {
             const fKey = cb.getAttribute('data-key');
             const name = cb.getAttribute('data-name');
             const sn = cb.getAttribute('data-sn');
+            const kode = cb.getAttribute('data-kode');
+            const spek = cb.getAttribute('data-spek');
 
-            if (cb.checked) {
-                cocokCount++;
-            } else {
+            const isAda = cb.checked;
+            const kondisiRadio = document.querySelector(`input[name="kondisi_${fKey}"]:checked`)?.value || 'Normal';
+            const catatanInput = document.getElementById(`opname-catatan-${fKey}`)?.value.trim() || '';
+
+            if (!isAda) {
+                // KASUS 1: Fisik Tidak Ditemukan (HILANG)
+                hilangCount++;
                 hasDiscrepancy = true;
-                const targetStatus = window.currentTab === 'list_laptop' ? 'Hilang/Disesuaikan' : 'Gudang';
+                const targetStatus = (window.currentTab === 'list_laptop') ? 'Hilang/Disesuaikan' : 'Gudang';
+                
                 updates[`/${window.currentTab}/${fKey}/status`] = targetStatus;
-                alertSummary.push(`• ${name} (SN: ${sn}) - Status: ${targetStatus}`);
-                logDetails.push(`${name} (SN: ${sn})`);
+                updates[`/${window.currentTab}/${fKey}/catatan`] = 'Fisik tidak ditemukan saat stok opname.';
+                
+                alertSummary.push(`• [HILANG] ${name} (${kode} / SN: ${sn}) -> Status diubah ke ${targetStatus}`);
+                logDetails.push(`${name} (Hilang)`);
+
+                auditItemsDetail.push({
+                    laptopKey: fKey,
+                    nama: name,
+                    sn: sn,
+                    kode: kode,
+                    spek: spek,
+                    hasil: 'Hilang',
+                    catatan: 'Fisik tidak ditemukan saat opname'
+                });
+            } else if (kondisiRadio === 'Bermasalah') {
+                // KASUS 2: Fisik Ada tapi BERMASALAH
+                bermasalahCount++;
+                hasDiscrepancy = true;
+
+                updates[`/${window.currentTab}/${fKey}/status`] = 'Maintenance';
+                updates[`/${window.currentTab}/${fKey}/catatan`] = catatanInput || 'Unit bermasalah saat opname.';
+
+                alertSummary.push(`• [BERMASALAH] ${name} (${kode} / SN: ${sn}) -> Masuk Maintenance (${catatanInput || 'Ada kendala'})`);
+                logDetails.push(`${name} (Maintenance)`);
+
+                auditItemsDetail.push({
+                    laptopKey: fKey,
+                    nama: name,
+                    sn: sn,
+                    kode: kode,
+                    spek: spek,
+                    hasil: 'Bermasalah',
+                    catatan: catatanInput || 'Ada kendala fisik'
+                });
+            } else {
+                // KASUS 3: Fisik Ada dan NORMAL
+                normalCount++;
+                cocokCount++;
+
+                // Bersihkan catatan lama
+                updates[`/${window.currentTab}/${fKey}/catatan`] = '';
+
+                auditItemsDetail.push({
+                    laptopKey: fKey,
+                    nama: name,
+                    sn: sn,
+                    kode: kode,
+                    spek: spek,
+                    hasil: 'Normal',
+                    catatan: ''
+                });
             }
         });
 
-        if (hasDiscrepancy) {
-            const warningMsg = `⚠️ PERINGATAN SELISIH STOK OPNAME LAPTOP!\n\n` +
-                `Audit Selesai. Hasil:\n` +
-                `- Cocok: ${cocokCount}/${totalItems} Unit.\n` +
-                `- SELISIH/HILANG (Fisik Tidak Ditemukan): ${alertSummary.length} Unit:\n` +
-                `${alertSummary.join('\n')}\n\n` +
-                `Apakah Anda yakin ingin memproses penyesuaian ini? Stok sistem akan otomatis disesuaikan dengan kondisi fisik aktual.`;
+        // Hitung Periode Minggu Otomatis (Siklus 7 Hari)
+        const now = new Date();
+        const tglHari = now.getDate();
+        let mingguKe = 1;
+        if (tglHari >= 1 && tglHari <= 7) mingguKe = 1;
+        else if (tglHari >= 8 && tglHari <= 14) mingguKe = 2;
+        else if (tglHari >= 15 && tglHari <= 21) mingguKe = 3;
+        else if (tglHari >= 22 && tglHari <= 28) mingguKe = 4;
+        else mingguKe = 5;
 
-            if (confirm(warningMsg)) {
-                update(ref(db), updates)
-                    .then(() => {
-                        if (window.logActivity) window.logActivity('Ubah', window.currentTab, `Melakukan Stok Opname Laptop. Selisih: ${alertSummary.length} unit hilang (${logDetails.join(', ')}). Status sistem disesuaikan.`);
-                        if (window.showToast) window.showToast(`Stok Opname berhasil disesuaikan. ${alertSummary.length} unit hilang diproses.`, "success");
-                        closeOpnameModal();
-                    })
-                    .catch(err => {
-                        if (window.showToast) window.showToast("Gagal menyesuaikan stok: " + err.message, "error");
-                    });
-            }
-        } else {
-            alert(`✅ Stok Opname Selesai!\n\nSemua fisik unit cocok dengan data sistem (Total: ${totalItems} Unit).`);
-            if (window.logActivity) window.logActivity('Lainnya', window.currentTab, `Melakukan Stok Opname Laptop. Hasil: Semua fisik unit cocok dengan data sistem (Total: ${totalItems} Unit).`);
-            closeOpnameModal();
+        const bulanTahun = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const tglFormatted = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        // Siapkan Dokumen Riwayat Sesi Opname Baru
+        const riwayatKey = push(ref(db, 'riwayat_opname')).key;
+        updates[`/riwayat_opname/${riwayatKey}`] = {
+            id: riwayatKey,
+            timestamp: Date.now(),
+            tanggal: tglFormatted,
+            bulan_tahun: bulanTahun,
+            minggu_ke: mingguKe,
+            cabang: filterEl.value,
+            modul: window.currentTab,
+            auditor: window.currentUser.name || window.currentUser.email || 'Teknisi',
+            total_unit: totalItems,
+            total_normal: normalCount,
+            total_bermasalah: bermasalahCount,
+            total_hilang: hilangCount,
+            items: auditItemsDetail
+        };
+
+        const confirmMsg = `📋 HASIL AUDIT STOK OPNAME:\n\n` +
+            `• Total Diperiksa : ${totalItems} Unit\n` +
+            `• Kondisi Normal  : ${normalCount} Unit 🟢\n` +
+            `• Bermasalah      : ${bermasalahCount} Unit 🟡\n` +
+            `• Tidak Ditemukan : ${hilangCount} Unit 🔴\n\n` +
+            (alertSummary.length > 0 ? `Rincian Temuan:\n${alertSummary.slice(0, 5).join('\n')}${alertSummary.length > 5 ? '\n...dan lainnya' : ''}\n\n` : '') +
+            `Apakah Anda ingin memproses penyesuaian status master data & menyimpan rekapan ini ke Riwayat Opname?`;
+
+        if (confirm(confirmMsg)) {
+            update(ref(db), updates)
+                .then(() => {
+                    if (window.logActivity) {
+                        window.logActivity('Ubah', window.currentTab, `Stok Opname Selesai: ${normalCount} Normal, ${bermasalahCount} Bermasalah, ${hilangCount} Hilang.`);
+                    }
+                    if (window.showToast) {
+                        window.showToast(`Stok Opname berhasil diselesaikan & sesi dicatat!`, "success");
+                    }
+                    closeOpnameModal();
+                })
+                .catch(err => {
+                    if (window.showToast) window.showToast("Gagal menyimpan opname: " + err.message, "error");
+                });
         }
-
+        return;
+    
     } else if (window.currentTab === 'inventaris') {
         const inputs = Array.from(document.querySelectorAll('input[name="opname_stock_input"]'));
         totalItems = inputs.length;

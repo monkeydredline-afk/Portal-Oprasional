@@ -61,6 +61,7 @@ window.globalDataCloud = {
     list_laptop: [],
     laptop_display: [],
     inventaris: [], 
+    riwayat_opname: [],
     master_jasa: [],
     katalog_produk: [], // Node Katalog Produk Global Baru
     log_penjualan: [],  // Node Log Penjualan Global Baru
@@ -219,6 +220,7 @@ function applyRoleBasedAccess() {
     const btnListLaptop = document.getElementById('btn-list_laptop');
     const btnLaptopDisplay = document.getElementById('btn-laptop_display');
     const btnInventaris = document.getElementById('btn-inventaris'); 
+    const btnRiwayatOpname = document.getElementById('btn-riwayat_opname');
     const btnMasterJasa = document.getElementById('btn-master_jasa'); 
     const btnKatalogProduk = document.getElementById('btn-katalog_produk'); 
     const btnLogPenjualan = document.getElementById('btn-log_penjualan'); 
@@ -254,6 +256,14 @@ function applyRoleBasedAccess() {
     if (btnInventaris) {
         if (isPermitted(perms.inventaris)) btnInventaris.classList.remove('hidden');
         else btnInventaris.classList.add('hidden');
+    }
+    if (btnRiwayatOpname) {
+        // Otomatis aktif jika user memiliki akses inventaris, list_laptop, atau laptop_display
+        if (isPermitted(perms.inventaris) || isPermitted(perms.list_laptop) || isPermitted(perms.laptop_display) || perms.riwayat_opname) {
+            btnRiwayatOpname.classList.remove('hidden');
+        } else {
+            btnRiwayatOpname.classList.add('hidden');
+        }
     }
     if (btnMasterJasa) {
         if (isPermitted(perms.master_jasa)) btnMasterJasa.classList.remove('hidden');
@@ -318,7 +328,7 @@ function applyRoleBasedAccess() {
         }
     }
 
-    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
+    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
     for (let t of tabsOrder) {
         if (isPermitted(perms[t])) {
             return t;
@@ -506,7 +516,7 @@ window.switchTab = switchTab;
 function switchTab(tabName) {
     const perms = window.currentUser.permissions || {};
     if (tabName !== 'login' && !isPermitted(perms[tabName])) {
-        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
+        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
         const firstAllowed = tabsOrder.find(t => isPermitted(perms[t]));
 
         if (!firstAllowed) {
@@ -540,6 +550,7 @@ function switchTab(tabName) {
         list_laptop: "Manajemen Unit Laptop yang Disewakan (Master Data)",
         laptop_display: "Manajemen List Laptop Display (Etalase Toko)",
         inventaris: "Manajemen Inventaris Suku Cadang, Alat & Part",
+        riwayat_opname: "Rekapitulasi Matriks Monitoring Stok Opname Mingguan",
         master_jasa: "Manajemen Master Jasa & Tindakan Toko",
         katalog_produk: "Manajemen Katalog Produk Jual (Toko)",
         log_penjualan: "Input Log Penjualan Produk & Aksesoris",
@@ -665,7 +676,7 @@ function switchTab(tabName) {
     const formCard = document.getElementById('form-container-card');
     if (formCard) {
         const structuralPosition = String(window.currentUser.role || '').toLowerCase();
-        if (tabName === 'activity_logs' || (structuralPosition === 'teknisi' && tabName === 'services')) {
+        if (tabName === 'activity_logs' || tabName === 'riwayat_opname' || (structuralPosition === 'teknisi' && tabName === 'services')) {
             formCard.style.display = 'none';
         } else {
             formCard.style.display = 'block';
@@ -752,10 +763,46 @@ function switchTab(tabName) {
         };
         clearLabelDropdown.innerText = `Kosongkan ${listNames[tabName] || "List Ini"}`;
     }
+
+    // KONTROL VISIBILITAS FILTER MATRIKS VS FILTER POPOVER LAMA
+    const opnameMatrixFilterEl = document.getElementById('opname-matrix-filters');
+    const generalFilterPopover = document.getElementById('filter-popover-container');
+
+    if (tabName === 'riwayat_opname') {
+        // Tampilkan bilah Filter Rekap Matriks
+        if (opnameMatrixFilterEl) {
+            opnameMatrixFilterEl.classList.remove('hidden');
+            // Isi otomatis pilihan tahun dan set bulan berjalan
+            const tahunSelect = document.getElementById('filter-opname-tahun');
+            const bulanSelect = document.getElementById('filter-opname-bulan');
+            if (tahunSelect && tahunSelect.options.length === 0) {
+                const currentY = new Date().getFullYear();
+                for (let y = currentY - 2; y <= currentY + 1; y++) {
+                    tahunSelect.innerHTML += `<option value="${y}" ${y === currentY ? 'selected' : ''}>${y}</option>`;
+                }
+            }
+            if (bulanSelect && !bulanSelect.dataset.initialized) {
+                bulanSelect.value = String(new Date().getMonth());
+                bulanSelect.dataset.initialized = 'true';
+            }
+        }
+        // Sembunyikan tombol "Filter Data" bawaan lama agar tidak dobel/membingungkan
+        if (generalFilterPopover) {
+            generalFilterPopover.classList.add('hidden');
+        }
+    } else {
+        // Pada modul lain: Sembunyikan Filter Rekap & Munculkan kembali tombol "Filter Data" lama
+        if (opnameMatrixFilterEl) {
+            opnameMatrixFilterEl.classList.add('hidden');
+        }
+        if (generalFilterPopover) {
+            generalFilterPopover.classList.remove('hidden');
+        }
+    }
     
     applyRoleBasedAccess();
     
-    ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'].forEach(tab => {
+    ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'].forEach(tab => {
         const btn = document.getElementById(`btn-${tab}`);
         if(btn) {
             if(tab === tabName) {
@@ -1035,7 +1082,7 @@ function initApp() {
     switchTab(defaultTab);
     if (window.syncHamburgerIcon) window.syncHamburgerIcon();
 
-    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
+    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
     allnodes.forEach(node => {
         if (!db) return;
         
@@ -1047,6 +1094,9 @@ function initApp() {
 
         if (node === 'master_jasa' && isPermitted(perms.services)) {
             permitSync = true;
+        }
+        if (node === 'riwayat_opname') {
+            permitSync = true; // Selalu sinkronkan riwayat opname
         }
 
         if (node === 'user_management' && !isPermitted(perms.user_management)) {
@@ -1514,4 +1564,20 @@ window.handleLoginSubmit = function(event) {
                 btnText.disabled = false;
             }
         });
+};
+
+window.resetOpnameMatrixFilters = function() {
+    const bulanSelect = document.getElementById('filter-opname-bulan');
+    const tahunSelect = document.getElementById('filter-opname-tahun');
+    const kategoriSelect = document.getElementById('filter-opname-kategori');
+    const statusSelect = document.getElementById('filter-opname-status');
+    const searchBar = document.getElementById('search-bar');
+
+    if (bulanSelect) bulanSelect.value = String(new Date().getMonth());
+    if (tahunSelect) tahunSelect.value = String(new Date().getFullYear());
+    if (kategoriSelect) kategoriSelect.value = 'list_laptop'; // Kembalikan ke default Unit Penyewaan
+    if (statusSelect) statusSelect.value = '';
+    if (searchBar) searchBar.value = '';
+
+    if (window.resetPaginationAndRender) window.resetPaginationAndRender();
 };

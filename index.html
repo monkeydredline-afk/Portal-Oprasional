@@ -79,6 +79,9 @@
                     <button id="btn-inventaris" onclick="switchTab('inventaris')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
                         <i class="fa-solid fa-toolbox w-6 text-center"></i> <span>Inventaris Alat & Part</span>
                     </button>
+                    <button id="btn-riwayat_opname" onclick="switchTab('riwayat_opname')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-clipboard-list w-6 text-center"></i> <span>Riwayat Opname</span>
+                    </button>
                     <button id="btn-master_jasa" onclick="switchTab('master_jasa')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
                         <i class="fa-solid fa-briefcase w-6 text-center"></i> <span>Master Jasa</span>
                     </button>
@@ -296,6 +299,61 @@
                     </div>
 
                     <div id="subtab-filters-container" class="hidden flex flex-wrap gap-1.5 border-b border-slate-100 pb-3 mb-3"></div>
+
+                    <!-- BARIS FILTER KHUSUS TAB RIWAYAT OPNAME MINGGUAN -->
+                    <div id="opname-matrix-filters" class="hidden bg-slate-50 border border-slate-200/80 rounded-xl p-3 mb-4 space-y-2">
+                        <div class="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                            <span class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                                <i class="fa-solid fa-sliders text-cyan-600"></i> Filter Rekap Matriks Opname Mingguan
+                            </span>
+                            <button type="button" onclick="window.resetOpnameMatrixFilters()" class="text-[11px] font-bold text-slate-500 hover:text-cyan-600 transition flex items-center gap-1">
+                                <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Reset Filter
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📅 Bulan</label>
+                                <select id="filter-opname-bulan" onchange="window.resetPaginationAndRender()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                    <option value="0">Januari</option>
+                                    <option value="1">Februari</option>
+                                    <option value="2">Maret</option>
+                                    <option value="3">April</option>
+                                    <option value="4">Mei</option>
+                                    <option value="5">Juni</option>
+                                    <option value="6">Juli</option>
+                                    <option value="7">Agustus</option>
+                                    <option value="8">September</option>
+                                    <option value="9">Oktober</option>
+                                    <option value="10">November</option>
+                                    <option value="11">Desember</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📆 Tahun</label>
+                                <select id="filter-opname-tahun" onchange="window.resetPaginationAndRender()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                    <!-- Tahun akan diisi dinamis oleh script (Tahun berjalan +/- 1 tahun) -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">💻 Kategori Unit</label>
+                                <select id="filter-opname-kategori" onchange="window.resetPaginationAndRender()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                    <option value="list_laptop" selected>Unit Penyewaan (Laptop Gudang)</option>
+                                    <option value="laptop_display">Laptop Display (Etalase)</option>
+                                    <option value="semua">Semua Kategori (Gudang & Display)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">🎯 Status Temuan</label>
+                                <select id="filter-opname-status" onchange="window.resetPaginationAndRender()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                                    <option value="">Semua Hasil Audit</option>
+                                    <option value="Bermasalah">🟡 Hanya yang Bermasalah</option>
+                                    <option value="Hilang">🔴 Hanya yang Hilang</option>
+                                    <option value="Normal">🟢 Hanya yang Normal</option>
+                                    <option value="Belum">⚪ Ada Minggu Belum Opname</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="overflow-x-auto border rounded-t-lg">
                         <table class="w-full text-left border-collapse">

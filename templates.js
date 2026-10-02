@@ -321,6 +321,12 @@ export const fieldsTemplate = {
             <input type="text" name="catatan" placeholder="Contoh: Pembelian baru / Mutasi" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
     `,
+    riwayat_opname: `
+        <div class="md:col-span-2 p-4 bg-slate-50 rounded-lg border text-center text-slate-500 italic text-sm">
+            <i class="fa-solid fa-clipboard-check text-cyan-600 text-lg mr-1"></i>
+            Halaman ini menampilkan Rekapitulasi Matriks Monitoring Stok Opname Mingguan. Lakukan audit fisik melalui menu <strong>Alat & Utilitas ➔ Mulai Stok Opname</strong>.
+        </div>
+    `,
     list_office: `
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Invite</label>
@@ -611,6 +617,7 @@ export const tableHeaders = {
     list_laptop: ['ID', 'Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Kode', 'Tanggal Masuk', 'Tgl Selesai Cek', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
+    riwayat_opname: ['No', 'Kode', 'Unit Laptop & SN', 'Spesifikasi', 'Minggu 1 (Tgl 01–07)', 'Minggu 2 (Tgl 08–14)', 'Minggu 3 (Tgl 15–21)', 'Minggu 4 (Tgl 22–28)', 'Minggu 5 (Tgl 29–31)'],
     master_jasa: ['ID', 'Nama Jasa', 'Biaya Jasa', 'Aksi'],
     katalog_produk: ['ID', 'Cabang', 'Nama Barang', 'Kategori', 'Identitas / SN', 'Stok / Status', 'Spesifikasi / Detail', 'Harga Beli', 'Harga Jual', 'Aksi'],
     log_penjualan: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pembeli', 'No. WA', 'Item Terjual', 'Total Bayar', 'Aksi'],
@@ -626,6 +633,7 @@ export const dataKeysMapping = {
     list_laptop: ['id', 'jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'kode', 'tanggal', 'tgl_selesai_cek', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
+    riwayat_opname: ['no', 'kode', 'unit_laptop', 'spek', 'minggu_1', 'minggu_2', 'minggu_3', 'minggu_4', 'minggu_5'],
     master_jasa: ['id', 'nama_jasa', 'biaya_jasa'],
     katalog_produk: ['id', 'cabang', 'display_name', 'display_kategori', 'display_identitas', 'display_stok', 'display_detail', 'display_harga_modal', 'display_harga_jual'],
     log_penjualan: ['id', 'no_ref', 'tanggal', 'cabang', 'nama_pembeli', 'no_wa', 'items_terjual', 'total_bayar'],
@@ -641,6 +649,7 @@ export const filterOptionsTemplate = {
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],
     laptop_display: ['Ready', 'Terjual', 'Gudang'],
     inventaris: ['Baik', 'Rusak'],
+    riwayat_opname: ['Semua Temuan', 'Bermasalah', 'Hilang', 'Normal'],
     master_jasa: [],
     katalog_produk: [],
     log_penjualan: [],

@@ -49,7 +49,7 @@ function renderTableHeader() {
         const specialHeaders = [
             'Kode', 'Kode Toko', 'Kode SKU', 'Harga Jual', 'Cabang', 'Masa Aktif', 'No. WhatsApp', 
             'Tanggal Invite', 'Tanggal Masuk', 'Tgl Selesai Cek', 'Tanggal Input', 'Tanggal', 
-            'Spesifikasi Ringkas', 'Nama User', 'Serial Number (SN)', 'Pemulihan', 
+            'Spesifikasi Ringkas', 'Spesifikasi', 'Nama User', 'Serial Number (SN)', 'Pemulihan', 
             'No. Referensi', 'No. WA', 'Akun', 'Status Display', 'Stok', 'Kondisi',
             'Total Unit'
         ];
@@ -66,6 +66,11 @@ function renderTableHeader() {
 function renderTable() {
     const tbody = document.getElementById('table-body');
     if(!tbody) return;
+
+    if (window.currentTab === 'riwayat_opname') {
+        renderRiwayatOpnameMatrix(tbody);
+        return;
+    }
 
     let data = [];
     
@@ -664,6 +669,260 @@ window.toggleRowActionDropdown = function(event, key) {
         targetDropdown.classList.toggle('hidden');
     }
 };
+
+// ==========================================================================
+// MESIN RENDERING TABEL MATRIKS OPNAME MINGGUAN (SIDE-BY-SIDE)
+// ==========================================================================
+function renderRiwayatOpnameMatrix(tbody) {
+    const bulanSelect = document.getElementById('filter-opname-bulan');
+    const tahunSelect = document.getElementById('filter-opname-tahun');
+    const kategoriSelect = document.getElementById('filter-opname-kategori');
+    const statusSelect = document.getElementById('filter-opname-status');
+    const searchBar = document.getElementById('search-bar');
+
+    const selectedMonth = bulanSelect ? Number(bulanSelect.value) : new Date().getMonth();
+    const selectedYear = tahunSelect ? Number(tahunSelect.value) : new Date().getFullYear();
+    const selectedKategori = (kategoriSelect && kategoriSelect.value) ? kategoriSelect.value : 'list_laptop';
+    const selectedStatusFilter = statusSelect ? statusSelect.value : '';
+    const searchQuery = searchBar ? searchBar.value.toLowerCase().trim() : '';
+
+    let branchFilterVal = window.userBranch || '';
+    if (!branchFilterVal) {
+        const branchSelect = document.getElementById('branch-filter');
+        if (branchSelect) branchFilterVal = branchSelect.value;
+    }
+
+    const targetBulanTahun = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+
+    // 1. Ambil Sesi Audit yang Cocok dengan Bulan & Tahun yang Dipilih
+    const allAudits = window.globalDataCloud['riwayat_opname'] || [];
+    const relevantAudits = allAudits.filter(a => {
+        if (a.bulan_tahun !== targetBulanTahun) return false;
+        if (branchFilterVal && a.cabang && a.cabang !== branchFilterVal) return false;
+        return true;
+    });
+
+    // Urutkan sesi audit dari yang paling awal ke yang terbaru
+    relevantAudits.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+    // 2. Petakan Hasil Audit Berdasarkan Kunci Laptop & Minggu Ke (1-5)
+    // auditMap[laptopKey][mingguKe] = { hasil, catatan, auditor, tanggal }
+    const auditMap = {};
+    relevantAudits.forEach(audit => {
+        const minggu = audit.minggu_ke || 1;
+        (audit.items || []).forEach(it => {
+            const key = it.laptopKey;
+            if (!key) return;
+            if (!auditMap[key]) auditMap[key] = {};
+            // Jika ada audit ganda di minggu yang sama, sesi audit terbaru yang dipakai
+            auditMap[key][minggu] = {
+                hasil: it.hasil || 'Normal',
+                catatan: it.catatan || '',
+                auditor: audit.auditor || 'Teknisi',
+                tanggal: audit.tanggal || ''
+            };
+        });
+    });
+
+    // 3. Kumpulkan Master Laptop Sesuai Pilihan Kategori
+    let rawLaptops = [];
+    const listGudang = window.globalDataCloud['list_laptop'] || [];
+    const listDisplay = window.globalDataCloud['laptop_display'] || [];
+
+    // Muat laptop gudang jika memilih 'list_laptop' atau 'semua'
+    if (selectedKategori === 'list_laptop' || selectedKategori === 'semua') {
+        listGudang.forEach(l => rawLaptops.push({ ...l, _sourceTab: 'list_laptop' }));
+    }
+    // Muat laptop display HANYA jika memilih 'laptop_display' atau 'semua'
+    if (selectedKategori === 'laptop_display' || selectedKategori === 'semua') {
+        listDisplay.forEach(d => rawLaptops.push({ ...d, _sourceTab: 'laptop_display' }));
+    }
+
+    // Filter Berdasarkan Cabang
+    if (branchFilterVal) {
+        rawLaptops = rawLaptops.filter(l => l.cabang === branchFilterVal);
+    }
+
+    // Filter Berdasarkan Pencarian Teks
+    if (searchQuery) {
+        rawLaptops = rawLaptops.filter(l => {
+            const combined = `${l.merk || ''} ${l.tipe || ''} ${l.sn || ''} ${l.kode_toko || ''} ${l.kode || ''} ${l.spek || ''} ${l.spek_singkat || ''}`.toLowerCase();
+            return combined.includes(searchQuery);
+        });
+    }
+
+    // 4. Susun Baris Matriks dan Terapkan Filter Status Temuan
+    const matrixRows = [];
+
+    rawLaptops.forEach(laptop => {
+        const fKey = laptop._firebaseKey;
+        const auditWeekly = auditMap[fKey] || {};
+
+        // Evaluasi status temuan unit di seluruh minggu (1 s/d 5)
+        let hasBermasalah = false;
+        let hasHilang = false;
+        let hasBelum = false;
+        let hasAnyAudit = false;
+
+        for (let m = 1; m <= 5; m++) {
+            const res = auditWeekly[m];
+            if (res) {
+                hasAnyAudit = true;
+                if (res.hasil === 'Bermasalah') hasBermasalah = true;
+                if (res.hasil === 'Hilang') hasHilang = true;
+            } else {
+                hasBelum = true;
+            }
+        }
+
+        // Terapkan Filter Status Temuan
+        if (selectedStatusFilter === 'Bermasalah' && !hasBermasalah) return;
+        if (selectedStatusFilter === 'Hilang' && !hasHilang) return;
+        if (selectedStatusFilter === 'Normal' && (hasBermasalah || hasHilang || !hasAnyAudit)) return;
+        if (selectedStatusFilter === 'Belum' && !hasBelum) return;
+
+        matrixRows.push({
+            laptop: laptop,
+            audits: auditWeekly
+        });
+    });
+
+    // 5. Render ke Layar Tabel
+    const totalData = matrixRows.length;
+    tbody.innerHTML = '';
+
+    if (totalData === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="px-4 py-12 text-center text-slate-500 bg-slate-50/50">
+                    <div class="flex flex-col items-center justify-center space-y-2">
+                        <i class="fa-solid fa-clipboard-question text-3xl text-cyan-600 mb-1"></i>
+                        <span class="text-sm font-bold text-slate-700">Tidak ada data unit yang sesuai filter</span>
+                        <span class="text-xs text-slate-400">Pastikan Bulan, Tahun, dan Cabang yang dipilih sudah memiliki sesi opname.</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        const paginationControls = document.getElementById('pagination-controls');
+        if (paginationControls) paginationControls.classList.add('hidden');
+        return;
+    }
+
+    // Paginasi Matriks
+    const totalPages = Math.ceil(totalData / window.itemsPerPage) || 1;
+    if (window.currentPage > totalPages) window.currentPage = totalPages;
+    const startIndex = (window.currentPage - 1) * window.itemsPerPage;
+    const endIndex = startIndex + window.itemsPerPage;
+    const paginatedRows = matrixRows.slice(startIndex, endIndex);
+
+    // Fungsi Pembantu Render Sel Minggu (Badge + Catatan)
+    function renderWeekCell(weekResult) {
+        if (!weekResult) {
+            return `
+                <td class="px-3 py-3 text-center align-top bg-slate-50/30 border-l border-slate-100">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold text-slate-400 border border-dashed border-slate-200">
+                        ⚪ Belum Opname
+                    </span>
+                </td>
+            `;
+        }
+
+        const h = weekResult.hasil || 'Normal';
+        const cat = weekResult.catatan ? weekResult.catatan.trim() : '';
+
+        if (h === 'Bermasalah') {
+            return `
+                <td class="px-3 py-3 align-top bg-amber-50/20 border-l border-amber-100">
+                    <div class="space-y-1">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                            🟡 Bermasalah
+                        </span>
+                        ${cat ? `<div class="text-[11px] text-amber-800 leading-tight bg-white/80 p-1.5 rounded border border-amber-200/60 font-sans shadow-2xs">${escapeHtml(cat)}</div>` : ''}
+                    </div>
+                </td>
+            `;
+        } else if (h === 'Hilang') {
+            return `
+                <td class="px-3 py-3 align-top bg-rose-50/20 border-l border-rose-100">
+                    <div class="space-y-1">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-900 border border-rose-200">
+                            🔴 Hilang
+                        </span>
+                        ${cat ? `<div class="text-[10px] text-rose-700 italic leading-tight">${escapeHtml(cat)}</div>` : ''}
+                    </div>
+                </td>
+            `;
+        } else {
+            return `
+                <td class="px-3 py-3 text-center align-top bg-emerald-50/10 border-l border-emerald-100/50">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        🟢 Normal
+                    </span>
+                </td>
+            `;
+        }
+    }
+
+    // Render Baris-Baris Matriks
+    paginatedRows.forEach((row, idx) => {
+        const lap = row.laptop;
+        const audits = row.audits;
+        const noUrut = startIndex + idx + 1;
+        const kode = lap.kode_toko || lap.kode || '#-';
+        const namaUnit = `${lap.merk || ''} ${lap.tipe || ''}`.trim() || 'Unit Laptop';
+        const sn = lap.sn || 'Tanpa SN';
+        const unitIcon = (lap.jenis_unit === 'Printer') ? '🖨️' : '💻';
+        const spekRingkas = (lap.spek || lap.spek_singkat || '')
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean)
+            .join(' | ');
+
+        let rowHtml = `
+            <tr class="hover:bg-slate-50 transition border-b">
+                <td class="px-4 py-3 font-semibold text-slate-500 font-mono text-center align-top">${noUrut}</td>
+                <td class="px-3 py-3 whitespace-nowrap align-top">
+                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(kode)}</span>
+                </td>
+                <td class="px-4 py-3 align-top min-w-[200px]">
+                    <div class="space-y-0.5">
+                        <span class="font-bold text-slate-800 text-xs block">${unitIcon} ${escapeHtml(namaUnit)}</span>
+                        <span class="text-[11px] text-slate-500 font-mono">SN: <strong class="text-cyan-700">${escapeHtml(sn)}</strong></span>
+                        <span class="inline-block text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded border">${lap._sourceTab === 'laptop_display' ? 'Display' : 'Gudang'} (${escapeHtml(lap.cabang || 'Emmy Saelan')})</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 align-top text-xs text-slate-700 whitespace-normal min-w-[240px]">
+                    <div class="max-h-24 overflow-y-auto custom-table-scrollbar pr-1 font-mono text-slate-600 leading-relaxed">
+                        ${escapeHtml(spekRingkas || '-')}
+                    </div>
+                </td>
+                ${renderWeekCell(audits[1])}
+                ${renderWeekCell(audits[2])}
+                ${renderWeekCell(audits[3])}
+                ${renderWeekCell(audits[4])}
+                ${renderWeekCell(audits[5])}
+            </tr>
+        `;
+        tbody.innerHTML += rowHtml;
+    });
+
+    // Kontrol Paginasi
+    const paginationControls = document.getElementById('pagination-controls');
+    if (paginationControls) {
+        if (totalData > window.itemsPerPage) {
+            paginationControls.classList.remove('hidden');
+            const infoEl = document.getElementById('pagination-info');
+            if (infoEl) infoEl.innerText = `Menampilkan data ke-${startIndex + 1} s/d ${Math.min(endIndex, totalData)} (Total ${totalData} Unit)`;
+
+            const btnPrev = document.getElementById('btn-prev-page');
+            const btnNext = document.getElementById('btn-next-page');
+            if (btnPrev) btnPrev.disabled = (window.currentPage === 1);
+            if (btnNext) btnNext.disabled = (window.currentPage === totalPages);
+        } else {
+            paginationControls.classList.add('hidden');
+        }
+    }
+}
 
 function openEditModal(firebaseKey) {
     const perms = window.currentUser.permissions || {};
