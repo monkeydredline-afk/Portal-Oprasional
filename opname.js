@@ -164,7 +164,7 @@ function renderOpnameItems(isFullRebuild = false) {
         }
 
         if (window.currentTab === 'list_laptop') {
-            items = items.filter(item => ['Tersedia', 'Disewa', 'Maintenance', 'Staf'].includes(item.status));
+            items = items.filter(item => ['Tersedia', 'Maintenance', 'Staf'].includes(item.status));
         } else if (window.currentTab === 'laptop_display') {
             items = items.filter(item => ['Ready', 'Gudang'].includes(item.status));
         }

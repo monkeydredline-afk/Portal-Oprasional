@@ -816,8 +816,20 @@ function renderRiwayatOpnameMatrix(tbody) {
     const paginatedRows = matrixRows.slice(startIndex, endIndex);
 
     // Fungsi Pembantu Render Sel Minggu (Badge + Catatan)
-    function renderWeekCell(weekResult) {
+    function renderWeekCell(weekResult, laptopStatus) {
         if (!weekResult) {
+            // Jika unit sedang disewa pelanggan luar toko
+            if (laptopStatus === 'Disewa') {
+                return `
+                    <td class="px-3 py-3 text-center align-top bg-blue-50/20 border-l border-blue-100/50">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                            🔵 Sedang Disewa
+                        </span>
+                    </td>
+                `;
+            }
+
+            // Jika unit ada di toko tapi belum diperiksa minggu ini
             return `
                 <td class="px-3 py-3 text-center align-top bg-slate-50/30 border-l border-slate-100">
                     <span class="px-2 py-0.5 rounded text-[10px] font-semibold text-slate-400 border border-dashed border-slate-200">
@@ -896,11 +908,11 @@ function renderRiwayatOpnameMatrix(tbody) {
                         ${escapeHtml(spekRingkas || '-')}
                     </div>
                 </td>
-                ${renderWeekCell(audits[1])}
-                ${renderWeekCell(audits[2])}
-                ${renderWeekCell(audits[3])}
-                ${renderWeekCell(audits[4])}
-                ${renderWeekCell(audits[5])}
+                ${renderWeekCell(audits[1], lap.status)}
+                ${renderWeekCell(audits[2], lap.status)}
+                ${renderWeekCell(audits[3], lap.status)}
+                ${renderWeekCell(audits[4], lap.status)}
+                ${renderWeekCell(audits[5], lap.status)}
             </tr>
         `;
         tbody.innerHTML += rowHtml;
