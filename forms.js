@@ -319,11 +319,14 @@ function handleSubmit(e) {
         newDataItem.kerusakan = `Penerima: ${activeName} (${roleDisplay})\n${rawKeluhan}`;
         logDetail = `Pelanggan: ${newDataItem.pelanggan} - Unit: ${newDataItem.perangkat} - Ref: ${newDataItem.no_ref} cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'cctv') {
+        newDataItem.tanggal = formData.get('tanggal') || '';
         newDataItem.klien = formData.get('klien');
         newDataItem.lokasi = formData.get('lokasi'); 
         newDataItem.jumlah_cctv = formData.get('jumlah_cctv');
+        newDataItem.tim_teknisi = formData.get('tim_teknisi') || '';
         newDataItem.progres = formData.get('progres');
-        newDataItem.status = formData.get('status');
+        newDataItem.status = formData.get('status') || 'Survei';
+        newDataItem.tanggal_selesai = '';
         logDetail = `Klien: ${newDataItem.klien} - Lokasi: ${newDataItem.lokasi} (${newDataItem.jumlah_cctv} Kamera) cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'list_office') {
         newDataItem.nama_user = formData.get('nama_user');
@@ -334,7 +337,9 @@ function handleSubmit(e) {
         newDataItem.office = formData.get('office');
         newDataItem.server_utama = formData.get('server_utama') || '';
         newDataItem.name = formData.get('name');
-        newDataItem.workspace_expired = formData.get('masa_aktif');
+        const masaAktifValue = formData.get('masa_aktif') || '';
+        newDataItem.masa_aktif = masaAktifValue;
+        newDataItem.workspace_expired = masaAktifValue;
         newDataItem.status = formData.get('status');
         logDetail = `User: ${newDataItem.nama_user} - Akun Office: ${newDataItem.akun} cabang ${newDataItem.cabang}`;
     }
@@ -528,11 +533,14 @@ function handleUpdateSubmit(e) {
 
         itemDescription = `${updatedData.pelanggan} (${updatedData.perangkat}) - Teknisi: ${updatedData.teknisi} (Status: ${newStatus})`;
     } else if (window.currentTab === 'cctv') {
+        updatedData.tanggal = document.getElementById('edit-tanggal')?.value || targetItem?.tanggal || '';
         updatedData.klien = document.getElementById('edit-klien').value;
         updatedData.lokasi = document.getElementById('edit-lokasi').value;
         updatedData.jumlah_cctv = document.getElementById('edit-jumlah_cctv').value;
+        updatedData.tim_teknisi = document.getElementById('edit-tim_teknisi')?.value || '';
         updatedData.progres = document.getElementById('edit-progres').value;
         updatedData.status = document.getElementById('edit-status').value;
+        updatedData.tanggal_selesai = document.getElementById('edit-tgl-selesai')?.value || '';
         updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
         itemDescription = `${updatedData.klien} - ${updatedData.lokasi}`;
     } else if (window.currentTab === 'list_laptop') {
@@ -691,7 +699,9 @@ function handleUpdateSubmit(e) {
         const editServerEl = document.getElementById('edit-server_utama');
         updatedData.server_utama = editServerEl ? (editServerEl.value || '') : '';
         updatedData.name = document.getElementById('edit-name').value;
-        updatedData.workspace_expired = document.getElementById('edit-masa_aktif').value;
+        const masaAktifValue = document.getElementById('edit-masa_aktif')?.value || '';
+        updatedData.masa_aktif = masaAktifValue;
+        updatedData.workspace_expired = masaAktifValue;
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.cabang = targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
         itemDescription = `User: ${updatedData.nama_user} - Akun: ${updatedData.akun}`;

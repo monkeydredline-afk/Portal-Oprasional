@@ -260,7 +260,14 @@ function renderTable() {
                 const refDisplay = (val && val !== '-') ? val : `SRV-Legacy-#${item.id}`;
                 rowHtml += `<td class="px-4 py-3 font-bold text-slate-700 font-mono text-xs whitespace-nowrap">${refDisplay}</td>`;
             } else if (key === 'tanggal' || key === 'tanggal_jam') {
-                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val}</span></td>`;
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val && val !== '-' ? val : '-'}</span></td>`;
+            } else if (key === 'tanggal_selesai') {
+                const selesaiVal = (val && val !== '-') ? val : '-';
+                const selesaiText = `<span class="font-mono text-xs text-slate-700">${selesaiVal}</span>`;
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap">${selesaiText}</td>`;
+            } else if (key === 'tim_teknisi') {
+                const teknisiVal = (val && val !== '-') ? val : '-';
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="text-xs text-slate-700">${teknisiVal}</span></td>`;
             } else if (key === 'tgl_mulai' && window.currentTab === 'penyewaan') {
                 const tglSelesai = item.tgl_selesai || '-';
                 rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-mono text-xs text-slate-700">${val} - ${tglSelesai}</span></td>`;
@@ -441,30 +448,14 @@ function renderTable() {
                 rowHtml += `<td class="px-4 py-3 align-middle whitespace-nowrap">${badgeHtml}</td>`;
             } else if (key === 'sn') {
                 rowHtml += `<td class="px-4 py-3 font-mono font-medium text-cyan-700">${val}</td>`;
+            } else if (key === 'tipe_akun' && window.currentTab === 'list_office') {
+                const tipe = String(val || 'Anggota');
+                let tipeClass = 'bg-blue-100 text-blue-800';
+                if (tipe === 'Utama') tipeClass = 'bg-purple-100 text-purple-800';
+                if (tipe === 'Personal') tipeClass = 'bg-teal-100 text-teal-800';
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${tipeClass}">${tipe}</span></td>`;
             } else if (key === 'office' && window.currentTab === 'list_office') {
-                const tipeAkun = item.tipe_akun || 'Anggota';
-                let badgeHtml = '';
-                
-                if (tipeAkun === 'Utama') {
-                    const allOfficeData = window.globalDataCloud['list_office'] || [];
-                    const familyName = (item.office || '').trim().toLowerCase();
-                    const membersInGroup = allOfficeData.filter(off => (off.office || '').trim().toLowerCase() === familyName);
-                    const totalSlotsFilled = membersInGroup.length;
-                    
-                    let limitBadge = '';
-                    if (totalSlotsFilled >= 6) {
-                        limitBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">Slot FULL (6/6)</span>`;
-                    } else {
-                        limitBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Tersedia ${6 - totalSlotsFilled} Slot</span>`;
-                    }
-
-                    badgeHtml = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-wider">Host/Server</span>${limitBadge}`;
-                } else if (tipeAkun === 'Personal') {
-                    badgeHtml = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-teal-100 text-teal-700 border border-teal-200 uppercase tracking-wider">Personal</span>`;
-                } else {
-                    badgeHtml = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wider">Anggota</span>`;
-                }
-                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><div class="flex items-center"><span>${val}</span>${badgeHtml}</div></td>`;
+                rowHtml += `<td class="px-4 py-3 whitespace-nowrap"><span class="font-medium text-slate-800">${val}</span></td>`;
             } else if (key === 'password' && (window.currentTab === 'list_office' || window.currentTab === 'user_management')) {
                 rowHtml += `
                     <td class="px-4 py-3">
@@ -1180,11 +1171,27 @@ function openEditModal(firebaseKey) {
     } else if (window.currentTab === 'cctv') {
         fieldsContainer.innerHTML = `
             ${cabangEditHtml}
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk / Survei</label>
+                <input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg">
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Klien</label><input type="text" id="edit-klien" value="${targetItem.klien || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Lokasi Pemasangan</label><input type="text" id="edit-lokasi" value="${targetItem.lokasi || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Jumlah CCTV</label><input type="number" id="edit-jumlah_cctv" value="${targetItem.jumlah_cctv || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tim Teknisi</label><input type="text" id="edit-tim_teknisi" value="${targetItem.tim_teknisi || ''}" placeholder="Contoh: Resky, Padli" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Progres</label><input type="text" id="edit-progres" value="${targetItem.progres || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
-            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Status Proyek</label><select id="edit-status" class="w-full border p-2 text-sm rounded-lg"><option value="Survei" ${targetItem.status === 'Survei' ? 'selected' : ''}>Tahap Survei</option><option value="Pengerjaan" ${targetItem.status === 'Pengerjaan' ? 'selected' : ''}>Sedang Dikerjakan</option><option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai</option></select></div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Status Proyek</label>
+                <select id="edit-status" onchange="window.handleEditStatusChange(this.value)" class="w-full border p-2 text-sm rounded-lg">
+                    <option value="Survei" ${targetItem.status === 'Survei' ? 'selected' : ''}>Survei (Tahap Survei)</option>
+                    <option value="Pengerjaan" ${targetItem.status === 'Pengerjaan' ? 'selected' : ''}>Pengerjaan (Sedang Dikerjakan di Lapangan)</option>
+                    <option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai (Selesai / Serah Terima)</option>
+                </select>
+            </div>
+            <div id="tgl-selesai-container" class="${targetItem.status === 'Selesai' ? '' : 'hidden'}">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
+                <input type="date" id="edit-tgl-selesai" value="${targetItem.tanggal_selesai || ''}" class="w-full border p-2 text-sm rounded-lg">
+            </div>
         `;
     } else if (window.currentTab === 'list_laptop') {
         const currentJenis = targetItem.jenis_unit || 'Laptop';

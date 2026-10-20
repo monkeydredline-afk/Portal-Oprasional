@@ -75,6 +75,10 @@ export const fieldsTemplate = {
         </div>
     `,
     cctv: `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Masuk / Survei</label>
+            <input type="date" name="tanggal" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+        </div>
         <div id="cabang-input-container">
             <label class="block text-sm font-medium text-gray-700 mb-1">Cabang Toko</label>
             <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
@@ -95,17 +99,14 @@ export const fieldsTemplate = {
             <input type="number" name="jumlah_cctv" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
         <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tim Teknisi</label>
+            <input type="text" name="tim_teknisi" placeholder="Contoh: Resky, Padli" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Progres Kerja</label>
             <input type="text" name="progres" value="Penarikan Kabel" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status Proyek</label>
-            <select name="status" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
-                <option value="Survei">Tahap Survei</option>
-                <option value="Pengerjaan">Sedang Dikerjakan</option>
-                <option value="Selesai">Selesai / Serah Terima</option>
-            </select>
-        </div>
+        <input type="hidden" name="status" value="Survei">
     `,
     list_laptop: `
         <input type="hidden" name="jenis_unit" id="input-jenis-unit" value="Laptop">
@@ -613,7 +614,7 @@ export const fieldsTemplate = {
 export const tableHeaders = {
     services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Status', 'Aksi'],
     penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN', 'Tanggal Sewa', 'Total Unit', 'Total Biaya', 'Status', 'Aksi'],
-    cctv: ['ID', 'Tanggal', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Progres', 'Status', 'Aksi'],
+    cctv: ['ID', 'Tanggal Input', 'Tanggal Selesai', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Tim Teknisi', 'Progres', 'Status', 'Aksi'],
     list_laptop: ['ID', 'Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Kode', 'Tanggal Masuk', 'Tgl Selesai Cek', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
@@ -621,7 +622,7 @@ export const tableHeaders = {
     master_jasa: ['ID', 'Nama Jasa', 'Biaya Jasa', 'Aksi'],
     katalog_produk: ['ID', 'Cabang', 'Nama Barang', 'Kategori', 'Identitas / SN', 'Stok / Status', 'Spesifikasi / Detail', 'Harga Beli', 'Harga Jual', 'Aksi'],
     log_penjualan: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pembeli', 'No. WA', 'Item Terjual', 'Total Bayar', 'Aksi'],
-    list_office: ['ID', 'Tanggal', 'Nama User', 'Akun', 'Server Utama', 'Password', 'Pemulihan', 'Office', 'Name', 'Masa Aktif', 'Status', 'Aksi'],
+    list_office: ['ID', 'Tanggal', 'Nama User', 'Akun', 'Office', 'Tipe Akun', 'Server Utama', 'Masa Aktif', 'Status', 'Aksi'],
     user_management: ['ID', 'Nama Lengkap', 'Email Akun', 'Sandi Terdaftar', 'Hak Akses Menu', 'Cabang / Branch', 'Aksi'],
     activity_logs: ['Waktu Log', 'Operator (User)', 'Aksi', 'Modul', 'Detail Aktivitas', 'Aksi']
 };
@@ -629,7 +630,7 @@ export const tableHeaders = {
 export const dataKeysMapping = {
     services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'status'],
     penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_unit', 'total_biaya', 'status'],
-    cctv: ['id', 'tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
+    cctv: ['id', 'tanggal', 'tanggal_selesai', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'tim_teknisi', 'progres', 'status'],
     list_laptop: ['id', 'jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'kode', 'tanggal', 'tgl_selesai_cek', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
@@ -637,7 +638,7 @@ export const dataKeysMapping = {
     master_jasa: ['id', 'nama_jasa', 'biaya_jasa'],
     katalog_produk: ['id', 'cabang', 'display_name', 'display_kategori', 'display_identitas', 'display_stok', 'display_detail', 'display_harga_modal', 'display_harga_jual'],
     log_penjualan: ['id', 'no_ref', 'tanggal', 'cabang', 'nama_pembeli', 'no_wa', 'items_terjual', 'total_bayar'],
-    list_office: ['id', 'tanggal', 'nama_user', 'akun', 'server_utama', 'password', 'pemulihan', 'office', 'name', 'masa_aktif', 'status'],
+    list_office: ['id', 'tanggal', 'nama_user', 'akun', 'office', 'tipe_akun', 'server_utama', 'masa_aktif', 'status'],
     user_management: ['id', 'name', 'email', 'password', 'permissions', 'branch'],
     activity_logs: ['tanggal_jam', 'user', 'action', 'menu_display', 'details']
 };
@@ -661,7 +662,7 @@ export const filterOptionsTemplate = {
 export const importTemplatesHeaders = {
     services: ['Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Gejala / Kerusakan', 'Status'],
     penyewaan: ['Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Tanggal Mulai', 'Tanggal Selesai', 'Total Biaya', 'Status', 'Unit & SN'],
-    cctv: ['Tanggal', 'Cabang', 'Klien / Instansi', 'Lokasi Pemasangan', 'Jumlah Kamera', 'Progres', 'Status Proyek'],
+    cctv: ['Tanggal', 'Tanggal Selesai', 'Cabang', 'Klien / Instansi', 'Lokasi Pemasangan', 'Jumlah Kamera', 'Tim Teknisi', 'Progres', 'Status Proyek'],
     list_laptop: ['Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan'],
     laptop_display: ['Kode', 'Tanggal Masuk', 'Tanggal Selesai Cek', 'Cabang', 'Nama Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Harga Jual', 'Status Display', 'Catatan', 'Spesifikasi Ringkas'],
     list_office: ['Tanggal', 'Nama User', 'Akun', 'Password', 'Pemulihan', 'Tipe Akun', 'Lisensi', 'Server Utama', 'Name', 'Masa Aktif', 'Status'],
@@ -673,7 +674,7 @@ export const importTemplatesHeaders = {
 export const importTemplatesKeys = {
     services: ['tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'kerusakan', 'status'],
     penyewaan: ['tanggal', 'cabang', 'penyewa', 'no_wa', 'tgl_mulai', 'tgl_selesai', 'total_biaya', 'status', 'unit'],
-    cctv: ['tanggal', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'progres', 'status'],
+    cctv: ['tanggal', 'tanggal_selesai', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'tim_teknisi', 'progres', 'status'],
     list_laptop: ['jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['kode', 'tanggal', 'tgl_selesai_cek', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'harga_jual', 'status', 'catatan', 'spek_singkat'],
     inventaris: ['tanggal', 'cabang', 'nama_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
