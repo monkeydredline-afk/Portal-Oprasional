@@ -109,7 +109,7 @@ function renderTable() {
     
     if (window.currentTab === 'activity_logs') {
         data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv' || window.currentTab === 'log_penjualan') {
+    } else if (window.currentTab === 'services' || window.currentTab === 'penyewaan' || window.currentTab === 'cctv' || window.currentTab === 'list_akun_cctv' || window.currentTab === 'log_penjualan') {
         data.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
     } else if (window.currentTab === 'master_jasa' || window.currentTab === 'katalog_produk') {
         data.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
@@ -125,14 +125,23 @@ function renderTable() {
     const secondaryFilter = document.getElementById('secondary-filter');
     const filterSecondaryValue = secondaryFilter ? secondaryFilter.value : '';
     
-    let branchFilterValue = window.userBranch || '';
-    if (!branchFilterValue) {
+    const canUseBranchSelector = (() => {
+        const email = String(window.currentUser?.email || '').toLowerCase();
+        const role = String(window.currentUser?.role || '').toLowerCase();
+        return email === 'superadmin@wanasatria.com' || role === 'admin' || role === 'superadmin' || role === 'owner';
+    })();
+
+    let branchFilterValue = '';
+    if (canUseBranchSelector) {
         const branchFilterEl = document.getElementById('branch-filter');
         const branchContainer = document.getElementById('branch-filter-container');
-        
         if (branchFilterEl && branchContainer && !branchContainer.classList.contains('hidden')) {
-            branchFilterValue = branchFilterEl.value;
+            branchFilterValue = branchFilterEl.value || '';
         }
+    }
+
+    if (!branchFilterValue) {
+        branchFilterValue = window.userBranch || '';
     }
     
     tbody.innerHTML = '';
@@ -173,7 +182,7 @@ function renderTable() {
             }
         }
         
-        const nonCabangNodes = ['list_office', 'user_management', 'activity_logs', 'inventaris', 'master_jasa', 'katalog_produk'];
+        const nonCabangNodes = ['list_office', 'user_management', 'activity_logs', 'master_jasa', 'katalog_produk'];
         if (!nonCabangNodes.includes(window.currentTab)) {
             if (branchFilterValue && item.cabang && item.cabang !== branchFilterValue) return false;
         }
@@ -1175,6 +1184,10 @@ function openEditModal(firebaseKey) {
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Masuk / Survei</label>
                 <input type="date" id="edit-tanggal" value="${formatDateForInput(targetItem.tanggal)}" required class="w-full border p-2 text-sm rounded-lg">
             </div>
+            <div id="tgl-selesai-container" class="${targetItem.status === 'Selesai' ? '' : 'hidden'}">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
+                <input type="date" id="edit-tgl-selesai" value="${targetItem.tanggal_selesai || ''}" class="w-full border p-2 text-sm rounded-lg">
+            </div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Klien</label><input type="text" id="edit-klien" value="${targetItem.klien || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Lokasi Pemasangan</label><input type="text" id="edit-lokasi" value="${targetItem.lokasi || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
             <div><label class="block text-xs font-semibold text-slate-500 mb-1">Jumlah CCTV</label><input type="number" id="edit-jumlah_cctv" value="${targetItem.jumlah_cctv || ''}" required class="w-full border p-2 text-sm rounded-lg"></div>
@@ -1188,10 +1201,51 @@ function openEditModal(firebaseKey) {
                     <option value="Selesai" ${targetItem.status === 'Selesai' ? 'selected' : ''}>Selesai (Selesai / Serah Terima)</option>
                 </select>
             </div>
-            <div id="tgl-selesai-container" class="${targetItem.status === 'Selesai' ? '' : 'hidden'}">
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
-                <input type="date" id="edit-tgl-selesai" value="${targetItem.tanggal_selesai || ''}" class="w-full border p-2 text-sm rounded-lg">
+        `;
+    } else if (window.currentTab === 'list_akun_cctv') {
+        const selectedPattern = targetItem.pola ?? targetItem.pola_unlock ?? '';
+        const patternButtons = [1,2,3,4,5,6,7,8,9].map((cell) => {
+            const isSelected = String(selectedPattern).split(/[^0-9]+/).filter(Boolean).includes(String(cell));
+            return `
+                <button type="button" data-pattern-cell="${cell}" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition ${isSelected ? 'bg-cyan-600 text-white border-cyan-600 shadow-md' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300'}">${cell}</button>
+            `;
+        }).join('');
+
+        const selectedValues = String(selectedPattern).split(/[^0-9]+/).filter(Boolean).map(Number).filter((v) => !Number.isNaN(v));
+        const displayValue = selectedValues.join('-');
+
+        fieldsContainer.innerHTML = `
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Cabang</label>
+                <select id="edit-cabang" class="w-full border p-2 text-sm rounded-lg bg-white">
+                    <option value="Head Office" ${targetItem.cabang === 'Head Office' ? 'selected' : ''}>Head Office</option>
+                    <option value="Monumen Emmy Saelan" ${targetItem.cabang === 'Monumen Emmy Saelan' ? 'selected' : ''}>Monumen Emmy Saelan</option>
+                    <option value="Perintis" ${targetItem.cabang === 'Perintis' ? 'selected' : ''}>Perintis</option>
+                </select>
             </div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pelanggan</label><input type="text" id="edit-nama_pelanggan" value="${escapeHtml(targetItem.nama_pelanggan || '')}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Lokasi</label><input type="text" id="edit-lokasi" value="${escapeHtml(targetItem.lokasi || '')}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Perangkat</label><input type="text" id="edit-perangkat" value="${escapeHtml(targetItem.perangkat || '')}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Username</label><input type="text" id="edit-username" value="${escapeHtml(targetItem.username || '')}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Password</label><input type="text" id="edit-password" value="${escapeHtml(targetItem.password || '')}" required class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Email Akun Online</label><input type="email" id="edit-email" value="${escapeHtml(targetItem.email || targetItem.email_online || '')}" class="w-full border p-2 text-sm rounded-lg"></div>
+            <div><label class="block text-xs font-semibold text-slate-500 mb-1">Password Email</label><input type="text" id="edit-password_email" value="${escapeHtml(targetItem.password_email || targetItem.passwordOnline || '')}" class="w-full border p-2 text-sm rounded-lg"></div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Pola Unlock</label>
+                <div data-pattern-root class="space-y-2">
+                    <input type="hidden" id="edit-pola" name="pola" value="${escapeHtml(displayValue)}">
+                    <div class="grid grid-cols-3 gap-2 w-40 mx-auto">
+                        ${patternButtons}
+                    </div>
+                    <div data-pattern-display class="text-center text-[11px] ${displayValue ? 'text-cyan-700' : 'text-slate-500'}">
+                        ${displayValue ? `Pola dipilih: ${escapeHtml(displayValue)}` : 'Pilih urutan pola unlock'}
+                    </div>
+                    <div class="text-center">
+                        <button type="button" onclick="window.resetCctvPattern(this)" class="text-[11px] text-slate-500 underline underline-offset-2">Reset pola</button>
+                    </div>
+                </div>
+            </div>
+            <div class="md:col-span-2"><label class="block text-xs font-semibold text-slate-500 mb-1">Catatan</label><textarea id="edit-catatan" rows="3" class="w-full border p-2 text-sm rounded-lg">${escapeHtml(targetItem.catatan || '')}</textarea></div>
         `;
     } else if (window.currentTab === 'list_laptop') {
         const currentJenis = targetItem.jenis_unit || 'Laptop';

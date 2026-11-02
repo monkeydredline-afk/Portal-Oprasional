@@ -107,6 +107,7 @@ function handleSubmit(e) {
                     services: formData.get('perm_services') === 'true',
                     penyewaan: formData.get('perm_penyewaan') === 'true',
                     cctv: formData.get('perm_cctv') === 'true',
+                    list_akun_cctv: formData.get('perm_list_akun_cctv') === 'true',
                     list_laptop: formData.get('perm_list_laptop') === 'true',
                     laptop_display: formData.get('perm_laptop_display') === 'true',
                     inventaris: formData.get('perm_inventaris') === 'true', 
@@ -324,10 +325,31 @@ function handleSubmit(e) {
         newDataItem.lokasi = formData.get('lokasi'); 
         newDataItem.jumlah_cctv = formData.get('jumlah_cctv');
         newDataItem.tim_teknisi = formData.get('tim_teknisi') || '';
-        newDataItem.progres = formData.get('progres');
+        newDataItem.progres = '';
         newDataItem.status = formData.get('status') || 'Survei';
         newDataItem.tanggal_selesai = '';
         logDetail = `Klien: ${newDataItem.klien} - Lokasi: ${newDataItem.lokasi} (${newDataItem.jumlah_cctv} Kamera) cabang ${newDataItem.cabang}`;
+    } else if (window.currentTab === 'list_akun_cctv') {
+        newDataItem.nama_pelanggan = formData.get('nama_pelanggan') || '';
+        newDataItem.lokasi = formData.get('lokasi') || '';
+        newDataItem.perangkat = formData.get('perangkat') || '';
+        newDataItem.username = formData.get('username') || '';
+        newDataItem.password = formData.get('password') || '';
+        newDataItem.email = formData.get('email') || formData.get('email_online') || '';
+        newDataItem.password_email = formData.get('password_email') || formData.get('passwordOnline') || '';
+        newDataItem.pola = formData.get('pola') || '';
+        newDataItem.catatan = formData.get('catatan') || '';
+
+        if (!newDataItem.nama_pelanggan || !newDataItem.lokasi || !newDataItem.perangkat || !newDataItem.username || !newDataItem.password) {
+            alert('Semua field wajib diisi untuk akun CCTV.');
+            if (btnSubmit) {
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            }
+            return;
+        }
+
+        logDetail = `Pelanggan: ${newDataItem.nama_pelanggan} - Perangkat: ${newDataItem.perangkat} - Lokasi: ${newDataItem.lokasi} cabang ${newDataItem.cabang}`;
     } else if (window.currentTab === 'list_office') {
         newDataItem.nama_user = formData.get('nama_user');
         newDataItem.akun = formData.get('akun');
@@ -382,7 +404,14 @@ function handleSubmit(e) {
             if(window.currentTab === 'penyewaan' && window.populateLaptopCheckboxes) window.populateLaptopCheckboxes();
         })
         .catch((error) => {
-            if (window.showToast) window.showToast("Gagal menyimpan data: " + error.message, "error");
+            const message = error && error.message ? error.message : String(error);
+            if (window.showToast) {
+                if (/permission_denied/i.test(message)) {
+                    window.showToast("Gagal menyimpan data: Firebase menolak akses. Cek rules database untuk node " + window.currentTab + ".", "error");
+                } else {
+                    window.showToast("Gagal menyimpan data: " + message, "error");
+                }
+            }
         })
         .finally(() => {
             if (btnSubmit) {
@@ -538,11 +567,39 @@ function handleUpdateSubmit(e) {
         updatedData.lokasi = document.getElementById('edit-lokasi').value;
         updatedData.jumlah_cctv = document.getElementById('edit-jumlah_cctv').value;
         updatedData.tim_teknisi = document.getElementById('edit-tim_teknisi')?.value || '';
-        updatedData.progres = document.getElementById('edit-progres').value;
+        updatedData.progres = document.getElementById('edit-progres')?.value || targetItem?.progres || '';
         updatedData.status = document.getElementById('edit-status').value;
         updatedData.tanggal_selesai = document.getElementById('edit-tgl-selesai')?.value || '';
         updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || window.currentUser.branch || 'Head Office'; 
         itemDescription = `${updatedData.klien} - ${updatedData.lokasi}`;
+    } else if (window.currentTab === 'list_akun_cctv') {
+        const namaPelanggan = document.getElementById('edit-nama_pelanggan')?.value?.trim();
+        const lokasi = document.getElementById('edit-lokasi')?.value?.trim();
+        const perangkat = document.getElementById('edit-perangkat')?.value?.trim();
+        const username = document.getElementById('edit-username')?.value?.trim();
+        const password = document.getElementById('edit-password')?.value?.trim();
+
+        if (!namaPelanggan || !lokasi || !perangkat || !username || !password) {
+            alert('Semua field utama akun CCTV wajib diisi.');
+            if (btnUpdate) {
+                btnUpdate.innerHTML = originalText;
+                btnUpdate.disabled = false;
+            }
+            return;
+        }
+
+        const polaField = document.getElementById('edit-pola') || document.querySelector('#edit-modal input[name="pola"]');
+        updatedData.cabang = document.getElementById('edit-cabang')?.value || targetItem?.cabang || 'Head Office';
+        updatedData.nama_pelanggan = namaPelanggan;
+        updatedData.lokasi = lokasi;
+        updatedData.perangkat = perangkat;
+        updatedData.username = username;
+        updatedData.password = password;
+        updatedData.email = document.getElementById('edit-email')?.value || '';
+        updatedData.password_email = document.getElementById('edit-password_email')?.value || '';
+        updatedData.pola = polaField ? (polaField.value || targetItem?.pola || '') : (targetItem?.pola || '');
+        updatedData.catatan = document.getElementById('edit-catatan')?.value || '';
+        itemDescription = `${updatedData.nama_pelanggan} - ${updatedData.perangkat} (${updatedData.cabang})`;
     } else if (window.currentTab === 'list_laptop') {
         let editTgl = document.getElementById('edit-tanggal').value;
         if (editTgl && editTgl.includes('-')) {

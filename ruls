@@ -1,0 +1,96 @@
+{
+  "rules": {
+    "user_management": {
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('user_management').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('user_management').val() === 'true')",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('user_management').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('user_management').val() === 'true')",
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('user_management').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('user_management').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) ))"
+      }
+    },
+    
+    "services": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('services').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('services').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('services').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('services').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) ))"
+      }
+    },
+
+    "penyewaan": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('penyewaan').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('penyewaan').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('penyewaan').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('penyewaan').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) ))"
+      }
+    },
+
+    "cctv": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('cctv').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('cctv').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('cctv').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('cctv').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) ))"
+      }
+    },
+
+    "list_laptop": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('list_laptop').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('list_laptop').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('list_laptop').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('list_laptop').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) && (root.child('user_management').child(auth.uid).child('branch').val() === 'Head Office' || (newData.exists() && newData.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val()) || (data.exists() && data.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val())) ))"
+      }
+    },
+
+    "laptop_display": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('laptop_display').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('laptop_display').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('laptop_display').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('laptop_display').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) && (root.child('user_management').child(auth.uid).child('branch').val() === 'Head Office' || (newData.exists() && newData.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val()) || (data.exists() && data.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val())) ))"
+      }
+    },
+
+    "list_office": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('list_office').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('list_office').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('list_office').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('list_office').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) ))"
+      }
+    },
+
+    "inventaris": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('inventaris').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('inventaris').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('inventaris').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('inventaris').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) && (root.child('user_management').child(auth.uid).child('branch').val() === 'Head Office' || (newData.exists() && newData.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val()) || (data.exists() && data.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val())) ))"
+      }
+    },
+
+    "master_jasa": {
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('master_jasa').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('master_jasa').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('master_jasa').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('master_jasa').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) ))"
+      }
+    },
+
+    "katalog_produk": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('katalog_produk').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('katalog_produk').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('katalog_produk').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('katalog_produk').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) && (root.child('user_management').child(auth.uid).child('branch').val() === 'Head Office' || (newData.exists() && newData.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val()) || (data.exists() && data.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val())) ))"
+      }
+    },
+
+    "log_penjualan": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('log_penjualan').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('log_penjualan').val() === 'true')",
+      "$key": {
+        ".write": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || ( (root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('log_penjualan').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('log_penjualan').val() === 'true') && ( !data.exists() || (newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('edit_data').val() === 'true')) || (!newData.exists() && (root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('delete_data').val() === 'true')) ) && (root.child('user_management').child(auth.uid).child('branch').val() === 'Head Office' || (newData.exists() && newData.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val()) || (data.exists() && data.child('cabang').val() === root.child('user_management').child(auth.uid).child('branch').val())) ))"
+      }
+    },
+
+    "activity_logs": {
+      ".indexOn": "cabang",
+      ".read": "auth != null && (auth.token.email === 'superadmin@wanasatria.com' || root.child('user_management').child(auth.uid).child('role').val() === 'admin' || root.child('user_management').child(auth.uid).child('permissions').child('activity_logs').val() === true || root.child('user_management').child(auth.uid).child('permissions').child('activity_logs').val() === 'true')",
+      ".write": "auth != null"
+    }
+  }
+}

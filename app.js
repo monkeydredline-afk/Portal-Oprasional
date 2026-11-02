@@ -44,6 +44,7 @@ import './cetak.js';             // Modul cetak dokumen & laporan PDF
 import './katalog-penjualan.js'; // Modul Katalog Produk & Log Penjualan Baru
 import './sheets.js';            // Modul Integrasi Real-Time Google Sheets
 import './reports.js';           // Modul Pusat Unduh Laporan (Excel, PDF, Word, PPT)
+import './list-akun-cctv.js';    // Modul master akun CCTV terpisah
 
 // ==========================================================================
 // INISIALISASI STATUS GLOBAL WINDOW (Diakses oleh seluruh modul eksternal)
@@ -58,6 +59,7 @@ window.globalDataCloud = {
     services: [],
     penyewaan: [],
     cctv: [],
+    list_akun_cctv: [],
     list_laptop: [],
     laptop_display: [],
     inventaris: [], 
@@ -209,6 +211,12 @@ function isPermitted(val) {
     return val === true || val === 'true';
 }
 
+function canUserAccessBranchFilter() {
+    const email = String(window.currentUser?.email || '').toLowerCase();
+    const role = String(window.currentUser?.role || '').toLowerCase();
+    return email === 'superadmin@wanasatria.com' || role === 'admin' || role === 'superadmin' || role === 'owner';
+}
+
 function applyRoleBasedAccess() {
     const perms = window.currentUser.permissions || {};
     const branch = window.currentUser.branch || 'Head Office';
@@ -328,7 +336,7 @@ function applyRoleBasedAccess() {
         }
     }
 
-    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
+    const tabsOrder = ['services', 'penyewaan', 'cctv', 'list_akun_cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
     for (let t of tabsOrder) {
         if (isPermitted(perms[t])) {
             return t;
@@ -516,7 +524,7 @@ window.switchTab = switchTab;
 function switchTab(tabName) {
     const perms = window.currentUser.permissions || {};
     if (tabName !== 'login' && !isPermitted(perms[tabName])) {
-        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
+        const tabsOrder = ['dashboard','services', 'penyewaan', 'cctv', 'list_akun_cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office', 'user_management', 'activity_logs'];
         const firstAllowed = tabsOrder.find(t => isPermitted(perms[t]));
 
         if (!firstAllowed) {
@@ -547,6 +555,7 @@ function switchTab(tabName) {
         services: "Input Log Services", 
         penyewaan: "Input Data Penyewaan", 
         cctv: "Input Proyek CCTV Pemasangan",
+        list_akun_cctv: "Master Data Akun CCTV",
         list_laptop: "Manajemen Unit Laptop yang Disewakan (Master Data)",
         laptop_display: "Manajemen List Laptop Display (Etalase Toko)",
         inventaris: "Manajemen Inventaris Suku Cadang, Alat & Part",
@@ -564,6 +573,7 @@ function switchTab(tabName) {
         services: "Kosongkan Data Services",
         penyewaan: "Kosongkan Data Penyewaan",
         cctv: "Kosongkan Data CCTV",
+        list_akun_cctv: "Kosongkan Data Akun CCTV",
         list_laptop: "Kosongkan Master Laptop",
         laptop_display: "Kosongkan List Laptop Display",
         inventaris: "Kosongkan List Inventaris",
@@ -602,7 +612,10 @@ function switchTab(tabName) {
 
             if (val === 'Anggota') {
                 if (serverContainer) serverContainer.classList.remove('hidden');
-                if (masaAktifContainer) masaAktifContainer.classList.add('hidden'); 
+                if (masaAktifContainer) masaAktifContainer.classList.add('hidden');
+                if (serverSelect) {
+                    refreshServerOptions();
+                }
                 
                 if (masaAktifInput) {
                     masaAktifInput.removeAttribute('required');
@@ -650,7 +663,7 @@ function switchTab(tabName) {
         }
 
         setTimeout(() => { if (tipeSelect) handleTipeAkunChange(); }, 50);
-        setTimeout(() => { refreshServerFilterOptions(); }, 60);
+        setTimeout(() => { refreshServerOptions(); }, 60);
     }
 
     if (tabName === 'log_penjualan') {
@@ -715,8 +728,11 @@ function switchTab(tabName) {
 
     const branchContainer = document.getElementById('branch-filter-container');
     if (branchContainer) {
-        const nonBranchTabs = ['list_laptop', 'laptop_display', 'inventaris', 'master_jasa', 'katalog_produk', 'log_penjualan'];
-        if (nonBranchTabs.includes(tabName) && !window.userBranch) {
+        const nonBranchTabs = ['master_jasa', 'katalog_produk'];
+        const canSelectBranch = canUserAccessBranchFilter();
+        const shouldShowBranchFilter = !nonBranchTabs.includes(tabName) && (!window.userBranch || canSelectBranch);
+
+        if (shouldShowBranchFilter) {
             branchContainer.classList.remove('hidden');
         } else {
             branchContainer.classList.add('hidden');
@@ -932,7 +948,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.role = 'admin';
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
-                    dashboard: true, services: true, penyewaan: true, cctv: true,
+                    dashboard: true, services: true, penyewaan: true, cctv: true, list_akun_cctv: true,
                     list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, katalog_produk: true, log_penjualan: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
                     export_excel: true, import_excel: true, edit_data: true, delete_data: true, cetak_nota: true, unduh_laporan: true
@@ -951,7 +967,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.role = 'teknisi';
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
-                    dashboard: false, services: false, penyewaan: false, cctv: false,
+                    dashboard: false, services: false, penyewaan: false, cctv: false, list_akun_cctv: false,
                     list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, katalog_produk: false, log_penjualan: false, list_office: false, user_management: false,
                     activity_logs: false, backup_database: false,
                     export_excel: false, import_excel: false, edit_data: true, delete_data: false
@@ -966,7 +982,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.role = 'admin';
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
-                    dashboard: true, services: true, penyewaan: true, cctv: true,
+                    dashboard: true, services: true, penyewaan: true, cctv: true, list_akun_cctv: true,
                     list_laptop: true, laptop_display: true, inventaris: true, master_jasa: true, katalog_produk: true, log_penjualan: true, list_office: true, user_management: true,
                     activity_logs: true, backup_database: true,
                     export_excel: true, import_excel: true, edit_data: true, delete_data: true, unduh_laporan: true
@@ -976,7 +992,7 @@ onAuthStateChanged(auth, async (user) => {
                 window.currentUser.role = 'teknisi';
                 window.currentUser.branch = 'Head Office';
                 window.currentUser.permissions = {
-                    dashboard: false, services: false, penyewaan: false, cctv: false,
+                    dashboard: false, services: false, penyewaan: false, cctv: false, list_akun_cctv: false,
                     list_laptop: true, laptop_display: true, inventaris: false, master_jasa: false, katalog_produk: false, log_penjualan: false, list_office: false, user_management: false,
                     activity_logs: false, backup_database: false,
                     export_excel: false, import_excel: false, edit_data: true, delete_data: false
@@ -1082,7 +1098,7 @@ function initApp() {
     switchTab(defaultTab);
     if (window.syncHamburgerIcon) window.syncHamburgerIcon();
 
-    const allnodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
+    const allnodes = ['services', 'penyewaan', 'cctv', 'list_akun_cctv', 'list_laptop', 'laptop_display', 'inventaris', 'riwayat_opname', 'master_jasa', 'katalog_produk', 'log_penjualan', 'list_office','user_management', 'activity_logs'];
     allnodes.forEach(node => {
         if (!db) return;
         
@@ -1115,7 +1131,7 @@ function initApp() {
         const isAdmin = (email === 'superadmin@wanasatria.com' || role === 'admin');
         const hasBranchRestriction = (branch && branch !== 'Head Office' && email !== 'superadmin@wanasatria.com');
 
-        const filterableNodes = ['services', 'penyewaan', 'cctv', 'list_laptop', 'laptop_display', 'inventaris', 'katalog_produk', 'log_penjualan'];
+        const filterableNodes = ['services', 'penyewaan', 'cctv', 'list_akun_cctv', 'list_laptop', 'laptop_display', 'inventaris', 'katalog_produk', 'log_penjualan'];
 
         if (filterableNodes.includes(node) && !isAdmin && hasBranchRestriction) {
             nodeRef = query(ref(db, node), orderByChild('cabang'), equalTo(branch));

@@ -102,12 +102,72 @@ export const fieldsTemplate = {
             <label class="block text-sm font-medium text-gray-700 mb-1">Tim Teknisi</label>
             <input type="text" name="tim_teknisi" placeholder="Contoh: Resky, Padli" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
-        <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Progres Kerja</label>
-            <input type="text" name="progres" value="Penarikan Kabel" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-        </div>
         <input type="hidden" name="status" value="Survei">
     `,
+    list_akun_cctv: `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
+            <select name="cabang" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none bg-white">
+                <option value="Head Office">Head Office</option>
+                <option value="Monumen Emmy Saelan">Monumen Emmy Saelan</option>
+                <option value="Perintis">Perintis</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan</label>
+            <input type="text" name="nama_pelanggan" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+            <input type="text" name="lokasi" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Perangkat</label>
+            <input type="text" name="perangkat" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <input type="text" name="username" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input type="text" name="password" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email Akun Online</label>
+            <input type="email" name="email" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password Email</label>
+            <input type="text" name="password_email" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Pola Unlock</label>
+            <div data-pattern-root class="space-y-2">
+                <input type="hidden" name="pola" value="">
+                <div class="grid grid-cols-3 gap-2 w-40 mx-auto">
+                    <button type="button" data-pattern-cell="1" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">1</button>
+                    <button type="button" data-pattern-cell="2" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">2</button>
+                    <button type="button" data-pattern-cell="3" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">3</button>
+                    <button type="button" data-pattern-cell="4" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">4</button>
+                    <button type="button" data-pattern-cell="5" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">5</button>
+                    <button type="button" data-pattern-cell="6" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">6</button>
+                    <button type="button" data-pattern-cell="7" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">7</button>
+                    <button type="button" data-pattern-cell="8" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">8</button>
+                    <button type="button" data-pattern-cell="9" onclick="window.toggleCctvPatternNode(this)" class="w-12 h-12 rounded-xl border text-sm font-bold transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-cyan-50 hover:border-cyan-300">9</button>
+                </div>
+                <div data-pattern-display class="text-center text-[11px] text-slate-500">Pilih urutan pola unlock</div>
+                <div class="text-center">
+                    <button type="button" onclick="window.resetCctvPattern(this)" class="text-[11px] text-slate-500 underline underline-offset-2">Reset pola</button>
+                </div>
+            </div>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+            <textarea name="catatan" rows="3" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"></textarea>
+        </div>
+    `,
+
     list_laptop: `
         <input type="hidden" name="jenis_unit" id="input-jenis-unit" value="Laptop">
 
@@ -458,6 +518,10 @@ export const fieldsTemplate = {
                         <span>CCTV</span>
                     </label>
                     <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                        <input type="checkbox" name="perm_list_akun_cctv" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
+                        <span>List Akun CCTV</span>
+                    </label>
+                    <label class="flex items-center space-x-2 p-1.5 hover:bg-white rounded cursor-pointer transition">
                         <input type="checkbox" name="perm_list_laptop" value="true" class="rounded text-cyan-600 border-gray-300 focus:ring-cyan-500">
                         <span>Unit Penyewaan</span>
                     </label>
@@ -615,6 +679,7 @@ export const tableHeaders = {
     services: ['ID', 'No. Referensi', 'Tanggal', 'Cabang', 'Pelanggan', 'No. WhatsApp', 'Perangkat', 'Teknisi', 'Status', 'Aksi'],
     penyewaan: ['ID', 'Tanggal', 'Cabang', 'Penyewa', 'No. WhatsApp', 'Unit & SN', 'Tanggal Sewa', 'Total Unit', 'Total Biaya', 'Status', 'Aksi'],
     cctv: ['ID', 'Tanggal Input', 'Tanggal Selesai', 'Cabang', 'Klien', 'Lokasi', 'Kamera', 'Tim Teknisi', 'Progres', 'Status', 'Aksi'],
+    list_akun_cctv: ['ID', 'Cabang', 'Nama Pelanggan', 'Lokasi', 'Perangkat', 'Username', 'Password', 'Email', 'Password Email', 'Pola', 'Catatan', 'Aksi'],
     list_laptop: ['ID', 'Jenis Unit', 'Tanggal Input', 'Cabang', 'Kode Toko', 'Merk', 'Tipe', 'Serial Number (SN)', 'Spesifikasi Teknik', 'Status', 'Catatan', 'Aksi'],
     laptop_display: ['ID', 'Kode', 'Tanggal Masuk', 'Tgl Selesai Cek', 'Cabang', 'Teknisi', 'Merk', 'Tipe Model', 'Serial Number (SN)', 'Spesifikasi Ringkas', 'Harga Jual', 'Status Display', 'Catatan', 'Aksi'],
     inventaris: ['ID', 'Tanggal', 'Cabang', 'Nama Barang', 'Kode SKU', 'Kategori', 'Stok', 'Satuan', 'Lokasi Rak', 'Kondisi', 'Catatan', 'Aksi'],
@@ -631,6 +696,7 @@ export const dataKeysMapping = {
     services: ['id', 'no_ref', 'tanggal', 'cabang', 'pelanggan', 'no_wa', 'perangkat', 'teknisi', 'status'],
     penyewaan: ['id', 'tanggal', 'cabang', 'penyewa', 'no_wa', 'unit', 'tgl_mulai', 'total_unit', 'total_biaya', 'status'],
     cctv: ['id', 'tanggal', 'tanggal_selesai', 'cabang', 'klien', 'lokasi', 'jumlah_cctv', 'tim_teknisi', 'progres', 'status'],
+    list_akun_cctv: ['id', 'cabang', 'nama_pelanggan', 'lokasi', 'perangkat', 'username', 'password', 'email', 'password_email', 'pola', 'catatan'],
     list_laptop: ['id', 'jenis_unit', 'tanggal', 'cabang', 'kode_toko', 'merk', 'tipe', 'sn', 'spek', 'status', 'catatan'],
     laptop_display: ['id', 'kode', 'tanggal', 'tgl_selesai_cek', 'cabang', 'teknisi', 'merk', 'tipe', 'sn', 'spek_singkat', 'harga_jual', 'status', 'catatan'],
     inventaris: ['id', 'tanggal', 'cabang', 'nama_barang', 'kode_barang', 'kategori', 'stok', 'satuan', 'lokasi_rak', 'kondisi', 'catatan'],
@@ -647,6 +713,7 @@ export const filterOptionsTemplate = {
     services: ['Antrean', 'Proses', 'Oper Vendor', 'Tunggu Konfirmasi', 'Selesai', 'Cancel'],
     penyewaan: ['Proses', 'Perpanjangan', 'Selesai', 'Dibatalkan'],
     cctv: ['Survei', 'Pengerjaan', 'Selesai'],
+    list_akun_cctv: [],
     list_laptop: ['Tersedia', 'Disewa', 'Maintenance', 'Terjual', 'Staf'],
     laptop_display: ['Ready', 'Terjual', 'Gudang'],
     inventaris: ['Baik', 'Rusak'],
