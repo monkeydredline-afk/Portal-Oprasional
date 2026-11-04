@@ -9,7 +9,7 @@
 import { parseDate } from './utils.js';
 
 // URL Web App Google Apps Script Anda
-const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbx3p0WWcrOGNHotVs98stDsJ4rRtn7Li0Qpv5Ht_bvVkH2mgtV7iWQnXMUU-iewzLieXw/exec";
+const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzVFY2PwXjVJuCFdup1ktrsqMDw9swqbRsewB7nA8INXppKICxgH7pK5iOoWAq-HsXWhA/exec";
 
 // URL Spreadsheet Master Baru Anda
 const URL_SPREADSHEET_MASTER = "https://docs.google.com/spreadsheets/d/1ylj4Gb6PV7iBRoaf6SVIukqllFV9UM1YFLDoUlKJmbk/edit";
